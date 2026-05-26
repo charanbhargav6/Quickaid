@@ -395,8 +395,9 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
                       'location_name': locCtrl.text.trim().isEmpty ? null : locCtrl.text.trim(),
                       'seeker_id': SupabaseService.currentUser!.id,
                     });
-                    if (!mounted) return;
+                    if (!ctx.mounted) return;
                     Navigator.pop(ctx);
+                    if (!mounted) return;
                     _loadData();
                   },
                   style: ElevatedButton.styleFrom(
@@ -439,9 +440,10 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
                 return;
               }
               await SupabaseService.updatePassword(passCtrl.text);
-              if (!mounted) return;
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password updated!')));
+              if (ctx.mounted) Navigator.pop(ctx);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password updated!')));
+              }
             },
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF97316)),
             child: const Text('Update', style: TextStyle(color: Colors.white)),

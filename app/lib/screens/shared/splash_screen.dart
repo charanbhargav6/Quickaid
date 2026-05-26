@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../main.dart';
+import '../../services/supabase_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -31,6 +32,25 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   Future<void> _redirect() async {
     await Future.delayed(const Duration(milliseconds: 2000));
     if (!mounted) return;
+
+    if (SupabaseService.isMockMode) {
+      final sessionUser = SupabaseService.currentUser;
+      if (sessionUser != null) {
+        final profile = await SupabaseService.getProfile(sessionUser.id);
+        if (!mounted) return;
+        final role = profile?['role'] as String? ?? 'seeker';
+        if (role == 'admin') {
+          Navigator.pushReplacementNamed(context, '/admin');
+        } else if (role == 'helper') {
+          Navigator.pushReplacementNamed(context, '/helper');
+        } else {
+          Navigator.pushReplacementNamed(context, '/seeker');
+        }
+      } else {
+        Navigator.pushReplacementNamed(context, '/login');
+      }
+      return;
+    }
 
     final session = Supabase.instance.client.auth.currentSession;
     if (session != null) {

@@ -40,9 +40,14 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
-      if (role == 'admin') Navigator.pushReplacementNamed(context, '/admin');
-      else if (role == 'helper') Navigator.pushReplacementNamed(context, '/helper');
-      else Navigator.pushReplacementNamed(context, '/seeker');
+      if (!mounted) return;
+      if (role == 'admin') {
+        Navigator.pushReplacementNamed(context, '/admin');
+      } else if (role == 'helper') {
+        Navigator.pushReplacementNamed(context, '/helper');
+      } else {
+        Navigator.pushReplacementNamed(context, '/seeker');
+      }
 
     } on AuthException catch (e) {
       setState(() { _error = e.message; _loading = false; });

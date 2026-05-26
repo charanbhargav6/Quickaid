@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'services/supabase_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
 import 'screens/seeker/seeker_dashboard.dart';
@@ -36,7 +37,7 @@ class AppTheme {
       secondary: primaryOrangeLight,
       surface: const Color(0xFF131D30),
     ),
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       color: const Color(0xFF131D30),
       elevation: 0,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -73,7 +74,7 @@ class AppTheme {
       secondary: primaryOrangeLight,
       surface: Colors.white,
     ),
-    cardTheme: CardTheme(
+    cardTheme: CardThemeData(
       color: Colors.white,
       elevation: 0,
       shape: RoundedRectangleBorder(
@@ -121,10 +122,21 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
 
-  await Supabase.initialize(
-    url: dotenv.env['SUPABASE_URL']!,
-    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
-  );
+  try {
+    final url = dotenv.env['SUPABASE_URL'] ?? '';
+    final anonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? '';
+    if (url.startsWith('http') && anonKey.isNotEmpty && url != 'YOUR_SUPABASE_URL') {
+      await Supabase.initialize(
+        url: url,
+        anonKey: anonKey,
+      );
+      SupabaseService.isMockMode = false;
+    } else {
+      SupabaseService.isMockMode = true;
+    }
+  } catch (_) {
+    SupabaseService.isMockMode = true;
+  }
 
   runApp(const QuickAidApp());
 }

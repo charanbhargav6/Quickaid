@@ -326,8 +326,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 return;
               }
               await SupabaseService.updatePassword(passCtrl.text);
-              if (mounted) {
+              if (ctx.mounted) {
                 Navigator.pop(ctx);
+              }
+              if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password updated!')));
               }
             },
