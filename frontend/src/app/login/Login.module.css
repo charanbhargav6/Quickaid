@@ -1,0 +1,89 @@
+.loginContainer {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at top right, rgba(249, 115, 22, 0.15), transparent 40%),
+              radial-gradient(circle at bottom left, rgba(29, 78, 216, 0.15), transparent 40%);
+  padding: 20px;
+}
+
+.loginCard {
+  width: 100%;
+  max-width: 420px;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.logoContainer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.logoIcon {
+  font-size: 40px;
+  color: var(--accent-orange);
+}
+
+.logoText {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.5px;
+}
+
+.orangeText {
+  color: var(--accent-orange);
+}
+
+.subtitle {
+  color: var(--text-secondary);
+  font-size: 16px;
+  margin-bottom: 32px;
+}
+
+.form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.inputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.inputGroup label {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.loginBtn {
+  margin-top: 12px;
+  width: 100%;
+  padding: 14px;
+  font-size: 16px;
+}
+
+.demoNotice {
+  margin-top: 24px;
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(249, 115, 22, 0.1);
+  border: 1px solid rgba(249, 115, 22, 0.2);
+  text-align: center;
+  width: 100%;
+}
+
+.demoNotice p {
+  color: var(--accent-orange);
+  font-size: 14px;
+  font-weight: 500;
+}
