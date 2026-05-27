@@ -106,10 +106,18 @@ class SupabaseService {
   }
 
   static Future<void> completeTask(String taskId, String status) async {
-    await client
-        .from('tasks')
-        .update({'status': status})
-        .eq('id', taskId);
+    // If completing the task successfully, we call the secure RPC to transfer funds and update status.
+    // Otherwise (e.g. cancelled), we just update the status.
+    if (status == 'completed') {
+      await client.rpc('transfer_funds', params: {'p_task_id': taskId});
+    } else {
+      await client.from('tasks').update({'status': status}).eq('id', taskId);
+    }
+  }
+
+  // ── WALLET (Demo Purposes) ───────────────────────────────
+  static Future<void> addDemoFunds(double amount) async {
+    await client.rpc('add_demo_funds', params: {'p_amount': amount});
   }
 
   // ── TRANSACTIONS ─────────────────────────────────────────

@@ -51,8 +51,7 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    final activeCount = _myTasks.where((t) => t['status'] == 'open' || t['status'] == 'accepted').length;
-    final completedCount = _myTasks.where((t) => t['status'] == 'completed').length;
+    final activeCount = _myTasks.where((t) => t['status'] != 'completed' && t['status'] != 'cancelled').length;
 
     return Scaffold(
       drawer: AppDrawer(user: _currentUser),
@@ -67,12 +66,42 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                // Stats
+                // Stats & Wallet
                 Row(
                   children: [
                     Expanded(child: _buildStatCard('Active Tasks', activeCount.toString(), Icons.pending_actions, Colors.orange)),
-                    const SizedBox(width: 16),
-                    Expanded(child: _buildStatCard('Completed', completedCount.toString(), Icons.task_alt, Colors.green)),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(colors: [Color(0xFF0F172A), Color(0xFF1E293B)]),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text('Wallet Balance', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                                IconButton(
+                                  padding: EdgeInsets.zero,
+                                  constraints: const BoxConstraints(),
+                                  icon: const Icon(Icons.add_circle, color: Colors.greenAccent, size: 20),
+                                  onPressed: () async {
+                                    await SupabaseService.addDemoFunds(500);
+                                    _loadData();
+                                  },
+                                )
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text('₹${_currentUser['wallet_balance'] ?? '0.0'}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white)),
+                          ],
+                        ),
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 24),
@@ -394,16 +423,17 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E)),
               onPressed: isUploading ? null : () async {
-                final pay = double.tryParse(payCtrl.text) ?? 0;
-                if (titleCtrl.text.isEmpty) {
-                  setStateDialog(() => errorText = 'Title is required');
+                final payAmount = double.tryParse(payCtrl.text) ?? 0.0;
+                if (payAmount < 50) {
+                  setStateDialog(() => errorText = 'Minimum pay is ₹50');
                   return;
                 }
-                if (pay < 50) {
-                  setStateDialog(() => errorText = 'Minimum pay is ₹50 to ensure fair compensation.');
+                final currentBalance = double.tryParse(_currentUser['wallet_balance']?.toString() ?? '0') ?? 0.0;
+                if (currentBalance < payAmount) {
+                  setStateDialog(() => errorText = 'Insufficient wallet balance. Please add funds.');
                   return;
                 }
-
+                
                 setStateDialog(() { isUploading = true; errorText = ''; });
                 
                 String finalDesc = descCtrl.text.isEmpty ? 'Needs help ASAP' : descCtrl.text;
@@ -421,7 +451,7 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
                   await SupabaseService.createTask({
                     'title': titleCtrl.text,
                     'description': finalDesc,
-                    'pay': pay,
+                    'pay': payAmount,
                     'category': 'other',
                     'location_name': 'Campus', // Kept for legacy
                     'latitude': selectedLocation.latitude,

@@ -70,7 +70,7 @@ class _HelperDashboardState extends State<HelperDashboard> {
     }
 
     final tasksDone = _myTasks.where((t) => t['status'] == 'completed').length;
-    final totalEarned = _myTasks.where((t) => t['status'] == 'completed').fold(0.0, (sum, t) => sum + (num.tryParse(t['pay']?.toString() ?? '0') ?? 0));
+    final totalEarned = double.tryParse(_currentUser['wallet_balance']?.toString() ?? '0') ?? 0.0;
 
     return Scaffold(
       drawer: AppDrawer(user: _currentUser),
@@ -130,7 +130,7 @@ class _HelperDashboardState extends State<HelperDashboard> {
             children: [
               Expanded(child: _buildStatCard('Tasks Done', done.toString(), Icons.task_alt, Colors.blue)),
               const SizedBox(width: 16),
-              Expanded(child: _buildStatCard('Earned', '₹${earned.toStringAsFixed(0)}', Icons.payments, Colors.green)),
+              Expanded(child: _buildStatCard('Wallet', '₹${earned.toStringAsFixed(0)}', Icons.account_balance_wallet, Colors.green)),
             ],
           ),
         ),
