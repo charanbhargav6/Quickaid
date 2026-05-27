@@ -9,7 +9,8 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 const NAV_ITEMS = [
   { icon: '📊', label: 'Dashboard', path: '/dashboard' },
-  { icon: '📋', label: 'My Tasks', path: '/tasks' },
+  { icon: '👥', label: 'Users', path: '/users' },
+  { icon: '📋', label: 'Tasks', path: '/tasks' },
   { icon: '📝', label: 'Post Task', path: '/tasks?action=create' },
   { icon: '📅', label: 'My Bookings', path: '/bookings' },
   { icon: '💰', label: 'Earnings', path: '/earnings' },

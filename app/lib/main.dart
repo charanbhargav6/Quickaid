@@ -7,6 +7,7 @@ import 'screens/seeker/seeker_dashboard.dart';
 import 'screens/helper/helper_dashboard.dart';
 import 'screens/admin/admin_dashboard.dart';
 import 'screens/shared/splash_screen.dart';
+import 'screens/shared/placeholder_screen.dart';
 
 // ── THEME CONTROLLER ─────────────────────────────────────
 class ThemeController extends ChangeNotifier {
@@ -132,7 +133,13 @@ class _QuickAidAppState extends State<QuickAidApp> {
         '/': (ctx) => const SplashScreen(),
         '/login': (ctx) => const LoginScreen(),
         '/register': (ctx) => const RegisterScreen(),
-        '/seeker': (ctx) => const SeekerDashboard(),
+        '/seeker': (context) => const SeekerDashboard(),
+        '/my_tasks': (context) => const PlaceholderScreen(title: 'My Tasks'),
+        '/post_task': (context) => const PlaceholderScreen(title: 'Post Task'),
+        '/earnings': (context) => const PlaceholderScreen(title: 'Earnings'),
+        '/messages': (context) => const PlaceholderScreen(title: 'Messages'),
+        '/notifications': (context) => const PlaceholderScreen(title: 'Notifications'),
+        '/settings': (context) => const PlaceholderScreen(title: 'Settings'),
         '/helper': (ctx) => const HelperDashboard(),
         '/admin': (ctx) => const AdminDashboard(),
       },

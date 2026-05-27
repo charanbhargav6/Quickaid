@@ -69,7 +69,7 @@ class SupabaseService {
   static Future<List<Map<String, dynamic>>> getOpenTasks() async {
     final res = await client
         .from('tasks')
-        .select('*, profiles!seeker_id(full_name, avatar_url, trust_score)')
+        .select('*, profiles!seeker_id(full_name, trust_score)')
         .eq('status', 'open')
         .order('created_at', ascending: false);
     return List<Map<String, dynamic>>.from(res);
@@ -87,7 +87,7 @@ class SupabaseService {
   static Future<List<Map<String, dynamic>>> getAcceptedTasks(String userId) async {
     final res = await client
         .from('tasks')
-        .select('*, profiles!seeker_id(full_name, avatar_url, trust_score)')
+        .select('*, profiles!seeker_id(full_name, trust_score)')
         .eq('helper_id', userId)
         .order('created_at', ascending: false);
     return List<Map<String, dynamic>>.from(res);

@@ -29,6 +29,13 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     _redirect();
   }
 
+  void _navigate(String route) {
+    if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) Navigator.pushReplacementNamed(context, route);
+    });
+  }
+
   Future<void> _redirect() async {
     await Future.delayed(const Duration(milliseconds: 2000));
     if (!mounted) return;
@@ -40,19 +47,17 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
         if (!mounted) return;
         final role = profile?['role'] as String? ?? 'seeker';
         if (role == 'admin') {
-          Navigator.pushReplacementNamed(context, '/admin');
+          _navigate('/admin');
         } else if (role == 'helper') {
-          Navigator.pushReplacementNamed(context, '/helper');
+          _navigate('/helper');
         } else {
-          Navigator.pushReplacementNamed(context, '/seeker');
+          _navigate('/seeker');
         }
       } catch (_) {
-        if (!mounted) return;
-        Navigator.pushReplacementNamed(context, '/login');
+        _navigate('/login');
       }
     } else {
-      if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/login');
+      _navigate('/login');
     }
   }
 
