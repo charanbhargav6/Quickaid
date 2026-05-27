@@ -8,6 +8,11 @@ import 'screens/helper/helper_dashboard.dart';
 import 'screens/admin/admin_dashboard.dart';
 import 'screens/shared/splash_screen.dart';
 import 'screens/shared/placeholder_screen.dart';
+import 'screens/shared/my_tasks_screen.dart';
+import 'screens/shared/earnings_screen.dart';
+import 'screens/shared/messages_screen.dart';
+import 'screens/shared/notifications_screen.dart';
+import 'screens/shared/settings_screen.dart';
 
 // ── THEME CONTROLLER ─────────────────────────────────────
 class ThemeController extends ChangeNotifier {
@@ -181,12 +186,12 @@ class _QuickAidAppState extends State<QuickAidApp> {
         '/login': (ctx) => const LoginScreen(),
         '/register': (ctx) => const RegisterScreen(),
         '/seeker': (context) => const SeekerDashboard(),
-        '/my_tasks': (context) => const PlaceholderScreen(title: 'My Tasks'),
-        '/post_task': (context) => const PlaceholderScreen(title: 'Post Task'),
-        '/earnings': (context) => const PlaceholderScreen(title: 'Earnings'),
-        '/messages': (context) => const PlaceholderScreen(title: 'Messages'),
-        '/notifications': (context) => const PlaceholderScreen(title: 'Notifications'),
-        '/settings': (context) => const PlaceholderScreen(title: 'Settings'),
+        '/my_tasks': (context) => const MyTasksScreen(),
+        '/post_task': (context) => const SeekerDashboard(), // Handled by dashboard
+        '/earnings': (context) => const EarningsScreen(),
+        '/messages': (context) => const MessagesScreen(),
+        '/notifications': (context) => const NotificationsScreen(),
+        '/settings': (context) => const SettingsScreen(),
         '/helper': (ctx) => const HelperDashboard(),
         '/admin': (ctx) => const AdminDashboard(),
       },

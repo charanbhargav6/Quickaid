@@ -1,4 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class NewDeviceException implements Exception {}
 
 class SupabaseService {
   static SupabaseClient get client => Supabase.instance.client;
@@ -24,11 +27,47 @@ class SupabaseService {
     }
   }
 
+  static Future<String> getDeviceId() async {
+    final prefs = await SharedPreferences.getInstance();
+    String? deviceId = prefs.getString('device_id');
+    if (deviceId == null) {
+      deviceId = DateTime.now().millisecondsSinceEpoch.toString() + '_' + (1000 + DateTime.now().microsecond).toString();
+      await prefs.setString('device_id', deviceId);
+    }
+    return deviceId;
+  }
+
   static Future<AuthResponse> signIn({
     required String email,
     required String password,
   }) async {
-    return await auth.signInWithPassword(email: email, password: password);
+    final res = await auth.signInWithPassword(email: email, password: password);
+    
+    // Check device logic
+    if (res.user != null) {
+      final deviceId = await getDeviceId();
+      final deviceCheck = await client.from('user_devices')
+          .select()
+          .eq('user_id', res.user!.id)
+          .eq('device_id', deviceId)
+          .maybeSingle();
+
+      if (deviceCheck == null) {
+        // Unrecognized device -> force OTP
+        await auth.signOut();
+        await auth.signInWithOtp(email: email);
+        throw NewDeviceException();
+      } else {
+        // Recognized device -> update last login
+        await client.rpc('log_device_login', params: {'p_device_id': deviceId});
+        
+        // Save verification timestamp for 30-day relogin check
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setInt('last_verified_at', DateTime.now().millisecondsSinceEpoch);
+      }
+    }
+    
+    return res;
   }
 
   static Future<void> signOut() async {

@@ -41,6 +41,7 @@ dependencies:
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
   url_launcher: ^6.3.2
+  device_info_plus: ^13.1.0
 
 dev_dependencies:
   flutter_test:

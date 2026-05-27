@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../main.dart';
 import '../../services/supabase_service.dart';
 
@@ -43,6 +44,23 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     final session = Supabase.instance.client.auth.currentSession;
     if (session != null) {
       try {
+        // Enforce 30-day relogin rule
+        final prefs = await SharedPreferences.getInstance();
+        final lastVerified = prefs.getInt('last_verified_at');
+        if (lastVerified == null) {
+          await SupabaseService.signOut();
+          _navigate('/login');
+          return;
+        }
+        
+        final lastDate = DateTime.fromMillisecondsSinceEpoch(lastVerified);
+        final diff = DateTime.now().difference(lastDate).inDays;
+        if (diff >= 30) {
+          await SupabaseService.signOut();
+          _navigate('/login');
+          return;
+        }
+
         final profile = await SupabaseService.getProfile(session.user.id);
         if (!mounted) return;
         final role = profile?['role'] as String? ?? 'seeker';

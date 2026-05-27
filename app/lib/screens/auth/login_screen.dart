@@ -50,6 +50,15 @@ class _LoginScreenState extends State<LoginScreen> {
         Navigator.pushReplacementNamed(context, '/seeker');
       }
 
+    } on NewDeviceException {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('New device detected! Please enter the OTP sent to your email to verify this device.')),
+      );
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => OtpScreen(email: _emailCtrl.text.trim(), isNewDevice: true)),
+      );
     } on AuthException catch (e) {
       setState(() { _error = e.message; _loading = false; });
     } catch (e) {

@@ -5,7 +5,8 @@ import '../../widgets/gradient_button.dart';
 
 class OtpScreen extends StatefulWidget {
   final String email;
-  const OtpScreen({super.key, required this.email});
+  final bool isNewDevice;
+  const OtpScreen({super.key, required this.email, this.isNewDevice = false});
 
   @override
   State<OtpScreen> createState() => _OtpScreenState();
@@ -21,8 +22,13 @@ class _OtpScreenState extends State<OtpScreen> {
     final otp = _otpCtrl.text.trim();
     final newPass = _newPassCtrl.text;
     
-    if (otp.isEmpty || newPass.length < 6) {
-      setState(() => _error = 'Enter a valid OTP and a new password (min 6 chars)');
+    if (otp.isEmpty) {
+      setState(() => _error = 'Enter a valid OTP');
+      return;
+    }
+    
+    if (!widget.isNewDevice && newPass.length < 6) {
+      setState(() => _error = 'Enter a new password (min 6 chars)');
       return;
     }
 
@@ -31,16 +37,37 @@ class _OtpScreenState extends State<OtpScreen> {
       final res = await SupabaseService.auth.verifyOTP(
         email: widget.email,
         token: otp,
-        type: OtpType.recovery,
+        type: widget.isNewDevice ? OtpType.magiclink : OtpType.recovery,
       );
       
       if (res.session != null) {
-        await SupabaseService.updatePassword(newPass);
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Password changed successfully!')),
-        );
-        Navigator.pushReplacementNamed(context, '/login');
+        if (!widget.isNewDevice) {
+          await SupabaseService.updatePassword(newPass);
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Password changed successfully!')),
+          );
+          Navigator.pushReplacementNamed(context, '/login');
+        } else {
+          // New device login successful
+          final deviceId = await SupabaseService.getDeviceId();
+          await SupabaseService.client.rpc('log_device_login', params: {'p_device_id': deviceId});
+          
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Device verified successfully!')),
+          );
+          
+          final profile = await SupabaseService.getProfile(res.user!.id);
+          final role = profile?['role'] ?? 'seeker';
+          if (role == 'admin') {
+            Navigator.pushReplacementNamed(context, '/admin');
+          } else if (role == 'helper') {
+            Navigator.pushReplacementNamed(context, '/helper');
+          } else {
+            Navigator.pushReplacementNamed(context, '/seeker');
+          }
+        }
       } else {
         setState(() => _error = 'Invalid or expired OTP');
       }
@@ -57,7 +84,7 @@ class _OtpScreenState extends State<OtpScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Reset Password'),
+        title: Text(widget.isNewDevice ? 'Verify Device' : 'Reset Password'),
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
@@ -84,26 +111,29 @@ class _OtpScreenState extends State<OtpScreen> {
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _newPassCtrl,
-              obscureText: true,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                hintText: 'New Password',
-                hintStyle: const TextStyle(color: Colors.white30),
-                filled: true,
-                fillColor: Colors.white.withValues(alpha: 0.05),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+
+            if (!widget.isNewDevice) ...[
+              const SizedBox(height: 16),
+              TextField(
+                controller: _newPassCtrl,
+                obscureText: true,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'New Password',
+                  hintStyle: const TextStyle(color: Colors.white30),
+                  filled: true,
+                  fillColor: Colors.white.withValues(alpha: 0.05),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
               ),
-            ),
+            ],
             if (_error != null) ...[
               const SizedBox(height: 16),
               Text(_error!, style: const TextStyle(color: Colors.red)),
             ],
             const SizedBox(height: 24),
             GradientButton(
-              label: 'Verify & Change Password',
+              label: widget.isNewDevice ? 'Verify & Login' : 'Verify & Change Password',
               onPressed: _loading ? () {} : () => _verifyOtpAndReset(),
               loading: _loading,
             ),
