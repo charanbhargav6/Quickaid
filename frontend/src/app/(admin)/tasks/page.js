@@ -1,90 +1,107 @@
 'use client';
-import { useState, useEffect } from 'next';
-import { supabase } from '@/lib/supabase';
-import styles from './Tasks.module.css';
+import { useEffect, useState } from 'react';
+import { createClient } from '@supabase/supabase-js';
 
-export default function Tasks() {
-  const [filter, setFilter] = useState('All');
+const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+
+export default function TasksPage() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+  const [filterStatus, setFilterStatus] = useState('all');
+
   useEffect(() => {
-    async function fetchTasks() {
-      const { data, error } = await supabase
-        .from('tasks')
-        .select('*');
-      
-      if (!error && data) {
-        const formattedData = data.map(task => ({
-          id: task.id || 'N/A',
-          title: task.title || 'Untitled Task',
-          desc: task.description || task.desc || 'No description',
-          seeker: task.seeker_name || 'Unknown',
-          helper: task.helper_name || 'Unassigned',
-          status: task.status || 'Open',
-          amount: task.budget || task.amount || 0,
-          date: task.created_at ? new Date(task.created_at).toLocaleDateString() : 'Unknown'
-        }));
-        setTasks(formattedData);
-      }
-      setLoading(false);
-    }
     fetchTasks();
   }, []);
 
-  const filteredTasks = filter === 'All' ? tasks : tasks.filter(t => t.status === filter);
+  async function fetchTasks() {
+    try {
+      const { data } = await supabase
+        .from('tasks')
+        .select(`
+          *,
+          seeker:profiles!seeker_id(full_name, email),
+          helper:profiles!helper_id(full_name, email)
+        `)
+        .order('created_at', { ascending: false });
+      setTasks(data || []);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const filteredTasks = tasks.filter(t => filterStatus === 'all' || t.status === filterStatus);
+
+  const getStatusBadge = (status) => {
+    switch(status) {
+      case 'completed': return <span className="badge badge-green">Completed</span>;
+      case 'accepted': return <span className="badge badge-blue">In Progress</span>;
+      case 'cancelled': return <span className="badge badge-red">Cancelled</span>;
+      default: return <span className="badge badge-gray">Open</span>;
+    }
+  };
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header}>
-        <h1 className="page-title">Task Management</h1>
-        <div className={styles.filters}>
-          {['All', 'Open', 'In Progress', 'Completed'].map(f => (
-            <button 
-              key={f} 
-              className={`${styles.filterBtn} ${filter === f ? styles.activeFilter : ''}`}
-              onClick={() => setFilter(f)}
-            >
-              {f}
-            </button>
-          ))}
+    <div style={{ padding: '24px 32px', maxWidth: '1200px', margin: '0 auto' }}>
+      <header className="section-header" style={{ marginBottom: '24px' }}>
+        <div>
+          <h1 style={{ fontSize: '24px', fontWeight: 800 }}>Platform Tasks</h1>
+          <p style={{ color: 'var(--text-secondary)' }}>View and monitor all tasks across the platform</p>
         </div>
-      </div>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <select className="input" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
+            <option value="all">All Status</option>
+            <option value="open">Open</option>
+            <option value="accepted">In Progress</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+          <button className="btn btn-primary" onClick={fetchTasks}>↻ Refresh</button>
+        </div>
+      </header>
 
-      <div className={styles.grid}>
-        {filteredTasks.map(task => (
-          <div key={task.id} className={`${styles.taskCard} glass-panel`}>
-            <div className={styles.cardHeader}>
-              <span className={styles.taskId}>{task.id}</span>
-              <span className={`${styles.badge} ${styles[task.status.replace(' ', '')]}`}>
-                {task.status}
-              </span>
-            </div>
-            
-            <h3 className={styles.title}>{task.title}</h3>
-            <p className={styles.desc}>{task.desc}</p>
-            
-            <div className={styles.details}>
-              <div className={styles.detailRow}>
-                <span className={styles.label}>Seeker:</span>
-                <span className={styles.value}>{task.seeker}</span>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '20px' }}>
+        {loading ? (
+          <p style={{ color: 'var(--text-muted)' }}>Loading tasks...</p>
+        ) : filteredTasks.length === 0 ? (
+          <p style={{ color: 'var(--text-muted)' }}>No tasks found.</p>
+        ) : (
+          filteredTasks.map(task => (
+            <div key={task.id} className="card" style={{ padding: '20px', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                <span className="badge badge-orange">{task.category || 'General'}</span>
+                {getStatusBadge(task.status)}
               </div>
-              <div className={styles.detailRow}>
-                <span className={styles.label}>Helper:</span>
-                <span className={styles.value}>{task.helper}</span>
+              <h3 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '8px' }}>{task.title}</h3>
+              <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '16px', flex: 1 }}>
+                {task.description || 'No description provided.'}
+              </p>
+              
+              <div style={{ background: 'var(--slate-50)', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '13px' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>📍 Location:</span>
+                  <span style={{ fontWeight: 600 }}>{task.location_name || 'Campus'}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>💰 Pay:</span>
+                  <span style={{ fontWeight: 700, color: 'var(--green-600)' }}>₹{task.pay}</span>
+                </div>
               </div>
-              <div className={styles.detailRow}>
-                <span className={styles.label}>Date:</span>
-                <span className={styles.value}>{task.date}</span>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', borderTop: '1px solid var(--border)', paddingTop: '12px' }}>
+                <div>
+                  <span style={{ color: 'var(--text-muted)' }}>Posted by: </span><br/>
+                  <strong>{task.seeker?.full_name || 'Unknown'}</strong>
+                </div>
+                {task.helper_id && (
+                  <div style={{ textAlign: 'right' }}>
+                    <span style={{ color: 'var(--text-muted)' }}>Helper: </span><br/>
+                    <strong>{task.helper?.full_name || 'Unknown'}</strong>
+                  </div>
+                )}
               </div>
             </div>
-            
-            <div className={styles.footer}>
-              <span className={styles.amount}>${task.amount}</span>
-              <button className="btn-secondary">View Details</button>
-            </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );

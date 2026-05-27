@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../main.dart';
 import '../../services/supabase_service.dart';
+import '../shared/app_drawer.dart';
 
 class AdminDashboard extends StatefulWidget {
   const AdminDashboard({super.key});
@@ -10,11 +10,11 @@ class AdminDashboard extends StatefulWidget {
 }
 
 class _AdminDashboardState extends State<AdminDashboard> {
-  int _currentIndex = 0;
-  Map<String, dynamic>? _profile;
-  List<Map<String, dynamic>> _allUsers = [];
-  List<Map<String, dynamic>> _allTasks = [];
   bool _loading = true;
+  List<Map<String, dynamic>> _users = [];
+  List<Map<String, dynamic>> _tasks = [];
+  Map<String, dynamic> _currentUser = {};
+  int _activeTab = 0; // 0: Overview, 1: Users, 2: Tasks
 
   @override
   void initState() {
@@ -23,321 +23,299 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 
   Future<void> _loadData() async {
-    final userId = SupabaseService.currentUser?.id;
-    if (userId == null) return;
-
-    final profile = await SupabaseService.getProfile(userId);
-    List<Map<String, dynamic>> users = [];
-    List<Map<String, dynamic>> tasks = [];
-
+    setState(() => _loading = true);
     try {
-      users = await SupabaseService.getAllProfiles();
-      tasks = await SupabaseService.getOpenTasks();
-    } catch (_) {}
-
-    if (mounted) {
-      setState(() {
-        _profile = profile;
-        _allUsers = users;
-        _allTasks = tasks;
-        _loading = false;
-      });
+      final user = SupabaseService.currentUser;
+      if (user != null) {
+        final profile = await SupabaseService.getProfile(user.id);
+        if (profile != null) _currentUser = profile;
+      }
+      _users = await SupabaseService.getAllProfiles();
+      _tasks = await SupabaseService.getOpenTasks(); // We can fetch all tasks, but getOpenTasks is fine for now
+    } catch (e) {
+      debugPrint('Error loading admin data: $e');
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
-  Future<void> _logout() async {
-    await SupabaseService.signOut();
-    if (mounted) Navigator.pushReplacementNamed(context, '/login');
+  Future<void> _toggleSuspend(String userId, bool currentStatus) async {
+    await SupabaseService.setSuspendStatus(userId, !currentStatus);
+    _loadData();
+  }
+
+  Future<void> _changeRole(String userId, String newRole) async {
+    await SupabaseService.changeRole(userId, newRole);
+    _loadData();
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surfaceColor = isDark ? const Color(0xFF131D30) : Colors.white;
-    final textColor = isDark ? Colors.white : const Color(0xFF0F172A);
+    if (_loading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    final totalUsers = _users.length;
+    final totalTasks = _tasks.length;
+    final activeHelpers = _users.where((u) => u['role'] == 'helper').length;
+    final double totalEarnings = _users.fold(0.0, (sum, u) => sum + (num.tryParse(u['total_earnings']?.toString() ?? '0') ?? 0));
 
     return Scaffold(
-      body: SafeArea(
-        child: _loading
-            ? const Center(child: CircularProgressIndicator(color: Color(0xFFF97316)))
-            : IndexedStack(
-                index: _currentIndex,
-                children: [
-                  _buildOverview(isDark, surfaceColor, textColor),
-                  _buildUsers(isDark, surfaceColor, textColor),
-                  _buildSettings(isDark, surfaceColor, textColor),
-                ],
-              ),
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (i) => setState(() => _currentIndex = i),
-        indicatorColor: const Color(0xFFF97316).withValues(alpha: 0.15),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.dashboard_rounded), label: 'Overview'),
-          NavigationDestination(icon: Icon(Icons.people_rounded), label: 'Users'),
-          NavigationDestination(icon: Icon(Icons.settings_rounded), label: 'Settings'),
+      drawer: AppDrawer(user: _currentUser),
+      appBar: AppBar(
+        title: const Text('Admin Dashboard'),
+        actions: [
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
         ],
       ),
-    );
-  }
-
-  Widget _buildOverview(bool isDark, Color surfaceColor, Color textColor) {
-    final totalUsers = _allUsers.length;
-    final activeHelpers = _allUsers.where((u) => u['role'] == 'helper' || u['role'] == 'both').length;
-    final openTasks = _allTasks.length;
-    final suspended = _allUsers.where((u) => u['is_suspended'] == true).length;
-
-    return RefreshIndicator(
-      color: const Color(0xFFF97316),
-      onRefresh: _loadData,
-      child: ListView(
-        padding: const EdgeInsets.all(20),
+      body: Column(
         children: [
-          Row(children: [
-            Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                const Text('Admin Panel', style: TextStyle(color: Color(0xFFF97316), fontSize: 13, fontWeight: FontWeight.w700)),
-                const SizedBox(height: 4),
-                Text('Welcome, ${_profile?['full_name']?.split(' ')[0] ?? 'Admin'}',
-                  style: TextStyle(color: textColor, fontSize: 24, fontWeight: FontWeight.w800),
-                ),
-              ]),
-            ),
-            IconButton(
-              icon: Icon(isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined, color: textColor.withValues(alpha: 0.5)),
-              onPressed: () => themeController.toggleTheme(),
-            ),
-          ]),
-          const SizedBox(height: 24),
-
-          // Stats Grid
-          Row(children: [
-            _statCard('Total Users', totalUsers.toString(), Icons.people_rounded, const Color(0xFF6366F1), surfaceColor, textColor),
-            const SizedBox(width: 12),
-            _statCard('Active Helpers', activeHelpers.toString(), Icons.handshake_rounded, const Color(0xFF10B981), surfaceColor, textColor),
-          ]),
-          const SizedBox(height: 12),
-          Row(children: [
-            _statCard('Open Tasks', openTasks.toString(), Icons.task_rounded, const Color(0xFFF97316), surfaceColor, textColor),
-            const SizedBox(width: 12),
-            _statCard('Suspended', suspended.toString(), Icons.block_rounded, const Color(0xFFEF4444), surfaceColor, textColor),
-          ]),
-          const SizedBox(height: 28),
-
-          // Platform Health
+          // Custom Tab Bar
           Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)]),
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [BoxShadow(color: const Color(0xFF6366F1).withValues(alpha: 0.3), blurRadius: 20, offset: const Offset(0, 8))],
+            color: Colors.white,
+            child: Row(
+              children: [
+                _buildTab('Overview', 0),
+                _buildTab('Users', 1),
+                _buildTab('Tasks', 2),
+              ],
             ),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              const Text('Platform Health', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 12),
-              _healthRow('Database', 'Connected', Colors.green),
-              _healthRow('Realtime', 'Active', Colors.green),
-              _healthRow('Auth', 'Operational', Colors.green),
-            ]),
+          ),
+          Expanded(
+            child: _activeTab == 0
+                ? _buildOverviewTab(totalUsers, totalTasks, activeHelpers, totalEarnings)
+                : _activeTab == 1
+                    ? _buildUsersTab()
+                    : _buildTasksTab(),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildUsers(bool isDark, Color surfaceColor, Color textColor) {
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        Text('User Management', style: TextStyle(color: textColor, fontSize: 24, fontWeight: FontWeight.w800)),
-        const SizedBox(height: 6),
-        Text('${_allUsers.length} registered users', style: TextStyle(color: textColor.withValues(alpha: 0.5), fontSize: 13)),
-        const SizedBox(height: 20),
-        ..._allUsers.map((user) => _userCard(user, surfaceColor, textColor)),
-      ],
-    );
-  }
-
-  Widget _buildSettings(bool isDark, Color surfaceColor, Color textColor) {
-    return ListView(
-      padding: const EdgeInsets.all(20),
-      children: [
-        Text('Admin Settings', style: TextStyle(color: textColor, fontSize: 24, fontWeight: FontWeight.w800)),
-        const SizedBox(height: 24),
-        _settingsTile('Change Password', Icons.lock_reset_rounded, surfaceColor, textColor, onTap: _showChangePasswordDialog),
-        const SizedBox(height: 10),
-        _settingsTile('Toggle Theme', isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined, surfaceColor, textColor,
-          onTap: () => themeController.toggleTheme(),
-        ),
-        const SizedBox(height: 10),
-        _settingsTile('Logout', Icons.logout_rounded, surfaceColor, Colors.red, onTap: _logout),
-      ],
-    );
-  }
-
-  Widget _statCard(String label, String value, IconData icon, Color accent, Color bg, Color textColor) {
+  Widget _buildTab(String title, int index) {
+    final isActive = _activeTab == index;
     return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(16)),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: accent.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
-            child: Icon(icon, color: accent, size: 22),
-          ),
-          const SizedBox(height: 14),
-          Text(value, style: TextStyle(color: textColor, fontSize: 24, fontWeight: FontWeight.w800)),
-          const SizedBox(height: 2),
-          Text(label, style: TextStyle(color: textColor.withValues(alpha: 0.5), fontSize: 12)),
-        ]),
-      ),
-    );
-  }
-
-  Widget _healthRow(String service, String status, Color color) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(children: [
-        Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-        const SizedBox(width: 10),
-        Text(service, style: const TextStyle(color: Colors.white70, fontSize: 14)),
-        const Spacer(),
-        Text(status, style: TextStyle(color: color, fontSize: 13, fontWeight: FontWeight.w600)),
-      ]),
-    );
-  }
-
-  Widget _userCard(Map<String, dynamic> user, Color bg, Color textColor) {
-    final isSuspended = user['is_suspended'] == true;
-    final roleColors = {
-      'admin': const Color(0xFFEF4444), 'helper': const Color(0xFF6366F1),
-      'seeker': const Color(0xFF10B981), 'both': const Color(0xFFF97316),
-    };
-    final role = user['role'] ?? 'seeker';
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(14),
-        border: isSuspended ? Border.all(color: Colors.red.withValues(alpha: 0.3)) : null,
-      ),
-      child: Row(children: [
-        CircleAvatar(
-          radius: 22,
-          backgroundColor: (roleColors[role] ?? Colors.grey).withValues(alpha: 0.2),
-          child: Text(
-            (user['full_name'] ?? 'U')[0].toUpperCase(),
-            style: TextStyle(color: roleColors[role] ?? Colors.grey, fontWeight: FontWeight.bold, fontSize: 18),
-          ),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              Text(user['full_name'] ?? 'Unknown', style: TextStyle(color: textColor, fontWeight: FontWeight.w600, fontSize: 15)),
-              if (isSuspended) ...[
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(4)),
-                  child: const Text('SUSPENDED', style: TextStyle(color: Colors.red, fontSize: 8, fontWeight: FontWeight.w700)),
-                ),
-              ],
-            ]),
-            const SizedBox(height: 2),
-            Text('${role.toUpperCase()} · Trust: ${user['trust_score'] ?? '?'}%',
-              style: TextStyle(color: textColor.withValues(alpha: 0.5), fontSize: 12),
+      child: InkWell(
+        onTap: () => setState(() => _activeTab = index),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: isActive ? const Color(0xFF22C55E) : Colors.transparent,
+                width: 3,
+              ),
             ),
-          ]),
+          ),
+          child: Text(
+            title,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+              color: isActive ? const Color(0xFF1E293B) : const Color(0xFF64748B),
+            ),
+          ),
         ),
-        PopupMenuButton<String>(
-          icon: Icon(Icons.more_vert_rounded, color: textColor.withValues(alpha: 0.4)),
-          onSelected: (action) async {
-            switch (action) {
-              case 'suspend':
-                await SupabaseService.setSuspendStatus(user['id'], !isSuspended);
-                _loadData();
-                break;
-              case 'make_admin':
-                await SupabaseService.changeRole(user['id'], 'admin');
-                _loadData();
-                break;
-              case 'make_helper':
-                await SupabaseService.changeRole(user['id'], 'helper');
-                _loadData();
-                break;
-              case 'make_seeker':
-                await SupabaseService.changeRole(user['id'], 'seeker');
-                _loadData();
-                break;
-            }
-          },
-          itemBuilder: (ctx) => [
-            PopupMenuItem(value: 'suspend', child: Text(isSuspended ? 'Unsuspend' : 'Suspend')),
-            const PopupMenuItem(value: 'make_admin', child: Text('Make Admin')),
-            const PopupMenuItem(value: 'make_helper', child: Text('Make Helper')),
-            const PopupMenuItem(value: 'make_seeker', child: Text('Make Seeker')),
+      ),
+    );
+  }
+
+  Widget _buildOverviewTab(int users, int tasks, int helpers, double earnings) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Row(
+          children: [
+            Expanded(child: _buildStatCard('Total Users', users.toString(), Icons.people, Colors.blue)),
+            const SizedBox(width: 16),
+            Expanded(child: _buildStatCard('Open Tasks', tasks.toString(), Icons.task, Colors.orange)),
           ],
         ),
-      ]),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(child: _buildStatCard('Active Helpers', helpers.toString(), Icons.engineering, Colors.purple)),
+            const SizedBox(width: 16),
+            Expanded(child: _buildStatCard('Earnings', '₹${earnings.toStringAsFixed(0)}', Icons.attach_money, Colors.green)),
+          ],
+        ),
+      ],
     );
   }
 
-  Widget _settingsTile(String label, IconData icon, Color bg, Color textColor, {VoidCallback? onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(14)),
-        child: Row(children: [
-          Icon(icon, color: textColor == Colors.red ? Colors.red : const Color(0xFFF97316), size: 22),
-          const SizedBox(width: 14),
-          Expanded(child: Text(label, style: TextStyle(color: textColor, fontSize: 15, fontWeight: FontWeight.w600))),
-          Icon(Icons.chevron_right_rounded, color: textColor.withValues(alpha: 0.3)),
-        ]),
+  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+              child: Icon(icon, color: color),
+            ),
+            const SizedBox(height: 16),
+            Text(title, style: const TextStyle(color: Color(0xFF64748B), fontSize: 12, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 4),
+            Text(value, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF1E293B))),
+          ],
+        ),
       ),
     );
   }
 
-  void _showChangePasswordDialog() {
-    final passCtrl = TextEditingController();
-    final confirmCtrl = TextEditingController();
+  Widget _buildUsersTab() {
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: _users.length,
+      itemBuilder: (ctx, i) {
+        final u = _users[i];
+        final isSuspended = u['is_suspended'] == true;
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          child: ListTile(
+            leading: CircleAvatar(
+              backgroundColor: const Color(0xFFDCFCE7),
+              child: Text((u['full_name'] ?? 'U')[0], style: const TextStyle(color: Color(0xFF15803D))),
+            ),
+            title: Text(u['full_name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text('${u['email']}\nRole: ${u['role']}'),
+            isThreeLine: true,
+            trailing: PopupMenuButton<String>(
+              onSelected: (val) {
+                if (val == 'suspend') {
+                  _toggleSuspend(u['id'], isSuspended);
+                } else if (val.startsWith('role_')) {
+                  _changeRole(u['id'], val.split('_')[1]);
+                }
+              },
+              itemBuilder: (ctx) => [
+                PopupMenuItem(value: 'suspend', child: Text(isSuspended ? 'Unsuspend' : 'Suspend')),
+                const PopupMenuItem(value: 'role_seeker', child: Text('Make Seeker')),
+                const PopupMenuItem(value: 'role_helper', child: Text('Make Helper')),
+                const PopupMenuItem(value: 'role_admin', child: Text('Make Admin')),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
+  Widget _buildTasksTab() {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: ElevatedButton.icon(
+            icon: const Icon(Icons.add, color: Colors.white),
+            label: const Text('Post New Task', style: TextStyle(color: Colors.white)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF22C55E),
+              minimumSize: const Size.fromHeight(50),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: _showCreateTaskDialog,
+          ),
+        ),
+        Expanded(
+          child: _tasks.isEmpty
+              ? const Center(child: Text('No open tasks right now.'))
+              : ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: _tasks.length,
+                  itemBuilder: (ctx, i) {
+                    final t = _tasks[i];
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(color: const Color(0xFFFFF7ED), borderRadius: BorderRadius.circular(4)),
+                                  child: Text(t['category'] ?? 'General', style: const TextStyle(color: Color(0xFFEA580C), fontSize: 12, fontWeight: FontWeight.bold)),
+                                ),
+                                Text('₹${t['pay']}', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF22C55E), fontSize: 16)),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Text(t['title'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                            const SizedBox(height: 4),
+                            Text(t['description'] ?? '', style: const TextStyle(color: Color(0xFF64748B), fontSize: 14)),
+                            const SizedBox(height: 12),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: () => _acceptTask(t['id']),
+                                    child: const Text('Accept as Helper'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+
+  void _showCreateTaskDialog() {
+    final titleCtrl = TextEditingController();
+    final payCtrl = TextEditingController();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Change Password'),
-        content: Column(mainAxisSize: MainAxisSize.min, children: [
-          TextField(controller: passCtrl, obscureText: true, decoration: const InputDecoration(hintText: 'New Password')),
-          const SizedBox(height: 12),
-          TextField(controller: confirmCtrl, obscureText: true, decoration: const InputDecoration(hintText: 'Confirm Password')),
-        ]),
+        title: const Text('Create Task'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: titleCtrl, decoration: const InputDecoration(labelText: 'Task Title')),
+            const SizedBox(height: 12),
+            TextField(controller: payCtrl, decoration: const InputDecoration(labelText: 'Pay (₹)'), keyboardType: TextInputType.number),
+          ],
+        ),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           ElevatedButton(
             onPressed: () async {
-              if (passCtrl.text.length < 6 || passCtrl.text != confirmCtrl.text) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Passwords must match and be 6+ chars')));
-                return;
-              }
-              await SupabaseService.updatePassword(passCtrl.text);
-              if (ctx.mounted) {
-                Navigator.pop(ctx);
-              }
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password updated!')));
+              if (titleCtrl.text.isNotEmpty && payCtrl.text.isNotEmpty) {
+                await SupabaseService.createTask({
+                  'title': titleCtrl.text,
+                  'description': 'Task created by admin',
+                  'category': 'Others',
+                  'pay': double.tryParse(payCtrl.text) ?? 0,
+                  'location_name': 'Campus',
+                  'seeker_id': _currentUser['id'],
+                });
+                if (context.mounted) Navigator.pop(ctx);
+                _loadData();
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF97316)),
-            child: const Text('Update', style: TextStyle(color: Colors.white)),
+            child: const Text('Create'),
           ),
         ],
       ),
     );
+  }
+
+  Future<void> _acceptTask(String taskId) async {
+    await SupabaseService.acceptTask(taskId, _currentUser['id']);
+    _loadData();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Task accepted successfully')));
+    }
   }
 }

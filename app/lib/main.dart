@@ -10,7 +10,7 @@ import 'screens/shared/splash_screen.dart';
 
 // ── THEME CONTROLLER ─────────────────────────────────────
 class ThemeController extends ChangeNotifier {
-  ThemeMode _themeMode = ThemeMode.dark;
+  ThemeMode _themeMode = ThemeMode.light;
   ThemeMode get themeMode => _themeMode;
 
   void toggleTheme() {
@@ -23,96 +23,73 @@ final themeController = ThemeController();
 
 // ── THEME DEFINITIONS ─────────────────────────────────────
 class AppTheme {
-  static const primaryOrange = Color(0xFFF97316);
-  static const primaryOrangeLight = Color(0xFFFB923C);
-
-  static ThemeData get dark => ThemeData(
-    useMaterial3: true,
-    brightness: Brightness.dark,
-    scaffoldBackgroundColor: const Color(0xFF0C1220),
-    primaryColor: primaryOrange,
-    colorScheme: ColorScheme.dark(
-      primary: primaryOrange,
-      secondary: primaryOrangeLight,
-      surface: const Color(0xFF131D30),
-    ),
-    cardTheme: CardThemeData(
-      color: const Color(0xFF131D30),
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-    ),
-    appBarTheme: const AppBarTheme(
-      backgroundColor: Color(0xFF0C1220),
-      elevation: 0,
-      iconTheme: IconThemeData(color: Colors.white),
-      titleTextStyle: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
-    ),
-    inputDecorationTheme: InputDecorationTheme(
-      filled: true,
-      fillColor: const Color(0xFF131D30),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
-      ),
-      hintStyle: TextStyle(color: Colors.white38),
-    ),
-    textTheme: const TextTheme(
-      bodyLarge: TextStyle(color: Colors.white),
-      bodyMedium: TextStyle(color: Colors.white70),
-    ),
-    fontFamily: 'Inter',
-  );
+  static const primaryGreen = Color(0xFF22C55E);
+  static const primaryGreenDark = Color(0xFF16A34A);
+  static const bgLight = Color(0xFFF8FAFC);
+  static const textPrimary = Color(0xFF1E293B);
+  static const textSecondary = Color(0xFF64748B);
 
   static ThemeData get light => ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,
-    scaffoldBackgroundColor: const Color(0xFFF8FAFC),
-    primaryColor: primaryOrange,
-    colorScheme: ColorScheme.light(
-      primary: primaryOrange,
-      secondary: primaryOrangeLight,
+    scaffoldBackgroundColor: bgLight,
+    primaryColor: primaryGreen,
+    colorScheme: const ColorScheme.light(
+      primary: primaryGreen,
+      secondary: primaryGreenDark,
       surface: Colors.white,
     ),
     cardTheme: CardThemeData(
       color: Colors.white,
       elevation: 0,
+      margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         side: const BorderSide(color: Color(0xFFE2E8F0)),
       ),
     ),
     appBarTheme: const AppBarTheme(
-      backgroundColor: Color(0xFFF8FAFC),
+      backgroundColor: bgLight,
       elevation: 0,
-      iconTheme: IconThemeData(color: Color(0xFF0F172A)),
-      titleTextStyle: TextStyle(color: Color(0xFF0F172A), fontSize: 20, fontWeight: FontWeight.bold),
+      iconTheme: IconThemeData(color: textPrimary),
+      titleTextStyle: TextStyle(color: textPrimary, fontSize: 18, fontWeight: FontWeight.bold),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: const Color(0xFFEEF2FF),
+      fillColor: Colors.white,
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
       ),
-      hintStyle: TextStyle(color: Colors.black38),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: primaryGreen, width: 2),
+      ),
+      hintStyle: const TextStyle(color: textSecondary),
     ),
     textTheme: const TextTheme(
-      bodyLarge: TextStyle(color: Color(0xFF0F172A)),
-      bodyMedium: TextStyle(color: Color(0xFF475569)),
+      bodyLarge: TextStyle(color: textPrimary),
+      bodyMedium: TextStyle(color: textSecondary),
     ),
     fontFamily: 'Inter',
   );
 
+  static ThemeData get dark => light; // Force light mode for professional dashboard
+
   static LinearGradient get primaryGradient => const LinearGradient(
-    colors: [Color(0xFFF97316), Color(0xFFEA580C)],
+    colors: [Color(0xFF22C55E), Color(0xFF16A34A)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
-
-  static LinearGradient get cardGradientDark => const LinearGradient(
-    colors: [Color(0xFF1E293B), Color(0xFF131D30)],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
+  
+  static LinearGradient get sidebarGradient => const LinearGradient(
+    colors: [Color(0xFF166534), Color(0xFF15803D), Color(0xFF14532D)],
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
   );
 }
 
