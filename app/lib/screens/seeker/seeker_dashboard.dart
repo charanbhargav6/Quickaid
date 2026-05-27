@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
 import '../shared/app_drawer.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'dart:typed_data';
 
 class SeekerDashboard extends StatefulWidget {
   const SeekerDashboard({super.key});
@@ -158,7 +161,14 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
             const SizedBox(height: 8),
             Text(task['title'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 4),
-            Text(task['description'] ?? '', style: const TextStyle(color: Color(0xFF64748B), fontSize: 14)),
+            Text(_parseDescription(task['description'] ?? ''), style: const TextStyle(color: Color(0xFF64748B), fontSize: 14)),
+            if (_extractImageUrl(task['description']) != null) ...[
+              const SizedBox(height: 12),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(_extractImageUrl(task['description'])!, height: 150, width: double.infinity, fit: BoxFit.cover),
+              ),
+            ],
             if (task['helper'] != null) ...[
               const SizedBox(height: 12),
               Container(
@@ -187,42 +197,126 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
     );
   }
 
+  String _parseDescription(String? desc) {
+    if (desc == null) return '';
+    final idx = desc.indexOf('\n\n[IMAGE:');
+    if (idx != -1) return desc.substring(0, idx);
+    return desc;
+  }
+
+  String? _extractImageUrl(String? desc) {
+    if (desc == null) return null;
+    final idx = desc.indexOf('\n\n[IMAGE:');
+    if (idx != -1) {
+      final end = desc.indexOf(']', idx);
+      if (end != -1) return desc.substring(idx + 10, end);
+    }
+    return null;
+  }
+
   void _showCreateTaskDialog() {
     final titleCtrl = TextEditingController();
+    final descCtrl = TextEditingController();
     final payCtrl = TextEditingController();
+    XFile? pickedFile;
+    Uint8List? fileBytes;
+    bool isUploading = false;
+    String errorText = '';
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Post New Task', style: TextStyle(fontWeight: FontWeight.bold)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(controller: titleCtrl, decoration: const InputDecoration(labelText: 'Task Title')),
-            const SizedBox(height: 12),
-            TextField(controller: payCtrl, decoration: const InputDecoration(labelText: 'Pay (₹)'), keyboardType: TextInputType.number),
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setStateDialog) => AlertDialog(
+          title: const Text('Post New Task', style: TextStyle(fontWeight: FontWeight.bold)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextField(controller: titleCtrl, decoration: const InputDecoration(labelText: 'Task Title (e.g. Move Luggage)')),
+                const SizedBox(height: 12),
+                TextField(controller: descCtrl, decoration: const InputDecoration(labelText: 'Description (Optional)')),
+                const SizedBox(height: 12),
+                TextField(controller: payCtrl, decoration: const InputDecoration(labelText: 'Pay (₹) - Min ₹50'), keyboardType: TextInputType.number),
+                const SizedBox(height: 16),
+                
+                OutlinedButton.icon(
+                  icon: const Icon(Icons.camera_alt),
+                  label: Text(pickedFile == null ? 'Attach Photo (Optional)' : 'Photo Selected'),
+                  onPressed: () async {
+                    final picker = ImagePicker();
+                    final xfile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+                    if (xfile != null) {
+                      final bytes = await xfile.readAsBytes();
+                      setStateDialog(() {
+                        pickedFile = xfile;
+                        fileBytes = bytes;
+                      });
+                    }
+                  },
+                ),
+                
+                if (errorText.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text(errorText, style: const TextStyle(color: Colors.red, fontSize: 12)),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            if (!isUploading) TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: Colors.grey))),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E)),
+              onPressed: isUploading ? null : () async {
+                final pay = double.tryParse(payCtrl.text) ?? 0;
+                if (titleCtrl.text.isEmpty) {
+                  setStateDialog(() => errorText = 'Title is required');
+                  return;
+                }
+                if (pay < 50) {
+                  setStateDialog(() => errorText = 'Minimum pay is ₹50 to ensure fair compensation.');
+                  return;
+                }
+
+                setStateDialog(() { isUploading = true; errorText = ''; });
+                
+                String finalDesc = descCtrl.text.isEmpty ? 'Needs help ASAP' : descCtrl.text;
+                
+                try {
+                  if (fileBytes != null) {
+                    final fileName = '${DateTime.now().millisecondsSinceEpoch}_${pickedFile!.name}';
+                    await Supabase.instance.client.storage
+                        .from('task_images')
+                        .uploadBinary(fileName, fileBytes!);
+                    final imageUrl = Supabase.instance.client.storage.from('task_images').getPublicUrl(fileName);
+                    finalDesc += '\n\n[IMAGE:$imageUrl]';
+                  }
+
+                  await SupabaseService.createTask({
+                    'title': titleCtrl.text,
+                    'description': finalDesc,
+                    'category': 'Others',
+                    'pay': pay,
+                    'location_name': 'Campus',
+                    'seeker_id': _currentUser['id'],
+                  });
+                  
+                  if (context.mounted) Navigator.pop(ctx);
+                  _loadData();
+                } catch (e) {
+                  setStateDialog(() {
+                    isUploading = false;
+                    errorText = 'Failed to post task: $e';
+                  });
+                }
+              },
+              child: isUploading 
+                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                : const Text('Post Task', style: TextStyle(color: Colors.white)),
+            ),
           ],
         ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: Colors.grey))),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E)),
-            onPressed: () async {
-              if (titleCtrl.text.isNotEmpty && payCtrl.text.isNotEmpty) {
-                await SupabaseService.createTask({
-                  'title': titleCtrl.text,
-                  'description': 'Needs help ASAP',
-                  'category': 'Others',
-                  'pay': double.tryParse(payCtrl.text) ?? 0,
-                  'location_name': 'Campus',
-                  'seeker_id': _currentUser['id'],
-                });
-                if (context.mounted) Navigator.pop(ctx);
-                _loadData();
-              }
-            },
-            child: const Text('Post Task', style: TextStyle(color: Colors.white)),
-          ),
-        ],
       ),
     );
   }

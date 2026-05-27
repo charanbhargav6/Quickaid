@@ -182,7 +182,27 @@ class _HelperDashboardState extends State<HelperDashboard> {
     );
   }
 
+  String _parseDescription(String? desc) {
+    if (desc == null) return '';
+    final idx = desc.indexOf('\n\n[IMAGE:');
+    if (idx != -1) return desc.substring(0, idx);
+    return desc;
+  }
+
+  String? _extractImageUrl(String? desc) {
+    if (desc == null) return null;
+    final idx = desc.indexOf('\n\n[IMAGE:');
+    if (idx != -1) {
+      final end = desc.indexOf(']', idx);
+      if (end != -1) return desc.substring(idx + 10, end);
+    }
+    return null;
+  }
+
   Widget _buildOpenTaskCard(Map<String, dynamic> task) {
+    final seeker = task['profiles'] ?? task['seeker'];
+    final trustScore = seeker != null ? seeker['trust_score'] : null;
+    
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
@@ -204,7 +224,50 @@ class _HelperDashboardState extends State<HelperDashboard> {
             const SizedBox(height: 8),
             Text(task['title'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 4),
-            Text(task['description'] ?? '', style: const TextStyle(color: Color(0xFF64748B), fontSize: 14)),
+            Text(_parseDescription(task['description'] ?? ''), style: const TextStyle(color: Color(0xFF64748B), fontSize: 14)),
+            
+            if (_extractImageUrl(task['description']) != null) ...[
+              const SizedBox(height: 12),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(_extractImageUrl(task['description'])!, height: 150, width: double.infinity, fit: BoxFit.cover),
+              ),
+            ],
+            
+            if (seeker != null) ...[
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0xFFE2E8F0))),
+                child: Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 14,
+                      backgroundColor: const Color(0xFFDCFCE7),
+                      child: Text((seeker['full_name'] ?? 'U')[0], style: const TextStyle(color: Color(0xFF15803D), fontSize: 12, fontWeight: FontWeight.bold)),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Posted by ${seeker['full_name'] ?? 'Unknown'}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                          if (trustScore != null)
+                            Row(
+                              children: [
+                                const Icon(Icons.verified, size: 12, color: Colors.blue),
+                                const SizedBox(width: 4),
+                                Text('Trust Score: $trustScore', style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                              ],
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
             const SizedBox(height: 16),
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E), minimumSize: const Size.fromHeight(40)),
@@ -241,6 +304,15 @@ class _HelperDashboardState extends State<HelperDashboard> {
             Text(task['title'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 4),
             Text('For: ${task['seeker']?['full_name'] ?? 'Unknown'}', style: const TextStyle(color: Color(0xFF64748B), fontSize: 14)),
+            
+            if (_extractImageUrl(task['description']) != null) ...[
+              const SizedBox(height: 12),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.network(_extractImageUrl(task['description'])!, height: 150, width: double.infinity, fit: BoxFit.cover),
+              ),
+            ],
+
             if (!isCompleted) ...[
               const SizedBox(height: 16),
               OutlinedButton(

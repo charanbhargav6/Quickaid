@@ -54,22 +54,23 @@ class AppDrawer extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                   children: [
                     _DrawerItem(icon: Icons.dashboard_outlined, label: 'Dashboard', active: true, onTap: () {
+                      Navigator.pop(context);
                       if (role == 'admin') Navigator.pushReplacementNamed(context, '/admin');
                       else if (role == 'helper') Navigator.pushReplacementNamed(context, '/helper');
                       else Navigator.pushReplacementNamed(context, '/seeker');
                     }),
-                    _DrawerItem(icon: Icons.task_alt, label: 'My Tasks', onTap: () => Navigator.pushReplacementNamed(context, '/my_tasks')),
+                    _DrawerItem(icon: Icons.task_alt, label: 'My Tasks', onTap: () { Navigator.pop(context); Navigator.pushReplacementNamed(context, '/my_tasks'); }),
                     if (role == 'seeker' || role == 'admin')
-                      _DrawerItem(icon: Icons.add_box_outlined, label: 'Post Task', onTap: () => Navigator.pushReplacementNamed(context, '/post_task')),
+                      _DrawerItem(icon: Icons.add_box_outlined, label: 'Post Task', onTap: () { Navigator.pop(context); Navigator.pushReplacementNamed(context, '/post_task'); }),
                     if (role == 'helper' || role == 'admin')
-                      _DrawerItem(icon: Icons.account_balance_wallet_outlined, label: 'Earnings', onTap: () => Navigator.pushReplacementNamed(context, '/earnings')),
-                    _DrawerItem(icon: Icons.message_outlined, label: 'Messages', badge: 3, onTap: () => Navigator.pushReplacementNamed(context, '/messages')),
-                    _DrawerItem(icon: Icons.notifications_none, label: 'Notifications', badge: 2, onTap: () => Navigator.pushReplacementNamed(context, '/notifications')),
+                      _DrawerItem(icon: Icons.account_balance_wallet_outlined, label: 'Earnings', onTap: () { Navigator.pop(context); Navigator.pushReplacementNamed(context, '/earnings'); }),
+                    _DrawerItem(icon: Icons.message_outlined, label: 'Messages', badge: 3, onTap: () { Navigator.pop(context); Navigator.pushReplacementNamed(context, '/messages'); }),
+                    _DrawerItem(icon: Icons.notifications_none, label: 'Notifications', badge: 2, onTap: () { Navigator.pop(context); Navigator.pushReplacementNamed(context, '/notifications'); }),
                     const Padding(
                       padding: EdgeInsets.symmetric(vertical: 8),
                       child: Divider(color: Colors.white24, height: 1),
                     ),
-                    _DrawerItem(icon: Icons.settings_outlined, label: 'Settings', onTap: () => Navigator.pushReplacementNamed(context, '/settings')),
+                    _DrawerItem(icon: Icons.settings_outlined, label: 'Settings', onTap: () { Navigator.pop(context); Navigator.pushReplacementNamed(context, '/settings'); }),
                   ],
                 ),
               ),
