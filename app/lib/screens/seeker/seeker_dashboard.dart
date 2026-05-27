@@ -3,6 +3,8 @@ import '../../services/supabase_service.dart';
 import '../shared/app_drawer.dart';
 import '../shared/chat_screen.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:typed_data';
 
@@ -306,6 +308,7 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
     Uint8List? fileBytes;
     bool isUploading = false;
     String errorText = '';
+    LatLng selectedLocation = const LatLng(12.9692, 79.1559); // Default VIT Campus
 
     showDialog(
       context: context,
@@ -324,7 +327,45 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
                 const SizedBox(height: 12),
                 TextField(controller: payCtrl, decoration: const InputDecoration(labelText: 'Pay (₹) - Min ₹50'), keyboardType: TextInputType.number),
                 const SizedBox(height: 16),
-                
+                const Text('Task Location', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                const SizedBox(height: 4),
+                SizedBox(
+                  height: 150,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: FlutterMap(
+                      options: MapOptions(
+                        initialCenter: selectedLocation,
+                        initialZoom: 15.0,
+                        onTap: (tapPosition, point) {
+                          setStateDialog(() {
+                            selectedLocation = point;
+                          });
+                        },
+                      ),
+                      children: [
+                        TileLayer(
+                          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          userAgentPackageName: 'com.example.app',
+                        ),
+                        MarkerLayer(
+                          markers: [
+                            Marker(
+                              point: selectedLocation,
+                              width: 40,
+                              height: 40,
+                              child: const Icon(Icons.location_on, color: Colors.red, size: 40),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const Padding(
+                  padding: EdgeInsets.only(top: 4, bottom: 16),
+                  child: Text('Tap map to drop pin', style: TextStyle(fontSize: 10, color: Colors.grey), textAlign: TextAlign.center),
+                ),
                 OutlinedButton.icon(
                   icon: const Icon(Icons.camera_alt),
                   label: Text(pickedFile == null ? 'Attach Photo (Optional)' : 'Photo Selected'),
@@ -380,9 +421,11 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
                   await SupabaseService.createTask({
                     'title': titleCtrl.text,
                     'description': finalDesc,
-                    'category': 'Others',
                     'pay': pay,
-                    'location_name': 'Campus',
+                    'category': 'other',
+                    'location_name': 'Campus', // Kept for legacy
+                    'latitude': selectedLocation.latitude,
+                    'longitude': selectedLocation.longitude,
                     'seeker_id': _currentUser['id'],
                   });
                   

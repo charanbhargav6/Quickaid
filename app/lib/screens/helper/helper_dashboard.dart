@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
 import '../shared/app_drawer.dart';
 import '../shared/chat_screen.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 
 class HelperDashboard extends StatefulWidget {
   const HelperDashboard({super.key});
@@ -15,6 +17,7 @@ class _HelperDashboardState extends State<HelperDashboard> {
   List<Map<String, dynamic>> _openTasks = [];
   List<Map<String, dynamic>> _myTasks = [];
   Map<String, dynamic> _currentUser = {};
+  bool _showMap = false;
   int _activeTab = 0; // 0: Feed, 1: My Jobs
 
   @override
@@ -119,28 +122,94 @@ class _HelperDashboardState extends State<HelperDashboard> {
   }
 
   Widget _buildFeedTab(int done, double earned) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
+    return Column(
       children: [
-        Row(
-          children: [
-            Expanded(child: _buildStatCard('Tasks Done', done.toString(), Icons.task_alt, Colors.blue)),
-            const SizedBox(width: 16),
-            Expanded(child: _buildStatCard('Earned', '₹${earned.toStringAsFixed(0)}', Icons.payments, Colors.green)),
-          ],
+        Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Expanded(child: _buildStatCard('Tasks Done', done.toString(), Icons.task_alt, Colors.blue)),
+              const SizedBox(width: 16),
+              Expanded(child: _buildStatCard('Earned', '₹${earned.toStringAsFixed(0)}', Icons.payments, Colors.green)),
+            ],
+          ),
         ),
-        const SizedBox(height: 24),
-        const Text('Available Tasks Near You', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 12),
-        if (_openTasks.isEmpty)
-          Container(
-            padding: const EdgeInsets.all(32),
-            alignment: Alignment.center,
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE2E8F0))),
-            child: const Text('No open tasks right now.', style: TextStyle(color: Color(0xFF64748B))),
-          )
-        else
-          ..._openTasks.map((t) => _buildOpenTaskCard(t)),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Available Tasks Near You', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              IconButton(
+                icon: Icon(_showMap ? Icons.list : Icons.map, color: const Color(0xFF22C55E)),
+                onPressed: () => setState(() => _showMap = !_showMap),
+                tooltip: _showMap ? 'List View' : 'Map View',
+              ),
+            ],
+          ),
+        ),
+        Expanded(
+          child: _showMap ? _buildMapView() : ListView(
+            padding: const EdgeInsets.all(16),
+            children: _openTasks.isEmpty
+                ? [
+                    Container(
+                      padding: const EdgeInsets.all(32),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE2E8F0))),
+                      child: const Text('No open tasks right now.', style: TextStyle(color: Color(0xFF64748B))),
+                    )
+                  ]
+                : _openTasks.map((t) => _buildOpenTaskCard(t)).toList(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMapView() {
+    if (_openTasks.isEmpty) {
+      return const Center(child: Text('No open tasks to display on map.'));
+    }
+
+    final markers = _openTasks.where((t) => t['latitude'] != null && t['longitude'] != null).map((t) {
+      return Marker(
+        point: LatLng(t['latitude'].toDouble(), t['longitude'].toDouble()),
+        width: 60,
+        height: 60,
+        child: GestureDetector(
+          onTap: () {
+            // Show modal bottom sheet with task details when marker is tapped
+            showModalBottomSheet(
+              context: context,
+              backgroundColor: Colors.transparent,
+              builder: (ctx) => Container(
+                margin: const EdgeInsets.all(16),
+                child: _buildOpenTaskCard(t),
+              ),
+            );
+          },
+          child: const Column(
+            children: [
+              Icon(Icons.location_on, color: Color(0xFF22C55E), size: 40),
+              Text('Task', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black, backgroundColor: Colors.white)),
+            ],
+          ),
+        ),
+      );
+    }).toList();
+
+    return FlutterMap(
+      options: const MapOptions(
+        initialCenter: LatLng(12.9692, 79.1559), // Default VIT
+        initialZoom: 14.0,
+      ),
+      children: [
+        TileLayer(
+          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          userAgentPackageName: 'com.example.app',
+        ),
+        MarkerLayer(markers: markers),
       ],
     );
   }
