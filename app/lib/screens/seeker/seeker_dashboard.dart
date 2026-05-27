@@ -89,10 +89,7 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
                                   padding: EdgeInsets.zero,
                                   constraints: const BoxConstraints(),
                                   icon: const Icon(Icons.add_circle, color: Colors.greenAccent, size: 20),
-                                  onPressed: () async {
-                                    await SupabaseService.addDemoFunds(500);
-                                    _loadData();
-                                  },
+                                  onPressed: _showAddFundsDialog,
                                 )
                               ],
                             ),
@@ -329,6 +326,46 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
     );
   }
 
+  void _showAddFundsDialog() {
+    final amountCtrl = TextEditingController(text: '500');
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Add Funds (Demo)'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Enter amount to add to your wallet (Max ₹500 per transaction):'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: amountCtrl,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Amount (₹)', border: OutlineInputBorder()),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E)),
+            onPressed: () async {
+              final amount = double.tryParse(amountCtrl.text) ?? 0.0;
+              if (amount <= 0 || amount > 500) {
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a valid amount up to ₹500')));
+                return;
+              }
+              Navigator.pop(ctx);
+              await SupabaseService.addDemoFunds(amount);
+              _loadData();
+              if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('₹$amount added to wallet!')));
+            },
+            child: const Text('Add Funds', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showCreateTaskDialog() {
     final titleCtrl = TextEditingController();
     final descCtrl = TextEditingController();
@@ -423,6 +460,10 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
             ElevatedButton(
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E)),
               onPressed: isUploading ? null : () async {
+                if (titleCtrl.text.trim().isEmpty) {
+                  setStateDialog(() => errorText = 'Task Title is required');
+                  return;
+                }
                 final payAmount = double.tryParse(payCtrl.text) ?? 0.0;
                 if (payAmount < 50) {
                   setStateDialog(() => errorText = 'Minimum pay is ₹50');
@@ -466,6 +507,7 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
                     isUploading = false;
                     errorText = 'Failed to post task: $e';
                   });
+                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to post task: $e'), backgroundColor: Colors.red));
                 }
               },
               child: isUploading 
