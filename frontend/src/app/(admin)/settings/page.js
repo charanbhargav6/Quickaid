@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'next';
+import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import styles from './Settings.module.css';
 

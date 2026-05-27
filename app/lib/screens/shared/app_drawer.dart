@@ -55,9 +55,13 @@ class AppDrawer extends StatelessWidget {
                   children: [
                     _DrawerItem(icon: Icons.dashboard_outlined, label: 'Dashboard', active: true, onTap: () {
                       Navigator.pop(context);
-                      if (role == 'admin') Navigator.pushReplacementNamed(context, '/admin');
-                      else if (role == 'helper') Navigator.pushReplacementNamed(context, '/helper');
-                      else Navigator.pushReplacementNamed(context, '/seeker');
+                      if (role == 'admin') {
+                        Navigator.pushReplacementNamed(context, '/admin');
+                      } else if (role == 'helper') {
+                        Navigator.pushReplacementNamed(context, '/helper');
+                      } else {
+                        Navigator.pushReplacementNamed(context, '/seeker');
+                      }
                     }),
                     _DrawerItem(icon: Icons.task_alt, label: 'My Tasks', onTap: () { Navigator.pop(context); Navigator.pushReplacementNamed(context, '/my_tasks'); }),
                     if (role == 'seeker' || role == 'admin')

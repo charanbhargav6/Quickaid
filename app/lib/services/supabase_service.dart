@@ -144,4 +144,32 @@ class SupabaseService {
         .update({'role': role})
         .eq('id', userId);
   }
+
+  // ── REVIEWS & RATINGS ──────────────────────────────────────
+  static Future<void> submitReview({
+    required String taskId,
+    required String revieweeId,
+    required int rating,
+    String? comment,
+  }) async {
+    final user = currentUser;
+    if (user == null) throw Exception('Not authenticated');
+
+    await client.from('reviews').insert({
+      'task_id': taskId,
+      'reviewer_id': user.id,
+      'reviewee_id': revieweeId,
+      'rating': rating,
+      'comment': comment,
+    });
+  }
+
+  static Future<List<Map<String, dynamic>>> getReviews(String userId) async {
+    final res = await client
+        .from('reviews')
+        .select('*, reviewer:profiles!reviewer_id(full_name)')
+        .eq('reviewee_id', userId)
+        .order('created_at', ascending: false);
+    return List<Map<String, dynamic>>.from(res);
+  }
 }

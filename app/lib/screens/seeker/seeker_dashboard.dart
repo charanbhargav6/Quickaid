@@ -187,6 +187,11 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
                         ],
                       ),
                     ),
+                    if (status == 'completed')
+                      OutlinedButton(
+                        onPressed: () => _showReviewDialog(task['id'], task['helper_id'], task['helper']['full_name']),
+                        child: const Text('Rate Helper'),
+                      ),
                   ],
                 ),
               ),
@@ -212,6 +217,67 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
       if (end != -1) return desc.substring(idx + 10, end);
     }
     return null;
+  }
+
+  void _showReviewDialog(String taskId, String revieweeId, String? name) {
+    int rating = 5;
+    final commentCtrl = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setStateDialog) => AlertDialog(
+          title: Text('Rate $name'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('How was your experience?', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(5, (index) {
+                  return IconButton(
+                    icon: Icon(
+                      index < rating ? Icons.star : Icons.star_border,
+                      color: Colors.amber,
+                      size: 36,
+                    ),
+                    onPressed: () => setStateDialog(() => rating = index + 1),
+                  );
+                }),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: commentCtrl,
+                decoration: const InputDecoration(labelText: 'Comment (Optional)', border: OutlineInputBorder()),
+                maxLines: 2,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E)),
+              onPressed: () async {
+                try {
+                  await SupabaseService.submitReview(
+                    taskId: taskId,
+                    revieweeId: revieweeId,
+                    rating: rating,
+                    comment: commentCtrl.text,
+                  );
+                  if (context.mounted) Navigator.pop(ctx);
+                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Review submitted!')));
+                } catch (e) {
+                  if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                }
+              },
+              child: const Text('Submit', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showCreateTaskDialog() {
