@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
 import '../shared/app_drawer.dart';
+import '../shared/chat_screen.dart';
 
 class HelperDashboard extends StatefulWidget {
   const HelperDashboard({super.key});
@@ -315,10 +316,36 @@ class _HelperDashboardState extends State<HelperDashboard> {
 
             if (!isCompleted) ...[
               const SizedBox(height: 16),
-              OutlinedButton(
-                style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(40)),
-                onPressed: () => _completeTask(task['id']),
-                child: const Text('Mark as Done'),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(40)),
+                      onPressed: () => _completeTask(task['id']),
+                      child: const Text('Mark as Done'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(40)),
+                      icon: const Icon(Icons.chat, size: 16),
+                      label: const Text('Chat'),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (ctx) => ChatScreen(
+                              taskId: task['id'],
+                              otherUserName: task['seeker']?['full_name'] ?? 'Seeker',
+                              taskTitle: task['title'],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
             ] else ...[
               const SizedBox(height: 16),

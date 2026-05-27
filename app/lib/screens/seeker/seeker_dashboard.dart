@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
 import '../shared/app_drawer.dart';
+import '../shared/chat_screen.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:typed_data';
@@ -191,6 +192,23 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
                       OutlinedButton(
                         onPressed: () => _showReviewDialog(task['id'], task['helper_id'], task['helper']['full_name']),
                         child: const Text('Rate Helper'),
+                      )
+                    else if (status == 'accepted')
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.chat, size: 16),
+                        label: const Text('Chat'),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (ctx) => ChatScreen(
+                                taskId: task['id'],
+                                otherUserName: task['helper']['full_name'] ?? 'Helper',
+                                taskTitle: task['title'],
+                              ),
+                            ),
+                          );
+                        },
                       ),
                   ],
                 ),
