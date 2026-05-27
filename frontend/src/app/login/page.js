@@ -1,18 +1,32 @@
 'use client';
 import { useState } from 'next';
 import { useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 import styles from './Login.module.css';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    // Mock login logic
-    console.log('Logging in with', email, password);
-    router.push('/dashboard');
+    setLoading(true);
+    setError(null);
+    
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    
+    if (error) {
+      setError(error.message);
+      setLoading(false);
+    } else {
+      router.push('/dashboard');
+    }
   };
 
   return (
@@ -23,6 +37,8 @@ export default function Login() {
           <h1 className={styles.logoText}>Quick<span className={styles.orangeText}>Aid</span></h1>
         </div>
         <p className={styles.subtitle}>Admin Portal</p>
+        
+        {error && <div className={styles.errorMessage} style={{ color: 'red', marginBottom: '1rem', textAlign: 'center' }}>{error}</div>}
         
         <form onSubmit={handleLogin} className={styles.form}>
           <div className={styles.inputGroup}>
@@ -49,14 +65,10 @@ export default function Login() {
             />
           </div>
 
-          <button type="submit" className={`btn-primary ${styles.loginBtn}`}>
-            Sign In
+          <button type="submit" className={`btn-primary ${styles.loginBtn}`} disabled={loading}>
+            {loading ? 'Signing In...' : 'Sign In'}
           </button>
         </form>
-
-        <div className={styles.demoNotice}>
-          <p>Demo Mode: Any credentials will work.</p>
-        </div>
       </div>
     </div>
   );

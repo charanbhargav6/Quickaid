@@ -1,18 +1,36 @@
 'use client';
-import { useState } from 'next';
+import { useState, useEffect } from 'next';
+import { supabase } from '@/lib/supabase';
 import styles from './Users.module.css';
 
 export default function Users() {
   const [search, setSearch] = useState('');
-  
-  // Mock data
-  const users = [
-    { id: 'usr_1', name: 'Alice Johnson', email: 'alice@university.edu', role: 'Seeker', status: 'Active', joined: '2023-09-12' },
-    { id: 'usr_2', name: 'Bob Miller', email: 'bob.m@university.edu', role: 'Helper', status: 'Active', joined: '2023-09-15' },
-    { id: 'usr_3', name: 'Charlie Davis', email: 'cdavis@university.edu', role: 'Both', status: 'Suspended', joined: '2023-10-02' },
-    { id: 'usr_4', name: 'Diana Prince', email: 'diana@university.edu', role: 'Seeker', status: 'Active', joined: '2023-10-18' },
-    { id: 'usr_5', name: 'Evan Wright', email: 'ewright@university.edu', role: 'Helper', status: 'Active', joined: '2023-11-05' },
-  ];
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchUsers() {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*');
+      
+      if (!error && data) {
+        // Map database fields to the structure expected by the UI if necessary
+        // e.g., assuming profiles has id, full_name, email, role, status, created_at
+        const formattedData = data.map(profile => ({
+          id: profile.id,
+          name: profile.full_name || profile.name || 'Unknown',
+          email: profile.email || 'N/A',
+          role: profile.role || 'User',
+          status: profile.status || 'Active',
+          joined: new Date(profile.created_at).toISOString().split('T')[0]
+        }));
+        setUsers(formattedData);
+      }
+      setLoading(false);
+    }
+    fetchUsers();
+  }, []);
 
   return (
     <div className={styles.container}>

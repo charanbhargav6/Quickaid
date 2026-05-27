@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'otp_screen.dart';
 import '../../main.dart';
 import '../../services/supabase_service.dart';
 import '../../widgets/gradient_button.dart';
@@ -64,11 +65,24 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       return;
     }
-    await SupabaseService.sendPasswordResetEmail(email);
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Password reset email sent! Check your inbox.')),
-    );
+    try {
+      setState(() => _loading = true);
+      await SupabaseService.sendPasswordResetEmail(email);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('OTP sent to $email. Please check your inbox.')),
+      );
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => OtpScreen(email: email)),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to send OTP: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   @override

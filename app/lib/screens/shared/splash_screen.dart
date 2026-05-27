@@ -33,35 +33,12 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     await Future.delayed(const Duration(milliseconds: 2000));
     if (!mounted) return;
 
-    if (SupabaseService.isMockMode) {
-      final sessionUser = SupabaseService.currentUser;
-      if (sessionUser != null) {
-        final profile = await SupabaseService.getProfile(sessionUser.id);
-        if (!mounted) return;
-        final role = profile?['role'] as String? ?? 'seeker';
-        if (role == 'admin') {
-          Navigator.pushReplacementNamed(context, '/admin');
-        } else if (role == 'helper') {
-          Navigator.pushReplacementNamed(context, '/helper');
-        } else {
-          Navigator.pushReplacementNamed(context, '/seeker');
-        }
-      } else {
-        Navigator.pushReplacementNamed(context, '/login');
-      }
-      return;
-    }
-
     final session = Supabase.instance.client.auth.currentSession;
     if (session != null) {
       try {
-        final profile = await Supabase.instance.client
-            .from('profiles')
-            .select('role')
-            .eq('id', session.user.id)
-            .single();
+        final profile = await SupabaseService.getProfile(session.user.id);
         if (!mounted) return;
-        final role = profile['role'] as String;
+        final role = profile?['role'] as String? ?? 'seeker';
         if (role == 'admin') {
           Navigator.pushReplacementNamed(context, '/admin');
         } else if (role == 'helper') {

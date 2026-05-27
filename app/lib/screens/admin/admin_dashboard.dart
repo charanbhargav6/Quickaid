@@ -31,7 +31,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     List<Map<String, dynamic>> tasks = [];
 
     try {
-      users = await SupabaseService.getAllUsers();
+      users = await SupabaseService.getAllProfiles();
       tasks = await SupabaseService.getOpenTasks();
     } catch (_) {}
 
@@ -259,19 +259,19 @@ class _AdminDashboardState extends State<AdminDashboard> {
           onSelected: (action) async {
             switch (action) {
               case 'suspend':
-                await SupabaseService.setUserSuspended(user['id'], !isSuspended);
+                await SupabaseService.setSuspendStatus(user['id'], !isSuspended);
                 _loadData();
                 break;
               case 'make_admin':
-                await SupabaseService.setUserRole(user['id'], 'admin');
+                await SupabaseService.changeRole(user['id'], 'admin');
                 _loadData();
                 break;
               case 'make_helper':
-                await SupabaseService.setUserRole(user['id'], 'helper');
+                await SupabaseService.changeRole(user['id'], 'helper');
                 _loadData();
                 break;
               case 'make_seeker':
-                await SupabaseService.setUserRole(user['id'], 'seeker');
+                await SupabaseService.changeRole(user['id'], 'seeker');
                 _loadData();
                 break;
             }

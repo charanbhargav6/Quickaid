@@ -1,17 +1,36 @@
 'use client';
-import { useState } from 'next';
+import { useState, useEffect } from 'next';
+import { supabase } from '@/lib/supabase';
 import styles from './Tasks.module.css';
 
 export default function Tasks() {
   const [filter, setFilter] = useState('All');
+  const [tasks, setTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
   
-  const tasks = [
-    { id: 'T-1042', title: 'Library Book Return', desc: 'Return 3 books to main library', seeker: 'Alice J.', helper: 'Bob M.', status: 'In Progress', amount: 5, date: 'Today, 2:30 PM' },
-    { id: 'T-1043', title: 'Coffee Delivery', desc: 'Get iced latte from Starbucks', seeker: 'John D.', helper: 'Sarah K.', status: 'Completed', amount: 8, date: 'Today, 10:15 AM' },
-    { id: 'T-1044', title: 'Math Tutoring', desc: 'Help with Calculus II assignment', seeker: 'Emma W.', helper: 'Unassigned', status: 'Open', amount: 20, date: 'Tomorrow, 4:00 PM' },
-    { id: 'T-1045', title: 'Grocery Run', desc: 'Pick up items from Trader Joes', seeker: 'Mike T.', helper: 'Chris P.', status: 'Completed', amount: 15, date: 'Yesterday' },
-    { id: 'T-1046', title: 'Dorm Cleaning', desc: 'Help clean up dorm room before inspection', seeker: 'Lisa R.', helper: 'Unassigned', status: 'Open', amount: 25, date: 'Oct 25, 2023' },
-  ];
+  useEffect(() => {
+    async function fetchTasks() {
+      const { data, error } = await supabase
+        .from('tasks')
+        .select('*');
+      
+      if (!error && data) {
+        const formattedData = data.map(task => ({
+          id: task.id || 'N/A',
+          title: task.title || 'Untitled Task',
+          desc: task.description || task.desc || 'No description',
+          seeker: task.seeker_name || 'Unknown',
+          helper: task.helper_name || 'Unassigned',
+          status: task.status || 'Open',
+          amount: task.budget || task.amount || 0,
+          date: task.created_at ? new Date(task.created_at).toLocaleDateString() : 'Unknown'
+        }));
+        setTasks(formattedData);
+      }
+      setLoading(false);
+    }
+    fetchTasks();
+  }, []);
 
   const filteredTasks = filter === 'All' ? tasks : tasks.filter(t => t.status === filter);
 

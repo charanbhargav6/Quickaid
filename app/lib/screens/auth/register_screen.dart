@@ -34,7 +34,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
         phone: _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
       );
       if (!mounted) return;
-      Navigator.pushReplacementNamed(context, '/seeker');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Registration successful! Please check your email to verify your account.')),
+      );
+      Navigator.pushReplacementNamed(context, '/login');
     } on AuthException catch (e) {
       setState(() { _error = e.message; _loading = false; });
     } catch (e) {

@@ -1,5 +1,7 @@
+'use client';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { supabase } from '@/lib/supabase';
 import styles from './Sidebar.module.css';
 
 const navItems = [
@@ -11,6 +13,12 @@ const navItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+  };
 
   return (
     <aside className={`${styles.sidebar} glass-panel`}>
@@ -36,7 +44,7 @@ export default function Sidebar() {
       </nav>
 
       <div className={styles.bottomSection}>
-        <button className={styles.logoutBtn}>
+        <button className={styles.logoutBtn} onClick={handleLogout}>
           <span className={styles.icon}>🚪</span>
           Logout
         </button>

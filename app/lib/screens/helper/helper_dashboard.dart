@@ -20,8 +20,8 @@ class _HelperDashboardState extends State<HelperDashboard> {
   void initState() {
     super.initState();
     _loadData();
-    // Subscribe to realtime task updates
-    SupabaseService.subscribeToTasks((_) => _loadData());
+    // Load task data on init
+    // Realtime subscription can be added later with Supabase Realtime channels
   }
 
   Future<void> _loadData() async {
@@ -55,7 +55,7 @@ class _HelperDashboardState extends State<HelperDashboard> {
   }
 
   Future<void> _completeTask(String taskId) async {
-    await SupabaseService.updateTaskStatus(taskId, 'completed');
+    await SupabaseService.completeTask(taskId, 'completed');
     _loadData();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

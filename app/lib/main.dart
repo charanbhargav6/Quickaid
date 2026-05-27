@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'services/supabase_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_screen.dart';
 import 'screens/seeker/seeker_dashboard.dart';
@@ -122,21 +121,10 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await dotenv.load(fileName: '.env');
 
-  try {
-    final url = dotenv.env['SUPABASE_URL'] ?? '';
-    final anonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? '';
-    if (url.startsWith('http') && anonKey.isNotEmpty && url != 'YOUR_SUPABASE_URL') {
-      await Supabase.initialize(
-        url: url,
-        anonKey: anonKey,
-      );
-      SupabaseService.isMockMode = false;
-    } else {
-      SupabaseService.isMockMode = true;
-    }
-  } catch (_) {
-    SupabaseService.isMockMode = true;
-  }
+  await Supabase.initialize(
+    url: dotenv.env['SUPABASE_URL']!,
+    anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
+  );
 
   runApp(const QuickAidApp());
 }

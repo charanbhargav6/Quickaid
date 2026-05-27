@@ -1,19 +1,52 @@
+'use client';
+import { useState, useEffect } from 'next';
+import { supabase } from '@/lib/supabase';
 import styles from './Dashboard.module.css';
 
 export default function Dashboard() {
-  const stats = [
-    { title: 'Total Users', value: '1,248', icon: '👥', trend: '+12%' },
-    { title: 'Active Tasks', value: '342', icon: '📝', trend: '+5%' },
-    { title: 'Completed Tasks', value: '8,924', icon: '✅', trend: '+18%' },
-    { title: 'Revenue', value: '$12,450', icon: '💰', trend: '+24%' },
-  ];
+  const [stats, setStats] = useState([
+    { title: 'Total Users', value: '...', icon: '👥', trend: '' },
+    { title: 'Active Tasks', value: '...', icon: '📝', trend: '' },
+    { title: 'Completed Tasks', value: '...', icon: '✅', trend: '' },
+    { title: 'Revenue', value: '...', icon: '💰', trend: '' },
+  ]);
+  const [recentTasks, setRecentTasks] = useState([]);
 
-  const recentTasks = [
-    { id: 1, title: 'Library Book Return', seeker: 'Alice J.', helper: 'Bob M.', status: 'In Progress', amount: '$5' },
-    { id: 2, title: 'Coffee Delivery', seeker: 'John D.', helper: 'Sarah K.', status: 'Completed', amount: '$8' },
-    { id: 3, title: 'Math Tutoring', seeker: 'Emma W.', helper: 'Pending', status: 'Open', amount: '$20' },
-    { id: 4, title: 'Grocery Run', seeker: 'Mike T.', helper: 'Chris P.', status: 'Completed', amount: '$15' },
-  ];
+  useEffect(() => {
+    async function fetchDashboardData() {
+      const [profilesRes, tasksRes, transRes] = await Promise.all([
+        supabase.from('profiles').select('*', { count: 'exact', head: true }),
+        supabase.from('tasks').select('*'),
+        supabase.from('transactions').select('amount')
+      ]);
+
+      const totalUsers = profilesRes.count || 0;
+      const allTasks = tasksRes.data || [];
+      const activeTasks = allTasks.filter(t => t.status === 'In Progress' || t.status === 'Open').length;
+      const completedTasks = allTasks.filter(t => t.status === 'Completed').length;
+      
+      const transactions = transRes.data || [];
+      const totalRevenue = transactions.reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0);
+
+      setStats([
+        { title: 'Total Users', value: totalUsers.toString(), icon: '👥', trend: 'Live' },
+        { title: 'Active Tasks', value: activeTasks.toString(), icon: '📝', trend: 'Live' },
+        { title: 'Completed Tasks', value: completedTasks.toString(), icon: '✅', trend: 'Live' },
+        { title: 'Revenue', value: `$${totalRevenue.toFixed(2)}`, icon: '💰', trend: 'Live' },
+      ]);
+
+      const latestTasks = allTasks.slice(0, 5).map(t => ({
+        id: t.id,
+        title: t.title || 'Untitled',
+        seeker: t.seeker_name || 'Unknown',
+        helper: t.helper_name || 'Pending',
+        status: t.status || 'Open',
+        amount: `$${t.budget || t.amount || 0}`
+      }));
+      setRecentTasks(latestTasks);
+    }
+    fetchDashboardData();
+  }, []);
 
   return (
     <div className={styles.container}>
