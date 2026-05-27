@@ -5,17 +5,23 @@ class SupabaseService {
   static GoTrueClient get auth => client.auth;
 
   // ── AUTH ────────────────────────────────────────────────
-  static Future<AuthResponse> signUp({
+  static Future<void> signUp({
     required String email,
     required String password,
     required String fullName,
     String? phone,
+    String role = 'seeker',
   }) async {
-    return await auth.signUp(
-      email: email,
-      password: password,
-      data: {'full_name': fullName, 'phone': phone},
-    );
+    final res = await client.auth.signUp(email: email, password: password);
+    if (res.user != null) {
+      await client.from('profiles').insert({
+        'id': res.user!.id,
+        'email': email,
+        'full_name': fullName,
+        'phone': phone,
+        'role': role,
+      });
+    }
   }
 
   static Future<AuthResponse> signIn({
@@ -118,6 +124,10 @@ class SupabaseService {
   // ── WALLET (Demo Purposes) ───────────────────────────────
   static Future<void> addDemoFunds(double amount) async {
     await client.rpc('add_demo_funds', params: {'p_amount': amount});
+  }
+
+  static Future<void> deleteTask(String taskId) async {
+    await client.from('tasks').delete().eq('id', taskId);
   }
 
   // ── TRANSACTIONS ─────────────────────────────────────────

@@ -20,6 +20,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _confirmPassCtrl = TextEditingController();
   bool _loading = false;
   bool _obscurePass = true;
+  String _selectedRole = 'seeker';
   String? _error;
 
   Future<void> _register() async {
@@ -32,6 +33,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         password: _passCtrl.text,
         fullName: _nameCtrl.text.trim(),
         phone: _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
+        role: _selectedRole,
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -151,6 +153,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     obscureText: true,
                     validator: (v) => v == _passCtrl.text ? null : 'Passwords do not match',
                   ),
+                  const SizedBox(height: 24),
+                  
+                  // Role Selector
+                  Text('How do you want to use QuickAid?', style: TextStyle(fontWeight: FontWeight.w600, color: isDark ? Colors.white70 : Colors.black87)),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      _buildRoleCard('Seeker', 'Post tasks', Icons.pan_tool_outlined, isDark),
+                      const SizedBox(width: 8),
+                      _buildRoleCard('Helper', 'Earn money', Icons.handshake_outlined, isDark),
+                      const SizedBox(width: 8),
+                      _buildRoleCard('Both', 'Do it all', Icons.sync_alt, isDark),
+                    ],
+                  ),
 
                   if (_error != null) ...[
                     const SizedBox(height: 14),
@@ -185,6 +201,39 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ],
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRoleCard(String title, String subtitle, IconData icon, bool isDark) {
+    final isSelected = _selectedRole == title.toLowerCase();
+    final activeColor = const Color(0xFF22C55E);
+    
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedRole = title.toLowerCase()),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+          decoration: BoxDecoration(
+            color: isSelected 
+                ? activeColor.withValues(alpha: 0.1) 
+                : (isDark ? const Color(0xFF131D30) : Colors.white),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected ? activeColor : (isDark ? Colors.white10 : Colors.black12),
+              width: 1.5,
+            ),
+          ),
+          child: Column(
+            children: [
+              Icon(icon, color: isSelected ? activeColor : (isDark ? Colors.white54 : Colors.black54), size: 24),
+              const SizedBox(height: 6),
+              Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isSelected ? activeColor : (isDark ? Colors.white : Colors.black87))),
+              const SizedBox(height: 2),
+              Text(subtitle, style: TextStyle(fontSize: 10, color: isDark ? Colors.white54 : Colors.black54)),
+            ],
           ),
         ),
       ),

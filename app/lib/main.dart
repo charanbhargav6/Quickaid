@@ -79,7 +79,54 @@ class AppTheme {
     fontFamily: 'Inter',
   );
 
-  static ThemeData get dark => light; // Force light mode for professional dashboard
+  static ThemeData get dark => ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.dark,
+    scaffoldBackgroundColor: const Color(0xFF0F172A),
+    primaryColor: primaryGreen,
+    colorScheme: const ColorScheme.dark(
+      primary: primaryGreen,
+      secondary: primaryGreenDark,
+      surface: Color(0xFF1E293B),
+    ),
+    cardTheme: CardThemeData(
+      color: const Color(0xFF1E293B),
+      elevation: 0,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: Color(0xFF334155)),
+      ),
+    ),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Color(0xFF0F172A),
+      elevation: 0,
+      iconTheme: IconThemeData(color: Colors.white),
+      titleTextStyle: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: const Color(0xFF1E293B),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: Color(0xFF334155)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: Color(0xFF334155)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: primaryGreen, width: 2),
+      ),
+      hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
+    ),
+    textTheme: const TextTheme(
+      bodyLarge: TextStyle(color: Colors.white),
+      bodyMedium: TextStyle(color: Color(0xFF94A3B8)),
+    ),
+    fontFamily: 'Inter',
+  );
 
   static LinearGradient get primaryGradient => const LinearGradient(
     colors: [Color(0xFF22C55E), Color(0xFF16A34A)],
@@ -129,8 +176,8 @@ class _QuickAidAppState extends State<QuickAidApp> {
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: themeController.themeMode,
+      home: const SplashScreen(),
       routes: {
-        '/': (ctx) => const SplashScreen(),
         '/login': (ctx) => const LoginScreen(),
         '/register': (ctx) => const RegisterScreen(),
         '/seeker': (context) => const SeekerDashboard(),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
 import '../../main.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AppDrawer extends StatelessWidget {
   final Map<String, dynamic> user;
@@ -75,6 +76,27 @@ class AppDrawer extends StatelessWidget {
                       child: Divider(color: Colors.white24, height: 1),
                     ),
                     _DrawerItem(icon: Icons.settings_outlined, label: 'Settings', onTap: () { Navigator.pop(context); Navigator.pushReplacementNamed(context, '/settings'); }),
+                    _DrawerItem(icon: Icons.privacy_tip_outlined, label: 'Privacy Policy', color: Colors.white54, onTap: () {
+                      Navigator.pop(context);
+                      launchUrl(Uri.parse('http://localhost:3000/privacy'));
+                    }),
+                    _DrawerItem(icon: Icons.description_outlined, label: 'Terms of Service', color: Colors.white54, onTap: () {
+                      Navigator.pop(context);
+                      launchUrl(Uri.parse('http://localhost:3000/terms'));
+                    }),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: Divider(color: Colors.white24, height: 1),
+                    ),
+                    _DrawerItem(
+                      icon: themeController.themeMode == ThemeMode.dark ? Icons.light_mode : Icons.dark_mode, 
+                      label: themeController.themeMode == ThemeMode.dark ? 'Light Mode' : 'Dark Mode', 
+                      color: Colors.white,
+                      onTap: () {
+                        themeController.toggleTheme();
+                        Navigator.pop(context);
+                      }
+                    ),
                   ],
                 ),
               ),

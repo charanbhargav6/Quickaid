@@ -64,6 +64,7 @@ export default function UsersPage() {
             <option value="all">All Roles</option>
             <option value="seeker">Seeker</option>
             <option value="helper">Helper</option>
+            <option value="both">Both</option>
             <option value="admin">Admin</option>
           </select>
         </div>
@@ -122,9 +123,10 @@ export default function UsersPage() {
                         value={user.role}
                         onChange={(e) => handleChangeRole(user.id, e.target.value)}
                       >
-                        <option value="seeker">Make Seeker</option>
-                        <option value="helper">Make Helper</option>
-                        <option value="admin">Make Admin</option>
+                        <option value="seeker">Demote to Seeker</option>
+                        <option value="helper">Demote to Helper</option>
+                        <option value="both">Change to Both</option>
+                        <option value="admin">Promote to Admin</option>
                       </select>
                       <button 
                         className={`btn ${user.is_suspended ? 'btn-primary' : 'btn-outline'}`}

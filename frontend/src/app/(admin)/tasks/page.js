@@ -31,6 +31,18 @@ export default function TasksPage() {
 
   const filteredTasks = tasks.filter(t => filterStatus === 'all' || t.status === filterStatus);
 
+  async function handleDelete(taskId) {
+    if (!confirm('Are you sure you want to delete this task? This action cannot be undone.')) return;
+    try {
+      const { error } = await supabase.from('tasks').delete().eq('id', taskId);
+      if (error) throw error;
+      setTasks(tasks.filter(t => t.id !== taskId));
+      alert('Task deleted successfully.');
+    } catch (err) {
+      alert('Failed to delete task: ' + err.message);
+    }
+  }
+
   const getStatusBadge = (status) => {
     switch(status) {
       case 'completed': return <span className="badge badge-green">Completed</span>;
@@ -98,6 +110,24 @@ export default function TasksPage() {
                     <strong>{task.helper?.full_name || 'Unknown'}</strong>
                   </div>
                 )}
+              </div>
+              
+              <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+                <button 
+                  onClick={() => handleDelete(task.id)}
+                  style={{
+                    background: 'none',
+                    border: '1px solid var(--red-500)',
+                    color: 'var(--red-600)',
+                    padding: '6px 12px',
+                    borderRadius: '6px',
+                    fontSize: '12px',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                  }}
+                >
+                  Delete Task
+                </button>
               </div>
             </div>
           ))
