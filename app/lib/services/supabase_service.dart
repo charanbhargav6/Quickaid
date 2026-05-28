@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'notification_service.dart';
 
 class NewDeviceException implements Exception {}
 
@@ -59,6 +60,7 @@ class SupabaseService {
         throw NewDeviceException();
       } else {
         // Recognized device -> update last login
+        await NotificationService.syncTokenToSupabase();
         await client.rpc('log_device_login', params: {'p_device_id': deviceId});
         
         // Save verification timestamp for 30-day relogin check
