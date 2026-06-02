@@ -7,6 +7,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:typed_data';
+import '../../widgets/skeleton_loader.dart';
 
 class SeekerDashboard extends StatefulWidget {
   const SeekerDashboard({super.key});
@@ -18,6 +19,7 @@ class SeekerDashboard extends StatefulWidget {
 class _SeekerDashboardState extends State<SeekerDashboard> {
   bool _loading = true;
   List<Map<String, dynamic>> _myTasks = [];
+  List<Map<String, dynamic>> _activeHelpers = [];
   Map<String, dynamic> _currentUser = {};
 
   @override
@@ -42,6 +44,8 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
           .order('created_at', ascending: false);
       
       _myTasks = List<Map<String, dynamic>>.from(tasks);
+      
+      _activeHelpers = await SupabaseService.getActiveHelpers();
     } catch (e) {
       debugPrint('Error loading seeker data: $e');
     } finally {
@@ -62,7 +66,7 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const SkeletonListView()
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
@@ -113,6 +117,58 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                   onPressed: _showCreateTaskDialog,
+                ),
+                const SizedBox(height: 24),
+                
+                // Active Helpers Map
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Active Helpers Nearby', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(color: const Color(0xFFDCFCE7), borderRadius: BorderRadius.circular(12)),
+                      child: Text('${_activeHelpers.length} Online', style: const TextStyle(color: Color(0xFF16A34A), fontSize: 12, fontWeight: FontWeight.bold)),
+                    )
+                  ],
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  height: 200,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: FlutterMap(
+                      options: const MapOptions(
+                        initialCenter: LatLng(12.9692, 79.1559), // Default VIT Campus
+                        initialZoom: 14.0,
+                      ),
+                      children: [
+                        TileLayer(
+                          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          userAgentPackageName: 'com.example.app',
+                        ),
+                        MarkerLayer(
+                          markers: _activeHelpers.where((h) => h['current_lat'] != null && h['current_lng'] != null).map((h) {
+                            return Marker(
+                              point: LatLng(h['current_lat'].toDouble(), h['current_lng'].toDouble()),
+                              width: 60,
+                              height: 60,
+                              child: Column(
+                                children: [
+                                  const Icon(Icons.directions_run, color: Color(0xFF2563EB), size: 36),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4), border: Border.all(color: const Color(0xFF2563EB))),
+                                    child: Text(h['full_name']?.toString().split(' ')[0] ?? 'Helper', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black)),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 24),
                 
@@ -546,7 +602,7 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
                 }
               },
               child: isUploading 
-                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                ? const SkeletonLoader(width: 16, height: 16)
                 : const Text('Post Task', style: TextStyle(color: Colors.white)),
             ),
           ],

@@ -3,29 +3,101 @@ import { usePathname, useRouter } from 'next/navigation';
 import styles from './Sidebar.module.css';
 import { createClient } from '@supabase/supabase-js';
 
+import { useState, useEffect } from 'react';
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-const NAV_ITEMS = [
-  { icon: '📊', label: 'Dashboard', path: '/dashboard' },
-  { icon: '👥', label: 'Users', path: '/users' },
-  { icon: '📋', label: 'Tasks', path: '/tasks' },
-  { icon: '📝', label: 'Post Task', path: '/tasks?action=create' },
-  { icon: '📅', label: 'My Bookings', path: '/bookings' },
-  { icon: '💰', label: 'Earnings', path: '/earnings' },
-  { icon: '💬', label: 'Messages', path: '/messages', badge: 3 },
-  { icon: '⭐', label: 'Reviews', path: '/reviews' },
-  { icon: '👛', label: 'Wallet', path: '/wallet' },
-  { icon: '🔔', label: 'Notifications', path: '/notifications', badge: 2 },
+const ADMIN_NAV = [
+  { icon: '📊', label: 'Dashboard', path: '/admin/dashboard' },
+  { icon: '👥', label: 'Users', path: '/admin/users' },
+  { icon: '📋', label: 'Tasks', path: '/admin/tasks' },
+  { icon: '📝', label: 'Post Task', path: '/admin/tasks?action=create' },
+  { icon: '📅', label: 'My Bookings', path: '/admin/bookings' },
+  { icon: '💰', label: 'Earnings', path: '/admin/earnings' },
+  { icon: '💬', label: 'Messages', path: '/admin/messages', badge: 3 },
+  { icon: '⭐', label: 'Reviews', path: '/admin/reviews' },
+  { icon: '👛', label: 'Wallet', path: '/admin/wallet' },
+  { icon: '🔔', label: 'Notifications', path: '/admin/notifications' },
+  { icon: '📱', label: 'Get the App', path: '/download' },
   { divider: true },
-  { icon: '❓', label: 'Help & Support', path: '/help' },
-  { icon: '⚙️', label: 'Settings', path: '/settings' },
+  { icon: '❓', label: 'Help & Support', path: '/admin/help' },
+  { icon: '⚙️', label: 'Settings', path: '/admin/settings' },
+];
+
+const SEEKER_NAV = [
+  { icon: '📊', label: 'Dashboard', path: '/seeker' },
+  { icon: '📝', label: 'Post Task', path: '/seeker?action=create' },
+  { icon: '🔔', label: 'Notifications', path: '/seeker/notifications' },
+  { icon: '📱', label: 'Get the App', path: '/download' },
+  { divider: true },
+  { icon: '❓', label: 'Help & Support', path: '/seeker/help' },
+  { icon: '⚙️', label: 'Settings', path: '/seeker/settings' },
+];
+
+const HELPER_NAV = [
+  { icon: '📊', label: 'Dashboard', path: '/helper' },
+  { icon: '📋', label: 'My Tasks', path: '/helper/tasks' },
+  { icon: '💰', label: 'Earnings', path: '/helper/earnings' },
+  { icon: '🔔', label: 'Notifications', path: '/helper/notifications' },
+  { icon: '📱', label: 'Get the App', path: '/download' },
+  { divider: true },
+  { icon: '❓', label: 'Help & Support', path: '/helper/help' },
+  { icon: '⚙️', label: 'Settings', path: '/helper/settings' },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [role, setRole] = useState('admin');
+  const [profile, setProfile] = useState(null);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      if (prof) {
+        setRole(prof.role || 'admin');
+        setProfile(prof);
+      }
+
+      const { count, error } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('is_read', false);
+
+      if (!error) {
+        setUnreadCount(count || 0);
+      }
+    } catch (err) {
+      console.error('Error fetching unread count:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchUnreadCount();
+
+    // Subscribe to realtime database changes for notifications
+    const channel = supabase
+      .channel('realtime-notifications-sidebar')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'notifications' },
+        () => {
+          fetchUnreadCount();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -46,11 +118,13 @@ export default function Sidebar() {
 
       {/* ── Navigation ─────────────── */}
       <nav className={styles.nav}>
-        {NAV_ITEMS.map((item, i) => {
+        {(role === 'seeker' ? SEEKER_NAV : role === 'helper' ? HELPER_NAV : ADMIN_NAV).map((item, i) => {
           if (item.divider) {
             return <div key={i} className={styles.divider} />;
           }
-          const isActive = pathname === item.path || (item.path !== '/dashboard' && pathname?.startsWith(item.path?.split('?')[0]));
+          const isActive = pathname === item.path || (item.path !== '/admin/dashboard' && item.path !== '/seeker' && item.path !== '/helper' && pathname?.startsWith(item.path?.split('?')[0]));
+          const displayBadge = item.label === 'Notifications' ? unreadCount : item.badge;
+          
           return (
             <button
               key={item.path}
@@ -59,8 +133,8 @@ export default function Sidebar() {
             >
               <span className={styles.navIcon}>{item.icon}</span>
               <span className={styles.navLabel}>{item.label}</span>
-              {item.badge && (
-                <span className={styles.navBadge}>{item.badge}</span>
+              {displayBadge > 0 && (
+                <span className={styles.navBadge}>{displayBadge}</span>
               )}
             </button>
           );
@@ -76,12 +150,12 @@ export default function Sidebar() {
       {/* ── User Profile Card ──────── */}
       <div className={styles.userCard}>
         <div className={styles.userAvatar}>
-          <span>CB</span>
+          <span>{profile?.full_name ? profile.full_name[0] : 'U'}</span>
           <div className={styles.onlineDot} />
         </div>
         <div className={styles.userInfo}>
-          <p className={styles.userName}>Admin</p>
-          <p className={styles.userEmail}>pro171903@gmail.com</p>
+          <p className={styles.userName}>{profile?.full_name || 'User'}</p>
+          <p className={styles.userEmail}>{role.toUpperCase()}</p>
           <span className={styles.userStatus}>● Online</span>
         </div>
         <div className={styles.verifiedBadge}>Verified User</div>

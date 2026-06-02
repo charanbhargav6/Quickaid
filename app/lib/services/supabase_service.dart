@@ -153,10 +153,8 @@ class SupabaseService {
   }
 
   static Future<void> completeTask(String taskId, String status) async {
-    // If completing the task successfully, we call the secure RPC to transfer funds and update status.
-    // Otherwise (e.g. cancelled), we just update the status.
     if (status == 'completed') {
-      await client.rpc('transfer_funds', params: {'p_task_id': taskId});
+      await client.rpc('complete_task_with_trust', params: {'p_task_id': taskId});
     } else {
       await client.from('tasks').update({'status': status}).eq('id', taskId);
     }
@@ -230,5 +228,48 @@ class SupabaseService {
         .eq('reviewee_id', userId)
         .order('created_at', ascending: false);
     return List<Map<String, dynamic>>.from(res);
+  }
+
+  // ── TRUST & SAFETY & AVAILABILITY ──────────────────────
+  static Future<List<Map<String, dynamic>>> getActiveHelpers() async {
+    final res = await client
+        .from('profiles')
+        .select()
+        .eq('is_available', true)
+        .gte('available_until', DateTime.now().toUtc().toIso8601String());
+    return List<Map<String, dynamic>>.from(res);
+  }
+
+  static Future<void> toggleAvailability(int hours, {double? lat, double? lng}) async {
+    await client.rpc('toggle_availability', params: {
+      'p_duration_hours': hours,
+      'p_lat': lat,
+      'p_lng': lng,
+    });
+  }
+
+  static Future<void> cancelTaskWithPenalty(String taskId) async {
+    await client.rpc('cancel_task_with_penalty', params: {'p_task_id': taskId});
+  }
+
+  static Future<void> submitUserReport(String reportedId, String taskId, String reason, String details) async {
+    await client.rpc('submit_user_report', params: {
+      'p_reported_id': reportedId,
+      'p_task_id': taskId,
+      'p_reason': reason,
+      'p_details': details,
+    });
+  }
+
+  static Future<void> triggerSOS(String taskId, String location) async {
+    final user = currentUser;
+    if (user == null) return;
+    await client.from('user_reports').insert({
+      'reporter_id': user.id,
+      'reported_user_id': user.id, // self-reported for emergency tracking
+      'task_id': taskId,
+      'reason': 'EMERGENCY SOS',
+      'details': 'SOS triggered at: $location',
+    });
   }
 }

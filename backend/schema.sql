@@ -16,17 +16,21 @@ CREATE TABLE IF NOT EXISTS public.profiles (
 -- Enable RLS on profiles
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Public profiles are viewable by everyone." ON public.profiles;
 CREATE POLICY "Public profiles are viewable by everyone."
   ON public.profiles FOR SELECT
   USING ( true );
 
+DROP POLICY IF EXISTS "Users can insert their own profile." ON public.profiles;
 CREATE POLICY "Users can insert their own profile."
   ON public.profiles FOR INSERT
   WITH CHECK ( auth.uid() = id );
 
+DROP POLICY IF EXISTS "Users can update own profile." ON public.profiles;
 CREATE POLICY "Users can update own profile."
   ON public.profiles FOR UPDATE
-  USING ( auth.uid() = id );
+  USING ( auth.uid() = id )
+  WITH CHECK ( auth.uid() = id );
 
 -- Create tasks table
 CREATE TABLE IF NOT EXISTS public.tasks (
@@ -45,17 +49,21 @@ CREATE TABLE IF NOT EXISTS public.tasks (
 -- Enable RLS on tasks
 ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Tasks are viewable by everyone." ON public.tasks;
 CREATE POLICY "Tasks are viewable by everyone."
   ON public.tasks FOR SELECT
   USING ( true );
 
+DROP POLICY IF EXISTS "Seekers can create tasks." ON public.tasks;
 CREATE POLICY "Seekers can create tasks."
   ON public.tasks FOR INSERT
   WITH CHECK ( auth.uid() = seeker_id );
 
+DROP POLICY IF EXISTS "Seekers and Helpers can update tasks." ON public.tasks;
 CREATE POLICY "Seekers and Helpers can update tasks."
   ON public.tasks FOR UPDATE
-  USING ( auth.uid() = seeker_id OR auth.uid() = helper_id OR helper_id IS NULL );
+  USING ( auth.uid() = seeker_id OR auth.uid() = helper_id OR helper_id IS NULL )
+  WITH CHECK ( auth.uid() = seeker_id OR auth.uid() = helper_id OR helper_id IS NULL );
 
 -- Create transactions table
 CREATE TABLE IF NOT EXISTS public.transactions (
@@ -70,6 +78,7 @@ CREATE TABLE IF NOT EXISTS public.transactions (
 -- Enable RLS on transactions
 ALTER TABLE public.transactions ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view their own transactions." ON public.transactions;
 CREATE POLICY "Users can view their own transactions."
   ON public.transactions FOR SELECT
   USING ( auth.uid() = user_id );

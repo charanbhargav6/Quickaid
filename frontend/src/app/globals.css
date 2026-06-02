@@ -41,23 +41,41 @@
   --slate-900: #0f172a;
 
   /* ── Semantic ─────────────────── */
-  --bg: var(--slate-50);
+  --bg: #ECEFF1; /* Mist Gray */
   --card-bg: #ffffff;
-  --text-primary: var(--slate-800);
-  --text-secondary: var(--slate-500);
-  --text-muted: var(--slate-400);
-  --border: var(--slate-200);
-  --primary: var(--green-600);
-  --primary-light: var(--green-100);
-  --accent: var(--orange-500);
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  --border: #cbd5e1;
+  
+  --primary: #009ffc; /* Twitter Blue */
+  --primary-light: #e0f2fe;
+  --accent: #fb923c;
 
   /* ── Sidebar ──────────────────── */
-  --sidebar-bg: linear-gradient(180deg, #166534 0%, #15803d 50%, #14532d 100%);
+  --sidebar-bg: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
   --sidebar-width: 260px;
   --sidebar-text: rgba(255,255,255,0.85);
   --sidebar-text-hover: #ffffff;
   --sidebar-active-bg: rgba(255,255,255,0.15);
+}
 
+.dark-theme {
+  --bg: #161B22; /* Deep Charcoal */
+  --card-bg: #21262D; /* Card background from screenshot */
+    --text-primary: #F0F6FC;
+    --text-secondary: #8B949E;
+    --text-muted: #484F58;
+    --border: #30363D;
+    
+    --primary: #009ffc; /* Keep Twitter Blue accent */
+    --primary-light: rgba(0, 159, 252, 0.15);
+    
+    --sidebar-bg: #161B22; /* Solid dark sidebar */
+    --sidebar-border: #30363D;
+  }
+
+* {
   /* ── Spacing ──────────────────── */
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -161,11 +179,11 @@ a {
   font-weight: 600;
   letter-spacing: 0.3px;
 }
-.badge-green { background: var(--green-100); color: var(--green-700); }
-.badge-blue { background: #dbeafe; color: var(--blue-600); }
-.badge-orange { background: #fff7ed; color: var(--orange-600); }
-.badge-red { background: #fef2f2; color: var(--red-500); }
-.badge-purple { background: #faf5ff; color: var(--purple-500); }
+.badge-green { background: var(--primary-light); color: var(--primary); }
+.badge-blue { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+.badge-orange { background: rgba(234, 88, 12, 0.15); color: #ea580c; }
+.badge-red { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+.badge-purple { background: rgba(168, 85, 247, 0.15); color: #a855f7; }
 .badge-gray { background: var(--slate-100); color: var(--slate-600); }
 
 /* ── Button ─────────────────────────────────────────── */
@@ -183,12 +201,12 @@ a {
   transition: all 0.2s ease;
 }
 .btn-primary {
-  background: var(--green-600);
+  background: var(--primary);
   color: white;
 }
 .btn-primary:hover {
-  background: var(--green-700);
-  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.3);
+  background: #008be0; /* slightly darker blue */
+  box-shadow: 0 4px 12px rgba(0, 159, 252, 0.3);
 }
 .btn-outline {
   background: transparent;
@@ -215,7 +233,7 @@ a {
   letter-spacing: 0.5px;
   color: var(--text-secondary);
   border-bottom: 1px solid var(--border);
-  background: var(--slate-50);
+  background: var(--bg);
 }
 .data-table td {
   padding: 14px 16px;
@@ -227,7 +245,7 @@ a {
   border-bottom: none;
 }
 .data-table tr:hover td {
-  background: var(--green-50);
+  background: var(--primary-light);
 }
 
 /* ── Input ──────────────────────────────────────────── */
@@ -244,8 +262,8 @@ a {
 }
 .input:focus {
   outline: none;
-  border-color: var(--green-500);
-  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.15);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-light);
 }
 .input::placeholder {
   color: var(--text-muted);
@@ -278,11 +296,11 @@ a {
 .section-action {
   font-size: 13px;
   font-weight: 600;
-  color: var(--green-600);
+  color: var(--primary);
   cursor: pointer;
 }
 .section-action:hover {
-  color: var(--green-700);
+  color: #008be0;
 }
 
 /* ── Activity Item ──────────────────────────────────── */
@@ -331,14 +349,14 @@ a {
   justify-content: center;
   gap: 8px;
   padding: 14px;
-  background: var(--green-50);
-  border: 1px solid var(--green-200);
+  background: var(--primary-light);
+  border: 1px solid var(--border);
   border-radius: var(--radius-md);
   margin-top: 24px;
 }
 .footer-banner span {
   font-size: 14px;
-  color: var(--green-700);
+  color: var(--primary);
   font-weight: 500;
 }
 
@@ -356,3 +374,17 @@ a {
 .fade-in {
   animation: fadeIn 0.4s ease forwards;
 }
+
+@keyframes shimmer {
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
+}
+.skeleton {
+  background: var(--border);
+  background-image: linear-gradient(90deg, var(--border) 0px, var(--card-bg) 50%, var(--border) 100%);
+  background-size: 1000px 100%;
+  animation: shimmer 2s infinite linear;
+  border-radius: var(--radius-sm);
+}
+.skeleton-row { height: 24px; margin-bottom: 12px; width: 100%; }
+.skeleton-box { height: 100px; width: 100%; margin-bottom: 16px; border-radius: var(--radius-md); }

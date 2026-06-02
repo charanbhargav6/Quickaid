@@ -4,6 +4,7 @@ import '../shared/app_drawer.dart';
 import '../shared/chat_screen.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import '../../widgets/skeleton_loader.dart';
 
 class HelperDashboard extends StatefulWidget {
   const HelperDashboard({super.key});
@@ -18,6 +19,7 @@ class _HelperDashboardState extends State<HelperDashboard> {
   List<Map<String, dynamic>> _myTasks = [];
   Map<String, dynamic> _currentUser = {};
   bool _showMap = false;
+  bool _isAvailable = false;
   int _activeTab = 0; // 0: Feed, 1: My Jobs
 
   @override
@@ -32,7 +34,10 @@ class _HelperDashboardState extends State<HelperDashboard> {
       final user = SupabaseService.currentUser;
       if (user != null) {
         final profile = await SupabaseService.getProfile(user.id);
-        if (profile != null) _currentUser = profile;
+        if (profile != null) {
+          _currentUser = profile;
+          _isAvailable = profile['is_available'] == true;
+        }
       }
 
       _openTasks = await SupabaseService.getOpenTasks();
@@ -63,10 +68,29 @@ class _HelperDashboardState extends State<HelperDashboard> {
     if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Task Completed!')));
   }
 
+  Future<void> _toggleAvailability(bool value) async {
+    setState(() {
+      _isAvailable = value;
+    });
+    try {
+      if (value) {
+        // Mock asking for duration, just hardcode 2 hours for now or show dialog later
+        await SupabaseService.toggleAvailability(2, lat: 12.9692, lng: 79.1559);
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('You are now marked as Available for 2 hours')));
+      } else {
+        await SupabaseService.toggleAvailability(0);
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('You are now Offline')));
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to update: $e')));
+      setState(() => _isAvailable = !value);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+      return const Scaffold(body: SkeletonListView());
     }
 
     final tasksDone = _myTasks.where((t) => t['status'] == 'completed').length;
@@ -125,7 +149,41 @@ class _HelperDashboardState extends State<HelperDashboard> {
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: _isAvailable ? const Color(0xFFDCFCE7) : const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _isAvailable ? const Color(0xFF22C55E) : const Color(0xFFCBD5E1)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.directions_run, color: _isAvailable ? const Color(0xFF16A34A) : const Color(0xFF64748B)),
+                    const SizedBox(width: 8),
+                    Text(
+                      _isAvailable ? 'You are Available Now' : 'Go Online',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: _isAvailable ? const Color(0xFF15803D) : const Color(0xFF334155),
+                      ),
+                    ),
+                  ],
+                ),
+                Switch(
+                  value: _isAvailable,
+                  onChanged: _toggleAvailability,
+                  activeColor: const Color(0xFF22C55E),
+                ),
+              ],
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Row(
             children: [
               Expanded(child: _buildStatCard('Tasks Done', done.toString(), Icons.task_alt, Colors.blue)),

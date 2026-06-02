@@ -32,9 +32,9 @@ final themeController = ThemeController();
 
 // ── THEME DEFINITIONS ─────────────────────────────────────
 class AppTheme {
-  static const primaryGreen = Color(0xFF22C55E);
-  static const primaryGreenDark = Color(0xFF16A34A);
-  static const bgLight = Color(0xFFF8FAFC);
+  static const primaryBlue = Color(0xFF009FFC);
+  static const primaryBlueDark = Color(0xFF008BE0);
+  static const bgLight = Color(0xFFECEFF1); // Mist Gray
   static const textPrimary = Color(0xFF1E293B);
   static const textSecondary = Color(0xFF64748B);
 
@@ -42,10 +42,10 @@ class AppTheme {
     useMaterial3: true,
     brightness: Brightness.light,
     scaffoldBackgroundColor: bgLight,
-    primaryColor: primaryGreen,
+    primaryColor: primaryBlue,
     colorScheme: const ColorScheme.light(
-      primary: primaryGreen,
-      secondary: primaryGreenDark,
+      primary: primaryBlue,
+      secondary: primaryBlueDark,
       surface: Colors.white,
     ),
     cardTheme: CardThemeData(
@@ -76,7 +76,7 @@ class AppTheme {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: primaryGreen, width: 2),
+        borderSide: const BorderSide(color: primaryBlue, width: 2),
       ),
       hintStyle: const TextStyle(color: textSecondary),
     ),
@@ -90,42 +90,42 @@ class AppTheme {
   static ThemeData get dark => ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
-    scaffoldBackgroundColor: const Color(0xFF0F172A),
-    primaryColor: primaryGreen,
+    scaffoldBackgroundColor: const Color(0xFF161B22), // Deep Charcoal from screenshot
+    primaryColor: primaryBlue,
     colorScheme: const ColorScheme.dark(
-      primary: primaryGreen,
-      secondary: primaryGreenDark,
-      surface: Color(0xFF1E293B),
+      primary: primaryBlue,
+      secondary: primaryBlueDark,
+      surface: Color(0xFF21262D),
     ),
     cardTheme: CardThemeData(
-      color: const Color(0xFF1E293B),
+      color: const Color(0xFF21262D), // Card background from screenshot
       elevation: 0,
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: Color(0xFF334155)),
+        side: const BorderSide(color: Color(0xFF30363D)),
       ),
     ),
     appBarTheme: const AppBarTheme(
-      backgroundColor: Color(0xFF0F172A),
+      backgroundColor: Color(0xFF161B22),
       elevation: 0,
       iconTheme: IconThemeData(color: Colors.white),
       titleTextStyle: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: const Color(0xFF1E293B),
+      fillColor: const Color(0xFF21262D),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Color(0xFF334155)),
+        borderSide: const BorderSide(color: Color(0xFF30363D)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: Color(0xFF334155)),
+        borderSide: const BorderSide(color: Color(0xFF30363D)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
-        borderSide: const BorderSide(color: primaryGreen, width: 2),
+        borderSide: const BorderSide(color: primaryBlue, width: 2),
       ),
       hintStyle: const TextStyle(color: Color(0xFF94A3B8)),
     ),
@@ -137,13 +137,13 @@ class AppTheme {
   );
 
   static LinearGradient get primaryGradient => const LinearGradient(
-    colors: [Color(0xFF22C55E), Color(0xFF16A34A)],
+    colors: [Color(0xFF009FFC), Color(0xFF008BE0)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
   
   static LinearGradient get sidebarGradient => const LinearGradient(
-    colors: [Color(0xFF166534), Color(0xFF15803D), Color(0xFF14532D)],
+    colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );

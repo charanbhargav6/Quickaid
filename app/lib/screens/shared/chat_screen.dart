@@ -60,6 +60,45 @@ class _ChatScreenState extends State<ChatScreen> {
           ],
         ),
         backgroundColor: const Color(0xFF22C55E),
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) async {
+              if (value == 'report') {
+                await SupabaseService.submitUserReport('', widget.taskId, 'Inappropriate behavior', 'Reported via ChatScreen');
+                if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('User reported to admins.')));
+              } else if (value == 'cancel') {
+                await SupabaseService.cancelTaskWithPenalty(widget.taskId);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Task cancelled. Penalty applied.')));
+                  Navigator.pop(context);
+                }
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(value: 'report', child: Text('Report User')),
+              const PopupMenuItem(value: 'cancel', child: Text('Cancel Task (Penalty)')),
+            ],
+          ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.red,
+        onPressed: () async {
+          await SupabaseService.triggerSOS(widget.taskId, 'User Location');
+          if (mounted) {
+            showDialog(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text('SOS Triggered', style: TextStyle(color: Colors.red)),
+                content: const Text('An emergency alert has been sent to the QuickAid admin team. They will contact you shortly.'),
+                actions: [
+                  TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
+                ],
+              ),
+            );
+          }
+        },
+        child: const Icon(Icons.sos, color: Colors.white, size: 32),
       ),
       body: Column(
         children: [

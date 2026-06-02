@@ -3,8 +3,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at top right, rgba(249, 115, 22, 0.15), transparent 40%),
-              radial-gradient(circle at bottom left, rgba(29, 78, 216, 0.15), transparent 40%);
+  background: var(--bg);
   padding: 20px;
 }
 
@@ -26,7 +25,7 @@
 
 .logoIcon {
   font-size: 40px;
-  color: var(--accent-orange);
+  color: var(--primary);
 }
 
 .logoText {
@@ -36,8 +35,8 @@
   letter-spacing: -0.5px;
 }
 
-.orangeText {
-  color: var(--accent-orange);
+.primaryText {
+  color: var(--primary);
 }
 
 .subtitle {

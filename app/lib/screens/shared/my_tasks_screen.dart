@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
 import '../shared/app_drawer.dart';
+import '../../widgets/skeleton_loader.dart';
 
 class MyTasksScreen extends StatefulWidget {
   const MyTasksScreen({super.key});
@@ -60,7 +61,7 @@ class _MyTasksScreenState extends State<MyTasksScreen> {
       appBar: AppBar(title: const Text('My Tasks')),
       drawer: _profile != null ? AppDrawer(user: _profile!) : null,
       body: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const SkeletonListView()
           : _tasks.isEmpty
               ? const Center(child: Text('No tasks found.'))
               : ListView.builder(

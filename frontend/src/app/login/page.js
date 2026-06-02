@@ -25,18 +25,38 @@ export default function Login() {
       setError(error.message);
       setLoading(false);
     } else {
-      router.push('/dashboard');
+      // Fetch user role
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single();
+
+      if (profileError) {
+        setError('Failed to fetch user profile.');
+        setLoading(false);
+      } else {
+        const role = profileData?.role;
+        if (role === 'admin') {
+          router.push('/admin/dashboard');
+        } else if (role === 'seeker') {
+          router.push('/seeker');
+        } else if (role === 'helper') {
+          router.push('/helper');
+        } else {
+          router.push('/dashboard');
+        }
+      }
     }
   };
 
   return (
     <div className={styles.loginContainer}>
-      <div className={`${styles.loginCard} glass-panel`}>
+      <div className={`${styles.loginCard} card`}>
         <div className={styles.logoContainer}>
           <span className={styles.logoIcon}>⚡</span>
-          <h1 className={styles.logoText}>Quick<span className={styles.orangeText}>Aid</span></h1>
+          <h1 className={styles.logoText}>Quick<span className={styles.primaryText}>Aid</span></h1>
         </div>
-        <p className={styles.subtitle}>Admin Portal</p>
         
         {error && <div className={styles.errorMessage} style={{ color: 'red', marginBottom: '1rem', textAlign: 'center' }}>{error}</div>}
         
@@ -45,8 +65,8 @@ export default function Login() {
             <label>Email Address</label>
             <input 
               type="email" 
-              className="input-field" 
-              placeholder="admin@quickaid.com"
+              className="input" 
+              placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -57,7 +77,7 @@ export default function Login() {
             <label>Password</label>
             <input 
               type="password" 
-              className="input-field" 
+              className="input" 
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -65,7 +85,7 @@ export default function Login() {
             />
           </div>
 
-          <button type="submit" className={`btn-primary ${styles.loginBtn}`} disabled={loading}>
+          <button type="submit" className={`btn btn-primary ${styles.loginBtn}`} disabled={loading}>
             {loading ? 'Signing In...' : 'Sign In'}
           </button>
         </form>
