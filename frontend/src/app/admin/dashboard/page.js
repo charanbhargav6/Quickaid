@@ -4,7 +4,13 @@ import styles from './Dashboard.module.css';
 import { createClient } from '@/lib/supabase';
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState({ totalTasks: 0, completed: 0, earnings: 0, helpers: 0, users: 0 });
+  const [stats, setStats] = useState({ 
+    totalTasks: 0, totalTasksChange: 0, 
+    completed: 0, completedChange: 0, 
+    earnings: 0, earningsChange: 0, 
+    helpers: 0, helpersChange: 0, 
+    users: 0, usersChange: 0 
+  });
   const [tasks, setTasks] = useState([]);
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -39,16 +45,50 @@ export default function DashboardPage() {
       const allTasks = tasksRes.data || [];
       const allProfiles = profilesRes.data || [];
 
+      const now = new Date();
+      const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+      // Helper to calculate percentage change
+      const calcChange = (current, previous) => {
+        if (previous === 0) return current > 0 ? 100 : 0;
+        return Math.round(((current - previous) / previous) * 100);
+      };
+
+      // 1. Total Tasks
+      const tasksThisWeek = allTasks.filter(t => new Date(t.created_at) >= oneWeekAgo).length;
+      const tasksLastWeek = allTasks.filter(t => new Date(t.created_at) >= twoWeeksAgo && new Date(t.created_at) < oneWeekAgo).length;
+      
+      // 2. Completed Tasks
       const completedTasks = allTasks.filter(t => t.status === 'completed');
+      const compThisWeek = completedTasks.filter(t => new Date(t.created_at) >= oneWeekAgo).length;
+      const compLastWeek = completedTasks.filter(t => new Date(t.created_at) >= twoWeeksAgo && new Date(t.created_at) < oneWeekAgo).length;
+
+      // 3. Earnings
       const totalEarnings = completedTasks.reduce((sum, t) => sum + (parseFloat(t.pay) || 0), 0);
-      const helpers = allProfiles.filter(p => p.role === 'helper' || p.role === 'admin');
+      const earnThisWeek = completedTasks.filter(t => new Date(t.created_at) >= oneWeekAgo).reduce((sum, t) => sum + (parseFloat(t.pay) || 0), 0);
+      const earnLastWeek = completedTasks.filter(t => new Date(t.created_at) >= twoWeeksAgo && new Date(t.created_at) < oneWeekAgo).reduce((sum, t) => sum + (parseFloat(t.pay) || 0), 0);
+
+      // 4. Active Helpers
+      const helpers = allProfiles.filter(p => p.role === 'helper' || p.role === 'both');
+      const helpersThisWeek = helpers.filter(p => new Date(p.created_at) >= oneWeekAgo).length;
+      const helpersLastWeek = helpers.filter(p => new Date(p.created_at) >= twoWeeksAgo && new Date(p.created_at) < oneWeekAgo).length;
+
+      // 5. Total Users
+      const usersThisWeek = allProfiles.filter(p => new Date(p.created_at) >= oneWeekAgo).length;
+      const usersLastWeek = allProfiles.filter(p => new Date(p.created_at) >= twoWeeksAgo && new Date(p.created_at) < oneWeekAgo).length;
 
       setStats({
         totalTasks: allTasks.length,
+        totalTasksChange: calcChange(tasksThisWeek, tasksLastWeek),
         completed: completedTasks.length,
+        completedChange: calcChange(compThisWeek, compLastWeek),
         earnings: totalEarnings,
+        earningsChange: calcChange(earnThisWeek, earnLastWeek),
         helpers: helpers.length,
+        helpersChange: calcChange(helpersThisWeek, helpersLastWeek),
         users: allProfiles.length,
+        usersChange: calcChange(usersThisWeek, usersLastWeek),
       });
       setTasks(allTasks);
       setProfiles(allProfiles);
@@ -101,11 +141,11 @@ export default function DashboardPage() {
 
       {/* ── Stats Row ────────────────────────── */}
       <div className={styles.statsRow}>
-        <StatCard icon="📋" iconBg="#dbeafe" label="TOTAL TASKS" value={stats.totalTasks} change="+18% from last week" />
-        <StatCard icon="✅" iconBg="#dcfce7" label="COMPLETED TASKS" value={stats.completed} change="+22% from last week" />
-        <StatCard icon="⭐" iconBg="#fef3c7" label="TOTAL EARNINGS" value={`₹${stats.earnings.toLocaleString()}`} change="+15% from last week" />
-        <StatCard icon="🧑‍🔧" iconBg="#e0e7ff" label="ACTIVE HELPERS" value={stats.helpers} change="+10% from last week" />
-        <StatCard icon="🛡️" iconBg="#fce7f3" label="TRUSTED USERS" value={stats.users} change="+20% from last week" />
+        <StatCard icon="📋" iconBg="#dbeafe" label="TOTAL TASKS" value={stats.totalTasks} change={`${stats.totalTasksChange >= 0 ? '+' : ''}${stats.totalTasksChange}% from last week`} isPositive={stats.totalTasksChange >= 0} />
+        <StatCard icon="✅" iconBg="#dcfce7" label="COMPLETED TASKS" value={stats.completed} change={`${stats.completedChange >= 0 ? '+' : ''}${stats.completedChange}% from last week`} isPositive={stats.completedChange >= 0} />
+        <StatCard icon="⭐" iconBg="#fef3c7" label="TOTAL EARNINGS" value={`₹${stats.earnings.toLocaleString()}`} change={`${stats.earningsChange >= 0 ? '+' : ''}${stats.earningsChange}% from last week`} isPositive={stats.earningsChange >= 0} />
+        <StatCard icon="🧑‍🔧" iconBg="#e0e7ff" label="ACTIVE HELPERS" value={stats.helpers} change={`${stats.helpersChange >= 0 ? '+' : ''}${stats.helpersChange}% from last week`} isPositive={stats.helpersChange >= 0} />
+        <StatCard icon="🛡️" iconBg="#fce7f3" label="TRUSTED USERS" value={stats.users} change={`${stats.usersChange >= 0 ? '+' : ''}${stats.usersChange}% from last week`} isPositive={stats.usersChange >= 0} />
       </div>
 
       {/* ── Charts Row ───────────────────────── */}
@@ -303,7 +343,8 @@ export default function DashboardPage() {
 }
 
 /* ── Helpers ──────────────────────────── */
-function StatCard({ icon, iconBg, label, value, change }) {
+function StatCard({ icon, iconBg, label, value, change, isPositive }) {
+  const changeColor = change.startsWith('0%') ? 'var(--text-muted)' : isPositive ? '#16a34a' : '#dc2626';
   return (
     <div className="stat-card fade-in">
       <div className="icon-wrap" style={{ background: iconBg }}>
@@ -312,7 +353,7 @@ function StatCard({ icon, iconBg, label, value, change }) {
       <div className="stat-info">
         <p className="stat-label">{label}</p>
         <p className="stat-value">{value}</p>
-        <p className="stat-change">{change}</p>
+        <p className="stat-change" style={{ color: changeColor, fontWeight: '600' }}>{change}</p>
       </div>
     </div>
   );
