@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import styles from './NotificationToast.module.css';
 
-const NotificationContext = createContext();
+const NotificationContext = createContext({ notifications: [], unreadCount: 0, markAsRead: () => {} });
 
 export function useNotifications() {
   return useContext(NotificationContext);
