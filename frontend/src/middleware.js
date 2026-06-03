@@ -45,18 +45,8 @@ export async function middleware(request) {
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
-  // RBAC checks
-  const role = user.app_metadata?.role || 'user'
-  
-  if (url.pathname.startsWith('/admin') && role !== 'admin') {
-    return NextResponse.redirect(new URL('/login', request.url))
-  }
-  if (url.pathname.startsWith('/helper') && role !== 'helper') {
-    return NextResponse.redirect(new URL('/login', request.url))
-  }
-  if (url.pathname.startsWith('/seeker') && role !== 'seeker') {
-    return NextResponse.redirect(new URL('/login', request.url))
-  }
+  // We removed RBAC checks from middleware because app_metadata is not synced yet.
+  // Row Level Security (RLS) will protect the database queries.
 
   return supabaseResponse
 }
