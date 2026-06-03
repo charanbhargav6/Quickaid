@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { addFunds } from '../_actions/walletActions';
+import { addFunds } from '@/app/seeker/_actions/walletActions';
 
 export default function AddFundsModal({ isOpen, onClose }) {
   const [amount, setAmount] = useState(500);
