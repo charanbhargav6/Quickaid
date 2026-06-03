@@ -14,8 +14,10 @@ export default function DashboardPage() {
   const [tasks, setTasks] = useState([]);
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
+    setIsMounted(true);
     fetchData();
 
     const supabase = createClient();
@@ -228,7 +230,7 @@ export default function DashboardPage() {
                     <p className="activity-title">{task.status === 'completed' ? 'Task completed' : task.status === 'accepted' ? 'Task accepted' : 'New task posted'}</p>
                     <p className="activity-desc">{task.title}</p>
                   </div>
-                  <span className="activity-time">{timeAgo(task.created_at)}</span>
+                  <span className="activity-time">{isMounted ? timeAgo(task.created_at) : ''}</span>
                 </div>
               ))
             )}
@@ -243,14 +245,16 @@ export default function DashboardPage() {
           <h3 className={styles.cardTitle}>Tasks Over Time (This Week)</h3>
           <div className={styles.barChart}>
             {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, i) => {
-              const posted = Math.floor(Math.random() * 30) + 10;
+              // Deterministic fake data to prevent hydration mismatch
+              const posted = (i * 7) % 30 + 10;
               const completed = Math.floor(posted * 0.7);
               const maxH = 120;
               return (
                 <div key={day} className={styles.barGroup}>
-                  <div className={styles.barStack}>
-                    <div className={styles.barPosted} style={{ height: `${(posted / 50) * maxH}px` }} title={`Posted: ${posted}`} />
-                    <div className={styles.barCompleted} style={{ height: `${(completed / 50) * maxH}px` }} title={`Completed: ${completed}`} />
+                  <div className={styles.barWrapper}>
+                    <div className={styles.barMain} style={{ height: `${(posted / 40) * maxH}px` }}>
+                      <div className={styles.barSub} style={{ height: `${(completed / posted) * 100}%` }} />
+                    </div>
                   </div>
                   <span className={styles.barLabel}>{day}</span>
                 </div>
