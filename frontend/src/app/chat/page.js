@@ -2,7 +2,7 @@ import { createClient } from '@/utils/supabase/server';
 import Link from 'next/link';
 
 export default async function ChatHubPage() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   // Fetch tasks where this user is either the seeker or helper, AND the task is accepted or completed

@@ -13,7 +13,7 @@ export async function acceptTask(rawInput) {
   if (!parsed.success) return { success: false, error: 'Invalid input data' }
   const { taskId } = parsed.data
 
-  const supabase = createClient()
+  const supabase = await createClient();
 
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) return { success: false, error: 'Unauthorized' }
@@ -52,7 +52,7 @@ export async function cancelTask(rawInput) {
   if (!parsed.success) return { success: false, error: 'Invalid input data' };
   const { taskId } = parsed.data;
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) return { success: false, error: 'Unauthorized' };
 
@@ -105,7 +105,7 @@ export async function cancelTask(rawInput) {
 }
 
 export async function completeTask(taskId) {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) return { success: false, error: 'Unauthorized' };
 
@@ -171,7 +171,7 @@ export async function toggleOnlineStatus(currentStatus) {
   const parsed = toggleSchema.safeParse(currentStatus)
   if (!parsed.success) return { success: false, error: 'Invalid status type' }
 
-  const supabase = createClient()
+  const supabase = await createClient();
 
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) return { success: false, error: 'Unauthorized' }

@@ -4,7 +4,7 @@ import ChatRoom from '@/components/ChatRoom';
 
 export default async function ChatPage({ params }) {
   const { taskId } = params;
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) redirect('/login');

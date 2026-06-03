@@ -3,7 +3,7 @@ import WalletClient from './WalletClient';
 import styles from './Wallet.module.css';
 
 export default async function WalletPage() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   // Fetch profile wallet balance

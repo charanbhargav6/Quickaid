@@ -19,7 +19,7 @@ export async function postTask(formData) {
     return { success: false, error: parsed.error.errors[0].message }
   }
   
-  const supabase = createClient()
+  const supabase = await createClient();
 
   // Authorization Check
   const { data: { user }, error: authError } = await supabase.auth.getUser()

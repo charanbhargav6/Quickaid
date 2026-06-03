@@ -5,7 +5,7 @@ import RealtimeHelperTasks from '@/components/RealtimeHelperTasks';
 import { Suspense } from 'react';
 
 export default async function HelperDashboard() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {

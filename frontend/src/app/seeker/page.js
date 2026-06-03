@@ -5,7 +5,7 @@ import RealtimeTaskList from '@/components/RealtimeTaskList';
 import { Suspense } from 'react';
 
 export default async function SeekerDashboard() {
-  const supabase = createClient();
+  const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
