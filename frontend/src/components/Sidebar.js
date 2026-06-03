@@ -3,6 +3,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import styles from './Sidebar.module.css';
 import { createClient } from '@/lib/supabase';
+import { useNotifications } from '@/components/NotificationProvider';
 
 import { useState, useEffect } from 'react';
 
@@ -51,7 +52,7 @@ const HELPER_NAV = [
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [unreadCount, setUnreadCount] = useState(0);
+  const { unreadCount } = useNotifications();
   const [role, setRole] = useState('admin');
   const [profile, setProfile] = useState(null);
 
@@ -67,15 +68,6 @@ export default function Sidebar() {
         setProfile(prof);
       }
 
-      const { count, error } = await supabase
-        .from('notifications')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('is_read', false);
-
-      if (!error) {
-        setUnreadCount(count || 0);
-      }
     } catch (err) {
       console.error('Error fetching unread count:', err);
     }
@@ -126,19 +118,17 @@ export default function Sidebar() {
           if (item.divider) {
             return <div key={i} className={styles.divider} />;
           }
-          const isActive = pathname === item.path || (item.path !== '/admin/dashboard' && item.path !== '/seeker' && item.path !== '/helper' && pathname?.startsWith(item.path?.split('?')[0]));
-          const displayBadge = item.label === 'Notifications' ? unreadCount : item.badge;
           
           return (
-            <Link
+            <Link 
               key={item.path}
               href={item.path}
-              className={`${styles.navItem} ${isActive ? styles.active : ''}`}
+              className={`${styles.navItem} ${pathname === item.path ? styles.active : ''}`}
             >
               <span className={styles.navIcon}>{item.icon}</span>
               <span className={styles.navLabel}>{item.label}</span>
-              {displayBadge > 0 && (
-                <span className={styles.navBadge}>{displayBadge}</span>
+              {item.label === 'Notifications' && unreadCount > 0 && (
+                <span className={styles.navBadge}>{unreadCount}</span>
               )}
             </Link>
           );

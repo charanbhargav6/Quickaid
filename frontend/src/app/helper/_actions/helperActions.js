@@ -34,6 +34,15 @@ export async function acceptTask(rawInput) {
     return { success: false, error: 'Task is no longer available or does not exist.' }
   }
 
+  // Notify seeker
+  await supabase.from('notifications').insert({
+    user_id: data.seeker_id,
+    title: 'Task Accepted! 🤝',
+    message: `A helper has accepted your task: "${data.title}"`,
+    type: 'task_accepted',
+    link: `/chat/${data.id}`
+  });
+
   revalidatePath('/helper')
   return { success: true, task: data }
 }
@@ -50,7 +59,7 @@ export async function cancelTask(rawInput) {
   // Fetch task to check accepted_at
   const { data: task, error: fetchError } = await supabase
     .from('tasks')
-    .select('accepted_at, helper_id, status')
+    .select('accepted_at, helper_id, status, seeker_id, title')
     .eq('id', taskId)
     .single();
 
@@ -83,6 +92,14 @@ export async function cancelTask(rawInput) {
 
   if (updateError) return { success: false, error: 'Failed to cancel task' };
 
+  // Notify seeker
+  await supabase.from('notifications').insert({
+    user_id: task.seeker_id,
+    title: 'Task Cancelled ⚠️',
+    message: `A helper cancelled your task: "${task.title}". It is back on the open market.`,
+    type: 'alert'
+  });
+
   revalidatePath('/helper');
   return { success: true, penaltyApplied };
 }
@@ -95,7 +112,7 @@ export async function completeTask(taskId) {
   // Fetch task
   const { data: task, error: fetchError } = await supabase
     .from('tasks')
-    .select('pay, helper_id, status')
+    .select('pay, helper_id, status, seeker_id, title')
     .eq('id', taskId)
     .single();
 
@@ -134,6 +151,14 @@ export async function completeTask(taskId) {
     amount: task.pay,
     type: 'payout',
     status: 'completed'
+  });
+
+  // 5. Notify seeker
+  await supabase.from('notifications').insert({
+    user_id: task.seeker_id,
+    title: 'Task Completed! ✅',
+    message: `Your task "${task.title}" has been completed and payment was sent.`,
+    type: 'task_completed'
   });
 
   revalidatePath('/helper/tasks');

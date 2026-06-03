@@ -76,6 +76,21 @@ export default function ChatRoom({ initialMessages, taskId, userId, taskStatus }
       console.error('Error sending message:', error);
       // Remove optimistic message on error
       setMessages((prev) => prev.filter(m => m.id !== optimisticMessage.id));
+    } else {
+      // Send notification to recipient
+      const { data: task } = await supabase.from('tasks').select('seeker_id, helper_id').eq('id', taskId).single();
+      if (task) {
+        const recipientId = task.seeker_id === userId ? task.helper_id : task.seeker_id;
+        if (recipientId) {
+          await supabase.from('notifications').insert({
+            user_id: recipientId,
+            title: 'New Message 💬',
+            message: `You have a new message: "${content.substring(0, 30)}${content.length > 30 ? '...' : ''}"`,
+            type: 'message',
+            link: `/chat/${taskId}`
+          });
+        }
+      }
     }
     setLoading(false);
   };
