@@ -8,6 +8,8 @@ const postTaskSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters").max(100),
   description: z.string().min(5, "Description must be at least 5 characters"),
   price: z.number().positive("Price must be positive"),
+  lat: z.number().optional(),
+  lng: z.number().optional(),
 })
 
 export async function postTask(formData) {
@@ -48,6 +50,8 @@ export async function postTask(formData) {
     title: parsed.data.title,
     description: parsed.data.description,
     pay: parsed.data.price,
+    lat: parsed.data.lat,
+    lng: parsed.data.lng,
     status: 'open'
   }).select().single()
 

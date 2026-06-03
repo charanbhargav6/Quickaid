@@ -37,6 +37,7 @@ const SEEKER_NAV = [
 
 const HELPER_NAV = [
   { icon: '📊', label: 'Dashboard', path: '/helper' },
+  { icon: '🗺️', label: 'Live Map', path: '/helper/map' },
   { icon: '📋', label: 'My Tasks', path: '/helper/tasks' },
   { icon: '💰', label: 'Earnings', path: '/helper/earnings' },
   { icon: '💬', label: 'Messages', path: '/chat' },

@@ -1,6 +1,9 @@
 'use client';
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { postTask } from '@/app/seeker/_actions/taskActions';
+
+const MapPicker = dynamic(() => import('./MapPicker'), { ssr: false });
 
 export default function PostTaskModal() {
   const [showModal, setShowModal] = useState(false);
@@ -11,9 +14,15 @@ export default function PostTaskModal() {
   const [taskTitle, setTaskTitle] = useState('');
   const [taskDesc, setTaskDesc] = useState('');
   const [taskPrice, setTaskPrice] = useState('');
+  const [taskLocation, setTaskLocation] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!taskLocation) {
+      setErrorMsg("Please drop a pin on the map to set the task location.");
+      return;
+    }
+
     setIsPending(true);
     setErrorMsg(null);
 
@@ -21,6 +30,8 @@ export default function PostTaskModal() {
       title: taskTitle,
       description: taskDesc,
       price: parseFloat(taskPrice),
+      lat: taskLocation.lat,
+      lng: taskLocation.lng,
     };
 
     const res = await postTask(formData);
@@ -58,8 +69,12 @@ export default function PostTaskModal() {
                 <textarea className="input" rows="3" value={taskDesc} onChange={e => setTaskDesc(e.target.value)} required placeholder="Describe the task..." disabled={isPending}></textarea>
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '14px', marginBottom: '4px' }}>Price ($)</label>
-                <input type="number" step="0.01" className="input" value={taskPrice} onChange={e => setTaskPrice(e.target.value)} required placeholder="20.00" disabled={isPending} />
+                <label style={{ display: 'block', fontSize: '14px', marginBottom: '4px' }}>Price (₹)</label>
+                <input type="number" step="0.01" className="input" value={taskPrice} onChange={e => setTaskPrice(e.target.value)} required placeholder="500.00" disabled={isPending} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', marginBottom: '4px' }}>Location</label>
+                <MapPicker onChange={setTaskLocation} />
               </div>
               <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
                 <button type="button" className="btn btn-outline" style={{ flex: 1 }} onClick={() => setShowModal(false)} disabled={isPending}>Cancel</button>
