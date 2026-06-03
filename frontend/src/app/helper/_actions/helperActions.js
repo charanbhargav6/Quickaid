@@ -87,6 +87,59 @@ export async function cancelTask(rawInput) {
   return { success: true, penaltyApplied };
 }
 
+export async function completeTask(taskId) {
+  const supabase = createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) return { success: false, error: 'Unauthorized' };
+
+  // Fetch task
+  const { data: task, error: fetchError } = await supabase
+    .from('tasks')
+    .select('pay, helper_id, status')
+    .eq('id', taskId)
+    .single();
+
+  if (fetchError || !task) return { success: false, error: 'Task not found' };
+  if (task.helper_id !== user.id) return { success: false, error: 'Not your task' };
+  if (task.status !== 'accepted') return { success: false, error: 'Task is not accepted' };
+
+  // 1. Mark task as completed
+  const { error: updateError } = await supabase
+    .from('tasks')
+    .update({ status: 'completed' })
+    .eq('id', taskId);
+
+  if (updateError) return { success: false, error: 'Failed to complete task' };
+
+  // 2. Fetch current helper earnings
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('total_earnings')
+    .eq('id', user.id)
+    .single();
+    
+  const currentEarnings = Number(profile?.total_earnings || 0);
+  const newEarnings = currentEarnings + Number(task.pay || 0);
+
+  // 3. Update total_earnings for helper
+  await supabase
+    .from('profiles')
+    .update({ total_earnings: newEarnings })
+    .eq('id', user.id);
+
+  // 4. Create payout transaction
+  await supabase.from('transactions').insert({
+    task_id: taskId,
+    user_id: user.id,
+    amount: task.pay,
+    type: 'payout',
+    status: 'completed'
+  });
+
+  revalidatePath('/helper/tasks');
+  return { success: true };
+}
+
 const toggleSchema = z.boolean()
 
 export async function toggleOnlineStatus(currentStatus) {

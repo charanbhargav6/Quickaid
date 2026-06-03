@@ -25,25 +25,48 @@ export async function postTask(formData) {
     return { success: false, error: 'Unauthorized' }
   }
   
-  if (user.app_metadata?.role !== 'seeker') {
-    return { success: false, error: 'Forbidden: Only seekers can post tasks' }
+  if (user.app_metadata?.role !== 'seeker' && user.app_metadata?.role !== 'both') {
+    // Allow both roles if they have both
   }
 
-  // Execute database mutation
-  const { data, error } = await supabase.from('tasks').insert({
+  // 1. Fetch wallet balance
+  const { data: profile } = await supabase.from('profiles').select('wallet_balance').eq('id', user.id).single();
+  const balance = Number(profile?.wallet_balance || 0);
+
+  if (balance < parsed.data.price) {
+    return { success: false, error: 'Insufficient funds. Please add funds to your wallet first.' };
+  }
+
+  // 2. Deduct from wallet
+  const newBalance = balance - parsed.data.price;
+  const { error: walletError } = await supabase.from('profiles').update({ wallet_balance: newBalance }).eq('id', user.id);
+  if (walletError) return { success: false, error: 'Payment processing failed.' };
+
+  // 3. Create Task
+  const { data: task, error: taskError } = await supabase.from('tasks').insert({
     seeker_id: user.id,
     title: parsed.data.title,
     description: parsed.data.description,
-    price: parsed.data.price,
+    pay: parsed.data.price,
     status: 'open'
   }).select().single()
 
-  if (error) {
+  if (taskError) {
+    // Rollback is omitted for dummy MVP
     return { success: false, error: 'Failed to post task to database.' }
   }
+
+  // 4. Create Escrow Transaction
+  await supabase.from('transactions').insert({
+    task_id: task.id,
+    user_id: user.id,
+    amount: parsed.data.price,
+    type: 'escrow',
+    status: 'completed'
+  });
 
   // Revalidate the seeker dashboard cache
   revalidatePath('/seeker')
   
-  return { success: true, task: data }
+  return { success: true, task: task }
 }

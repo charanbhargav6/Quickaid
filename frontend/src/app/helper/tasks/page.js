@@ -2,12 +2,14 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import { completeTask } from '../_actions/helperActions';
 
 export default function HelperTasksPage() {
   const router = useRouter();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
+  const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
     fetchTasks();
@@ -34,13 +36,14 @@ export default function HelperTasksPage() {
   };
 
   const handleMarkComplete = async (taskId) => {
-    const { error } = await supabase
-      .from('tasks')
-      .update({ status: 'completed' })
-      .eq('id', taskId);
+    setProcessing(true);
+    const result = await completeTask(taskId);
+    setProcessing(false);
     
-    if (!error) {
+    if (result.success) {
       fetchTasks();
+    } else {
+      alert(result.error || 'Failed to complete task');
     }
   };
 
@@ -87,8 +90,9 @@ export default function HelperTasksPage() {
                         className="btn btn-primary" 
                         style={{ padding: '6px 12px', fontSize: '14px' }}
                         onClick={() => handleMarkComplete(task.id)}
+                        disabled={processing}
                       >
-                        Mark Complete
+                        {processing ? 'Processing...' : 'Mark Complete'}
                       </button>
                     )}
                   </td>

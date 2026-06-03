@@ -1,0 +1,61 @@
+.page {
+  padding: 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.header {
+  margin-bottom: 2rem;
+}
+
+.pageTitle {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-dark);
+  margin-bottom: 0.5rem;
+}
+
+.pageSubtitle {
+  color: var(--text-muted);
+  font-size: 1.1rem;
+}
+
+.balanceCard {
+  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+  color: white;
+  border-radius: 16px;
+  padding: 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+  margin-bottom: 2rem;
+}
+
+.balanceInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.balanceLabel {
+  font-size: 1rem;
+  opacity: 0.8;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 0.5rem;
+}
+
+.balanceAmount {
+  font-size: 3.5rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.historyCard {
+  background: white;
+  padding: 2rem;
+}
+
+.txType {
+  font-weight: 500;
+}

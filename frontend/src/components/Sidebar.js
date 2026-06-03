@@ -27,6 +27,7 @@ const SEEKER_NAV = [
   { icon: '📊', label: 'Dashboard', path: '/seeker' },
   { icon: '📝', label: 'Post Task', path: '/seeker?action=create' },
   { icon: '💬', label: 'Messages', path: '/chat' },
+  { icon: '👛', label: 'Wallet', path: '/seeker/wallet' },
   { icon: '🔔', label: 'Notifications', path: '/seeker/notifications' },
   { icon: '📱', label: 'Get the App', path: '/download' },
   { divider: true },
