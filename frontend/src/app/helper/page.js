@@ -12,10 +12,10 @@ export default async function HelperDashboard() {
     redirect('/login');
   }
 
-  // Fetch user profile to get is_available status
+  // Fetch user profile
   const { data: profile } = await supabase
     .from('profiles')
-    .select('is_available')
+    .select('*')
     .eq('id', user.id)
     .single();
 

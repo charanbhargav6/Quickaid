@@ -1,11 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
 import styles from './Dashboard.module.css';
-import { createClient } from '@supabase/supabase-js';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+import { createClient } from '@/lib/supabase';
 
 export default function DashboardPage() {
   const [stats, setStats] = useState({ totalTasks: 0, completed: 0, earnings: 0, helpers: 0, users: 0 });
@@ -15,10 +11,26 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchData();
+
+    const supabase = createClient();
+    const tasksChannel = supabase
+      .channel('realtime-admin-tasks')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, () => fetchData())
+      .subscribe();
+    const profilesChannel = supabase
+      .channel('realtime-admin-profiles')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => fetchData())
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(tasksChannel);
+      supabase.removeChannel(profilesChannel);
+    };
   }, []);
 
   async function fetchData() {
     try {
+      const supabase = createClient();
       const [tasksRes, profilesRes] = await Promise.all([
         supabase.from('tasks').select('*').order('created_at', { ascending: false }),
         supabase.from('profiles').select('*').order('total_earnings', { ascending: false }),

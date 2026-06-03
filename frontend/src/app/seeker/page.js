@@ -16,8 +16,7 @@ export default async function SeekerDashboard() {
   const { data: activeHelpers } = await supabase
     .from('profiles')
     .select('*')
-    .eq('role', 'helper')
-    .eq('is_available', true);
+    .eq('role', 'helper');
 
   // Fetch initial tasks
   const { data: myTasks } = await supabase

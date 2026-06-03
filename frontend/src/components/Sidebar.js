@@ -1,13 +1,10 @@
 'use client';
 import { usePathname, useRouter } from 'next/navigation';
+import Link from 'next/link';
 import styles from './Sidebar.module.css';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase';
 
 import { useState, useEffect } from 'react';
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
 
 const ADMIN_NAV = [
   { icon: '📊', label: 'Dashboard', path: '/admin/dashboard' },
@@ -16,7 +13,7 @@ const ADMIN_NAV = [
   { icon: '📝', label: 'Post Task', path: '/admin/tasks?action=create' },
   { icon: '📅', label: 'My Bookings', path: '/admin/bookings' },
   { icon: '💰', label: 'Earnings', path: '/admin/earnings' },
-  { icon: '💬', label: 'Messages', path: '/admin/messages', badge: 3 },
+  { icon: '💬', label: 'Messages', path: '/admin/messages' },
   { icon: '⭐', label: 'Reviews', path: '/admin/reviews' },
   { icon: '👛', label: 'Wallet', path: '/admin/wallet' },
   { icon: '🔔', label: 'Notifications', path: '/admin/notifications' },
@@ -56,6 +53,7 @@ export default function Sidebar() {
 
   const fetchUnreadCount = async () => {
     try {
+      const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
@@ -83,6 +81,7 @@ export default function Sidebar() {
     fetchUnreadCount();
 
     // Subscribe to realtime database changes for notifications
+    const supabase = createClient();
     const channel = supabase
       .channel('realtime-notifications-sidebar')
       .on(
@@ -100,6 +99,7 @@ export default function Sidebar() {
   }, []);
 
   const handleLogout = async () => {
+    const supabase = createClient();
     await supabase.auth.signOut();
     router.push('/login');
   };
@@ -126,17 +126,17 @@ export default function Sidebar() {
           const displayBadge = item.label === 'Notifications' ? unreadCount : item.badge;
           
           return (
-            <button
+            <Link
               key={item.path}
+              href={item.path}
               className={`${styles.navItem} ${isActive ? styles.active : ''}`}
-              onClick={() => router.push(item.path)}
             >
               <span className={styles.navIcon}>{item.icon}</span>
               <span className={styles.navLabel}>{item.label}</span>
               {displayBadge > 0 && (
                 <span className={styles.navBadge}>{displayBadge}</span>
               )}
-            </button>
+            </Link>
           );
         })}
 

@@ -1,8 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
-
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+import { createClient } from '@/lib/supabase';
 
 export default function UsersPage() {
   const [users, setUsers] = useState([]);
@@ -12,10 +10,21 @@ export default function UsersPage() {
 
   useEffect(() => {
     fetchUsers();
+
+    const supabase = createClient();
+    const channel = supabase
+      .channel('realtime-profiles')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => {
+        fetchUsers();
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   async function fetchUsers() {
     try {
+      const supabase = createClient();
       const { data } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
       setUsers(data || []);
     } finally {
@@ -24,11 +33,13 @@ export default function UsersPage() {
   }
 
   async function handleToggleSuspend(userId, isSuspended) {
+    const supabase = createClient();
     await supabase.from('profiles').update({ is_suspended: !isSuspended }).eq('id', userId);
     fetchUsers();
   }
 
   async function handleChangeRole(userId, newRole) {
+    const supabase = createClient();
     await supabase.from('profiles').update({ role: newRole }).eq('id', userId);
     fetchUsers();
   }
@@ -47,7 +58,7 @@ export default function UsersPage() {
           <h1 style={{ fontSize: '24px', fontWeight: 800 }}>User Management</h1>
           <p style={{ color: 'var(--text-secondary)' }}>Manage platform users, roles, and access</p>
         </div>
-        <button className="btn btn-primary" onClick={fetchUsers}>↻ Refresh</button>
+
       </header>
 
       <div className="card" style={{ padding: '20px' }}>
