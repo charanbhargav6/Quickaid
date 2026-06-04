@@ -157,8 +157,9 @@ export async function completeTask(taskId) {
   await supabase.from('notifications').insert({
     user_id: task.seeker_id,
     title: 'Task Completed! ✅',
-    message: `Your task "${task.title}" has been completed and payment was sent.`,
-    type: 'task_completed'
+    message: `Your task "${task.title}" has been completed. How was your experience? Leave feedback!`,
+    type: 'review_request',
+    link: `/seeker/reviews/new?taskId=${taskId}`
   });
 
   revalidatePath('/helper/tasks');

@@ -225,7 +225,10 @@ export default function NotificationsPage() {
             return (
               <div
                 key={notif.id}
-                onClick={() => markAsRead(notif.id, notif.is_read)}
+                onClick={() => {
+                  markAsRead(notif.id, notif.is_read);
+                  if (notif.link) window.location.href = notif.link;
+                }}
                 className="card"
                 style={{
                   padding: '1.25rem 1.5rem',
@@ -233,7 +236,7 @@ export default function NotificationsPage() {
                   alignItems: 'flex-start',
                   justifyContent: 'space-between',
                   gap: '16px',
-                  cursor: isUnread ? 'pointer' : 'default',
+                  cursor: (isUnread || notif.link) ? 'pointer' : 'default',
                   borderLeft: isUnread ? '4px solid var(--orange-500)' : '1px solid var(--border)',
                   background: isUnread ? 'rgba(249, 115, 22, 0.02)' : 'var(--card-bg)',
                   transition: 'all 0.2s ease',

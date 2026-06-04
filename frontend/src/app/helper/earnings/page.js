@@ -30,7 +30,7 @@ export default function HelperEarningsPage() {
 
     if (data) {
       setCompletedTasks(data);
-      const total = data.reduce((sum, task) => sum + (task.price || 0), 0);
+      const total = data.reduce((sum, task) => sum + (Number(task.pay) || 0), 0);
       setTotalEarnings(total);
     }
     setLoading(false);
@@ -46,7 +46,7 @@ export default function HelperEarningsPage() {
       
       <div className="card" style={{ padding: '2rem', marginBottom: '2rem', textAlign: 'center', backgroundColor: 'var(--primary)', color: 'white' }}>
         <h2 style={{ fontSize: '18px', fontWeight: 400, opacity: 0.9, marginBottom: '0.5rem', marginTop: 0 }}>Total Earnings</h2>
-        <div style={{ fontSize: '48px', fontWeight: 700 }}>${totalEarnings.toFixed(2)}</div>
+        <div style={{ fontSize: '48px', fontWeight: 700 }}>₹{totalEarnings.toFixed(2)}</div>
       </div>
       
       <div className="section-header" style={{ marginTop: '2rem' }}>
@@ -77,7 +77,7 @@ export default function HelperEarningsPage() {
                     {new Date(task.created_at).toLocaleDateString()}
                   </td>
                   <td style={{ padding: '1rem', fontWeight: 500, color: 'var(--green-600)' }}>
-                    +${task.price?.toFixed(2)}
+                    +₹{task.pay?.toFixed(2)}
                   </td>
                 </tr>
               ))

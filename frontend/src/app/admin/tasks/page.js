@@ -167,8 +167,19 @@ export default function TasksPage() {
                       onClick={async () => {
                         if (!confirm('Mark this task as completed?')) return;
                         const { error } = await supabase.from('tasks').update({ status: 'completed' }).eq('id', task.id);
-                        if (error) alert('Error: ' + error.message);
-                        else fetchTasks();
+                        if (error) {
+                          alert('Error: ' + error.message);
+                        } else {
+                          // Insert notification for seeker to review
+                          await supabase.from('notifications').insert({
+                            user_id: task.seeker_id,
+                            title: 'Task Completed!',
+                            message: 'How was your experience? Leave feedback for the task.',
+                            type: 'review_request',
+                            link: `/seeker/reviews/new?taskId=${task.id}`
+                          });
+                          fetchTasks();
+                        }
                       }}
                       style={{
                         background: 'var(--green-500)',
