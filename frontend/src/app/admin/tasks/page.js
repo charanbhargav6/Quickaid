@@ -146,6 +146,45 @@ export default function TasksPage() {
                     Accept Task
                   </button>
                 )}
+                {task.status === 'accepted' && (
+                  <>
+                    <button 
+                      onClick={() => window.location.href = `/chat/${task.id}`}
+                      style={{
+                        background: 'none',
+                        border: '1px solid var(--blue-500)',
+                        color: 'var(--blue-600)',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      💬 Chat
+                    </button>
+                    <button 
+                      onClick={async () => {
+                        if (!confirm('Mark this task as completed?')) return;
+                        const { error } = await supabase.from('tasks').update({ status: 'completed' }).eq('id', task.id);
+                        if (error) alert('Error: ' + error.message);
+                        else fetchTasks();
+                      }}
+                      style={{
+                        background: 'var(--green-500)',
+                        border: 'none',
+                        color: 'white',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      ✓ Complete
+                    </button>
+                  </>
+                )}
                 <button 
                   onClick={() => handleDelete(task.id)}
                   style={{
