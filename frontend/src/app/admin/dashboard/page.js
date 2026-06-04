@@ -114,9 +114,9 @@ export default function DashboardPage() {
   const statusMap = { open: 0, accepted: 0, completed: 0, cancelled: 0 };
   tasks.forEach(t => { if (statusMap[t.status] !== undefined) statusMap[t.status]++; });
 
-  // Top helpers
+  // Top helpers - must have completed at least 1 task
   const topHelpers = profiles
-    .filter(p => p.role === 'helper' || p.role === 'admin')
+    .filter(p => (p.role === 'helper' || p.role === 'both' || p.role === 'admin') && (p.tasks_completed || 0) > 0)
     .sort((a,b) => (b.tasks_completed || 0) - (a.tasks_completed || 0))
     .slice(0, 5);
 
@@ -245,15 +245,35 @@ export default function DashboardPage() {
           <h3 className={styles.cardTitle}>Tasks Over Time (This Week)</h3>
           <div className={styles.barChart}>
             {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, i) => {
-              // Deterministic fake data to prevent hydration mismatch
-              const posted = (i * 7) % 30 + 10;
-              const completed = Math.floor(posted * 0.7);
+              // Real calculation based on 'tasks' array for the current week
+              const now = new Date();
+              const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 1)); // Monday
+              startOfWeek.setHours(0, 0, 0, 0);
+              
+              const dayStart = new Date(startOfWeek);
+              dayStart.setDate(startOfWeek.getDate() + i);
+              const dayEnd = new Date(dayStart);
+              dayEnd.setDate(dayStart.getDate() + 1);
+
+              const dayTasks = tasks.filter(t => {
+                const d = new Date(t.created_at);
+                return d >= dayStart && d < dayEnd;
+              });
+
+              const posted = dayTasks.length;
+              const completed = dayTasks.filter(t => t.status === 'completed').length;
               const maxH = 120;
+              const globalMax = Math.max(10, ...['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((_, idx) => {
+                const s = new Date(startOfWeek); s.setDate(startOfWeek.getDate() + idx);
+                const e = new Date(s); e.setDate(s.getDate() + 1);
+                return tasks.filter(t => { const d = new Date(t.created_at); return d >= s && d < e; }).length;
+              }));
+
               return (
                 <div key={day} className={styles.barGroup}>
-                  <div className={styles.barWrapper}>
-                    <div className={styles.barMain} style={{ height: `${(posted / 40) * maxH}px` }}>
-                      <div className={styles.barSub} style={{ height: `${(completed / posted) * 100}%` }} />
+                  <div className={styles.barWrapper} style={{ background: 'var(--slate-100)' }}>
+                    <div className={styles.barMain} style={{ height: `${(posted / globalMax) * maxH}px` }}>
+                      <div className={styles.barSub} style={{ height: posted > 0 ? `${(completed / posted) * 100}%` : '0%' }} />
                     </div>
                   </div>
                   <span className={styles.barLabel}>{day}</span>
@@ -313,17 +333,17 @@ export default function DashboardPage() {
             <span className="section-action">View All</span>
           </div>
           <div className={styles.ratingsCenter}>
-            <span className={styles.ratingsBig}>4.7</span>
-            <div className={styles.ratingsStars}>⭐⭐⭐⭐⭐</div>
-            <p className={styles.ratingsCount}>Based on {stats.users} Reviews</p>
+            <span className={styles.ratingsBig}>0.0</span>
+            <div className={styles.ratingsStars}>☆☆☆☆☆</div>
+            <p className={styles.ratingsCount}>Based on 0 Reviews</p>
           </div>
           <div className={styles.ratingsBars}>
             {[
-              { stars: 5, pct: 70, color: '#22c55e' },
-              { stars: 4, pct: 20, color: '#22c55e' },
-              { stars: 3, pct: 7, color: '#f97316' },
-              { stars: 2, pct: 2, color: '#ef4444' },
-              { stars: 1, pct: 1, color: '#ef4444' },
+              { stars: 5, pct: 0, color: '#22c55e' },
+              { stars: 4, pct: 0, color: '#22c55e' },
+              { stars: 3, pct: 0, color: '#f97316' },
+              { stars: 2, pct: 0, color: '#ef4444' },
+              { stars: 1, pct: 0, color: '#ef4444' },
             ].map(r => (
               <div key={r.stars} className={styles.ratingRow}>
                 <span className={styles.ratingLabel}>{r.stars} ★</span>

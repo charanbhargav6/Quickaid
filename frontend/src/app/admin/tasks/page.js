@@ -1,8 +1,8 @@
 'use client';
-import { useEffect, useState } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { useState, useEffect } from 'react';
+import { createClient } from '@/lib/supabase';
 
-const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+const supabase = createClient();
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState([]);
@@ -19,8 +19,8 @@ export default function TasksPage() {
         .from('tasks')
         .select(`
           *,
-          seeker:profiles!seeker_id(full_name, email),
-          helper:profiles!helper_id(full_name, email)
+          seeker:seeker_id(full_name, email),
+          helper:helper_id(full_name, email)
         `)
         .order('created_at', { ascending: false });
       setTasks(data || []);
@@ -40,6 +40,18 @@ export default function TasksPage() {
       alert('Task deleted successfully.');
     } catch (err) {
       alert('Failed to delete task: ' + err.message);
+    }
+  }
+
+  async function handleAccept(taskId) {
+    if (!confirm('Are you sure you want to accept this task as an Admin?')) return;
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase.from('tasks').update({ status: 'accepted', helper_id: user.id }).eq('id', taskId);
+      if (error) throw error;
+      setTasks(tasks.map(t => t.id === taskId ? { ...t, status: 'accepted', helper_id: user.id, helper: { full_name: 'Admin' } } : t));
+    } catch (err) {
+      alert('Failed to accept task: ' + err.message);
     }
   }
 
@@ -116,7 +128,24 @@ export default function TasksPage() {
                 )}
               </div>
               
-              <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end' }}>
+              <div style={{ marginTop: '16px', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                {task.status === 'open' && (
+                  <button 
+                    onClick={() => handleAccept(task.id)}
+                    style={{
+                      background: 'none',
+                      border: '1px solid var(--green-500)',
+                      color: 'var(--green-600)',
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Accept Task
+                  </button>
+                )}
                 <button 
                   onClick={() => handleDelete(task.id)}
                   style={{

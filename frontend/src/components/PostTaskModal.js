@@ -21,6 +21,7 @@ function PostTaskModalContent() {
   const [taskTitle, setTaskTitle] = useState('');
   const [taskDesc, setTaskDesc] = useState('');
   const [taskPrice, setTaskPrice] = useState('');
+  const [taskLocationName, setTaskLocationName] = useState('');
   const [taskLocation, setTaskLocation] = useState(null);
 
   useEffect(() => {
@@ -52,6 +53,7 @@ function PostTaskModalContent() {
       price: parseFloat(taskPrice),
       lat: taskLocation.lat,
       lng: taskLocation.lng,
+      location_name: taskLocationName.trim() || 'Campus',
     };
 
     const res = await postTask(formData);
@@ -65,6 +67,7 @@ function PostTaskModalContent() {
       setTaskTitle('');
       setTaskDesc('');
       setTaskPrice('');
+      setTaskLocationName('');
       setIsPending(false);
       if (action === 'create') {
         router.replace(pathname);
@@ -96,7 +99,11 @@ function PostTaskModalContent() {
                 <input type="number" step="0.01" className="input" value={taskPrice} onChange={e => setTaskPrice(e.target.value)} required placeholder="500.00" disabled={isPending} />
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '14px', marginBottom: '4px' }}>Location</label>
+                <label style={{ display: 'block', fontSize: '14px', marginBottom: '4px' }}>Location Name</label>
+                <input type="text" className="input" value={taskLocationName} onChange={e => setTaskLocationName(e.target.value)} placeholder="e.g. Building A, Room 101" disabled={isPending} />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', marginBottom: '4px' }}>Pin Location on Map</label>
                 <MapPicker onChange={setTaskLocation} />
               </div>
               <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>

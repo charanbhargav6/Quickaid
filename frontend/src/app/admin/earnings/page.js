@@ -1,11 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient();
 
 export default function EarningsPage() {
   const [transactions, setTransactions] = useState([]);
@@ -66,7 +64,6 @@ export default function EarningsPage() {
             <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-secondary)' }}>TOTAL VOLUME</span>
           </div>
           <h2 style={{ fontSize: '32px', fontWeight: '800', color: 'var(--text-primary)' }}>₹{stats.totalVolume.toLocaleString()}</h2>
-          <span style={{ fontSize: '13px', color: 'var(--green-600)', fontWeight: '500' }}>+12.5% vs last month</span>
         </div>
         
         <div className="card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '8px' }}>

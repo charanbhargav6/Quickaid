@@ -10,6 +10,14 @@ const inter = Inter({
 export const metadata = {
   title: "QuickAid Admin Panel",
   description: "Campus task marketplace administration",
+  manifest: "/manifest.json",
+};
+
+export const viewport = {
+  themeColor: "#009ffc",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
 };
 
 export default function RootLayout({ children }) {
