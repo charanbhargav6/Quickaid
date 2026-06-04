@@ -24,6 +24,13 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${inter.variable}`}>
       <body>
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            if (localStorage.getItem('theme') === 'dark') {
+              document.body.classList.add('dark-theme');
+            }
+          `
+        }} />
         <NotificationProvider>
           {children}
         </NotificationProvider>

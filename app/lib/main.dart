@@ -16,6 +16,7 @@ import 'screens/shared/earnings_screen.dart';
 import 'screens/shared/messages_screen.dart';
 import 'screens/shared/notifications_screen.dart';
 import 'screens/shared/settings_screen.dart';
+import 'screens/seeker/review_screen.dart';
 
 // ── THEME CONTROLLER ─────────────────────────────────────
 class ThemeController extends ChangeNotifier {
@@ -198,11 +199,12 @@ class _QuickAidAppState extends State<QuickAidApp> {
         '/register': (ctx) => const RegisterScreen(),
         '/seeker': (context) => const SeekerDashboard(),
         '/my_tasks': (context) => const MyTasksScreen(),
-        '/post_task': (context) => const SeekerDashboard(), // Handled by dashboard
+        '/post_task': (context) => const SeekerDashboard(openPostTask: true),
         '/earnings': (context) => const EarningsScreen(),
         '/messages': (context) => const MessagesScreen(),
         '/notifications': (context) => const NotificationsScreen(),
         '/settings': (context) => const SettingsScreen(),
+        '/review': (context) => const ReviewScreen(),
         '/helper': (ctx) => const HelperDashboard(),
         '/admin': (ctx) => const AdminDashboard(),
       },

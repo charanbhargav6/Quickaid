@@ -124,7 +124,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     if (notification['data'] != null) {
       final route = notification['data']['route'];
       if (route != null && route.toString().isNotEmpty) {
-        Navigator.pushNamed(context, route.toString());
+        Navigator.pushNamed(context, route.toString(), arguments: notification['data']);
       }
     }
   }

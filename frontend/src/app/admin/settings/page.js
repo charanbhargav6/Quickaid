@@ -46,8 +46,10 @@ export default function Settings() {
     setTheme(newTheme);
     if (newTheme === 'dark') {
       document.body.classList.add('dark-theme');
+      localStorage.setItem('theme', 'dark');
     } else {
       document.body.classList.remove('dark-theme');
+      localStorage.setItem('theme', 'light');
     }
   };
 

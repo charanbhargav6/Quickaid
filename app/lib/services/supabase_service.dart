@@ -155,6 +155,19 @@ class SupabaseService {
   static Future<void> completeTask(String taskId, String status) async {
     if (status == 'completed') {
       await client.rpc('complete_task_with_trust', params: {'p_task_id': taskId});
+      
+      try {
+        final task = await client.from('tasks').select('seeker_id, helper_id').eq('id', taskId).single();
+        await client.from('notifications').insert({
+          'user_id': task['seeker_id'],
+          'title': 'Task Completed! ✅',
+          'body': 'Your task has been completed. How was your experience? Leave feedback!',
+          'type': 'review_request',
+          'data': {'route': '/review', 'taskId': taskId, 'revieweeId': task['helper_id']}
+        });
+      } catch (e) {
+        // Silently fail if notification fails so it doesn't break task completion
+      }
     } else {
       await client.from('tasks').update({'status': status}).eq('id', taskId);
     }

@@ -10,7 +10,8 @@ import 'dart:typed_data';
 import '../../widgets/skeleton_loader.dart';
 
 class SeekerDashboard extends StatefulWidget {
-  const SeekerDashboard({super.key});
+  final bool openPostTask;
+  const SeekerDashboard({super.key, this.openPostTask = false});
 
   @override
   State<SeekerDashboard> createState() => _SeekerDashboardState();
@@ -26,6 +27,11 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
   void initState() {
     super.initState();
     _loadData();
+    if (widget.openPostTask) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _showCreateTaskDialog();
+      });
+    }
   }
 
   Future<void> _loadData() async {
@@ -461,6 +467,7 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
     final titleCtrl = TextEditingController();
     final descCtrl = TextEditingController();
     final payCtrl = TextEditingController();
+    final locCtrl = TextEditingController();
     XFile? pickedFile;
     Uint8List? fileBytes;
     bool isUploading = false;
@@ -482,9 +489,11 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
                 const SizedBox(height: 12),
                 TextField(controller: descCtrl, decoration: const InputDecoration(labelText: 'Description (Optional)')),
                 const SizedBox(height: 12),
+                TextField(controller: locCtrl, decoration: const InputDecoration(labelText: 'Location Name (e.g. Main Gate)')),
+                const SizedBox(height: 12),
                 TextField(controller: payCtrl, decoration: const InputDecoration(labelText: 'Pay (₹) - Min ₹50'), keyboardType: TextInputType.number),
                 const SizedBox(height: 16),
-                const Text('Task Location', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                const Text('Task Location Pin', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                 const SizedBox(height: 4),
                 SizedBox(
                   height: 150,
@@ -585,7 +594,7 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
                     'description': finalDesc,
                     'pay': payAmount,
                     'category': 'other',
-                    'location_name': 'Campus', // Kept for legacy
+                    'location_name': locCtrl.text.trim().isEmpty ? 'Campus' : locCtrl.text.trim(),
                     'latitude': selectedLocation.latitude,
                     'longitude': selectedLocation.longitude,
                     'seeker_id': _currentUser['id'],
