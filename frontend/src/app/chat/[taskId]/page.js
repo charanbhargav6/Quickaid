@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import ChatRoom from '@/components/ChatRoom';
 
 export default async function ChatPage({ params }) {
-  const { taskId } = params;
+  const { taskId } = await params;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
