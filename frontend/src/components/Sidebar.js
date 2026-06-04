@@ -53,7 +53,7 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { unreadCount } = useNotifications();
-  const [role, setRole] = useState('admin');
+  const [role, setRole] = useState('seeker');
   const [profile, setProfile] = useState(null);
 
   const fetchUnreadCount = async () => {
@@ -64,7 +64,7 @@ export default function Sidebar() {
 
       const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
       if (prof) {
-        setRole(prof.role || 'admin');
+        setRole(prof.role || 'seeker');
         setProfile(prof);
       }
 
@@ -114,7 +114,7 @@ export default function Sidebar() {
 
       {/* ── Navigation ─────────────── */}
       <nav className={styles.nav}>
-        {(role === 'seeker' ? SEEKER_NAV : role === 'helper' ? HELPER_NAV : ADMIN_NAV).map((item, i) => {
+        {(role === 'admin' ? ADMIN_NAV : role === 'helper' ? HELPER_NAV : SEEKER_NAV).map((item, i) => {
           if (item.divider) {
             return <div key={i} className={styles.divider} />;
           }

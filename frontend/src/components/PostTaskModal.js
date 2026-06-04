@@ -1,11 +1,18 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import dynamic from 'next/dynamic';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { postTask } from '@/app/seeker/_actions/taskActions';
 
 const MapPicker = dynamic(() => import('./MapPicker'), { ssr: false });
 
-export default function PostTaskModal() {
+function PostTaskModalContent() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  
+  const action = searchParams.get('action');
+  
   const [showModal, setShowModal] = useState(false);
   const [isPending, setIsPending] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
@@ -15,6 +22,19 @@ export default function PostTaskModal() {
   const [taskDesc, setTaskDesc] = useState('');
   const [taskPrice, setTaskPrice] = useState('');
   const [taskLocation, setTaskLocation] = useState(null);
+
+  useEffect(() => {
+    if (action === 'create') {
+      setShowModal(true);
+    }
+  }, [action]);
+
+  const handleClose = () => {
+    setShowModal(false);
+    if (action === 'create') {
+      router.replace(pathname);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -46,6 +66,9 @@ export default function PostTaskModal() {
       setTaskDesc('');
       setTaskPrice('');
       setIsPending(false);
+      if (action === 'create') {
+        router.replace(pathname);
+      }
     }
   };
 
@@ -77,7 +100,7 @@ export default function PostTaskModal() {
                 <MapPicker onChange={setTaskLocation} />
               </div>
               <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                <button type="button" className="btn btn-outline" style={{ flex: 1 }} onClick={() => setShowModal(false)} disabled={isPending}>Cancel</button>
+                <button type="button" className="btn btn-outline" style={{ flex: 1 }} onClick={handleClose} disabled={isPending}>Cancel</button>
                 <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={isPending}>
                   {isPending ? 'Posting...' : 'Post Task'}
                 </button>
@@ -87,5 +110,13 @@ export default function PostTaskModal() {
         </div>
       )}
     </>
+  );
+}
+
+export default function PostTaskModal() {
+  return (
+    <Suspense fallback={<button className="btn btn-primary">+ Post New Task</button>}>
+      <PostTaskModalContent />
+    </Suspense>
   );
 }
