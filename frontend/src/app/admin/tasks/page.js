@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase';
+import PostTaskModal from '@/components/PostTaskModal';
 
 const supabase = createClient();
 
@@ -72,6 +73,7 @@ export default function TasksPage() {
           <p style={{ color: 'var(--text-secondary)' }}>View and monitor all tasks across the platform</p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
+          <PostTaskModal />
           <select className="input" value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
             <option value="all">All Status</option>
             <option value="open">Open</option>
