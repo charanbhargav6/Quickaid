@@ -36,7 +36,7 @@ export async function middleware(request) {
   const url = request.nextUrl
   
   // Public routes that don't need auth checking
-  if (url.pathname === '/' || url.pathname.startsWith('/login') || url.pathname.startsWith('/signup') || url.pathname.startsWith('/download')) {
+  if (url.pathname === '/' || url.pathname.startsWith('/login') || url.pathname.startsWith('/signup') || url.pathname.startsWith('/register') || url.pathname.startsWith('/download')) {
     return supabaseResponse
   }
 
@@ -53,6 +53,6 @@ export async function middleware(request) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|downloads|.*\\.(?:svg|png|jpg|jpeg|gif|webp|apk)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|downloads|manifest.json|.*\\.(?:svg|png|jpg|jpeg|gif|webp|apk|json)$).*)',
   ],
 }
