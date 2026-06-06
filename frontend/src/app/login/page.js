@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import styles from './Login.module.css';
+import Link from 'next/link';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -90,6 +91,13 @@ export default function Login() {
             {loading ? 'Signing In...' : 'Sign In'}
           </button>
         </form>
+
+        <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '14px' }}>
+          <span style={{ color: 'var(--text-secondary)' }}>Don't have an account? </span>
+          <Link href="/register" style={{ color: 'var(--primary)', fontWeight: 'bold', textDecoration: 'none' }}>
+            Sign Up
+          </Link>
+        </div>
       </div>
     </div>
   );
