@@ -10,7 +10,7 @@
 }
 
 .toast {
-  background: white;
+  background: var(--card-bg);
   border-radius: 12px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.15);
   padding: 1rem;
@@ -61,7 +61,7 @@
 .toastTitle {
   margin: 0 0 0.25rem 0;
   font-size: 1rem;
-  color: var(--text-dark);
+  color: var(--text-primary);
 }
 
 .toastMessage {
@@ -82,5 +82,5 @@
 }
 
 .toastClose:hover {
-  color: var(--text-dark);
+  color: var(--text-primary);
 }

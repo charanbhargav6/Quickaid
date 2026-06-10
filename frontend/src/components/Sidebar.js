@@ -16,6 +16,7 @@ const ADMIN_NAV = [
   { icon: '💰', label: 'Earnings', path: '/admin/earnings' },
   { icon: '💬', label: 'Messages', path: '/chat' },
   { icon: '⭐', label: 'Reviews', path: '/admin/reviews' },
+  { icon: '🚩', label: 'Reports', path: '/admin/reports' },
   { icon: '👛', label: 'Wallet', path: '/admin/wallet' },
   { icon: '🔔', label: 'Notifications', path: '/admin/notifications' },
   { icon: '📱', label: 'Get the App', path: '/download' },

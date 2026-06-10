@@ -6,40 +6,34 @@ import { createClient } from '@/lib/supabase';
 const supabase = createClient();
 
 export default function ReviewsPage() {
-  const [reports, setReports] = useState([]);
+  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchReports();
+    fetchReviews();
   }, []);
 
-  async function fetchReports() {
+  async function fetchReviews() {
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('user_reports')
+        .from('reviews')
         .select(`
           *,
-          reporter:reporter_id(full_name, role),
-          reported:reported_user_id(full_name, role)
+          reviewer:reviewer_id(full_name, role),
+          reviewee:reviewed_user_id(full_name, role),
+          tasks(title)
         `)
         .order('created_at', { ascending: false });
 
       if (!error && data) {
-        setReports(data);
+        setReviews(data);
       }
     } catch (err) {
       console.error(err);
     } finally {
       setLoading(false);
     }
-  }
-
-  async function resolveReport(id) {
-    try {
-      await supabase.from('user_reports').update({ status: 'resolved' }).eq('id', id);
-      fetchReports();
-    } catch (e) { console.error(e); }
   }
 
   return (
@@ -49,8 +43,8 @@ export default function ReviewsPage() {
         marginBottom: '2rem', borderBottom: '1px solid var(--border)', paddingBottom: '1.5rem'
       }}>
         <div>
-          <h1 style={{ fontSize: '2rem', fontWeight: '800', color: 'var(--text-primary)' }}>Trust & Safety (Reports)</h1>
-          <p style={{ color: 'var(--text-secondary)', marginTop: '4px' }}>Monitor user reports, resolve disputes, and manage platform safety.</p>
+          <h1 style={{ fontSize: '2rem', fontWeight: '800', color: 'var(--text-primary)' }}>Platform Reviews</h1>
+          <p style={{ color: 'var(--text-secondary)', marginTop: '4px' }}>Monitor all feedback and ratings between seekers and helpers.</p>
         </div>
       </div>
 
@@ -59,53 +53,40 @@ export default function ReviewsPage() {
           <thead>
             <tr style={{ background: 'var(--slate-50)', borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
               <th style={{ padding: '16px', fontSize: '12px', color: 'var(--text-muted)' }}>DATE</th>
-              <th style={{ padding: '16px', fontSize: '12px', color: 'var(--text-muted)' }}>REPORTER</th>
-              <th style={{ padding: '16px', fontSize: '12px', color: 'var(--text-muted)' }}>REPORTED USER</th>
-              <th style={{ padding: '16px', fontSize: '12px', color: 'var(--text-muted)' }}>REASON / DETAILS</th>
-              <th style={{ padding: '16px', fontSize: '12px', color: 'var(--text-muted)' }}>STATUS</th>
-              <th style={{ padding: '16px', fontSize: '12px', color: 'var(--text-muted)' }}>ACTION</th>
+              <th style={{ padding: '16px', fontSize: '12px', color: 'var(--text-muted)' }}>REVIEWER</th>
+              <th style={{ padding: '16px', fontSize: '12px', color: 'var(--text-muted)' }}>REVIEWEE</th>
+              <th style={{ padding: '16px', fontSize: '12px', color: 'var(--text-muted)' }}>TASK</th>
+              <th style={{ padding: '16px', fontSize: '12px', color: 'var(--text-muted)' }}>RATING</th>
+              <th style={{ padding: '16px', fontSize: '12px', color: 'var(--text-muted)' }}>COMMENT</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr><td colSpan={6}><div className="skeleton skeleton-row"></div><div className="skeleton skeleton-row"></div></td></tr>
-            ) : reports.length === 0 ? (
-              <tr><td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>No reports filed yet. The community is safe!</td></tr>
+            ) : reviews.length === 0 ? (
+              <tr><td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>No reviews yet.</td></tr>
             ) : (
-              reports.map(report => (
-                <tr key={report.id} style={{ borderBottom: '1px solid var(--border)', background: report.status === 'pending' ? 'var(--orange-50)' : 'transparent' }}>
+              reviews.map(review => (
+                <tr key={review.id} style={{ borderBottom: '1px solid var(--border)' }}>
                   <td style={{ padding: '16px', fontSize: '13px', color: 'var(--text-secondary)' }}>
-                    {new Date(report.created_at).toLocaleDateString()}
+                    {new Date(review.created_at).toLocaleDateString()}
                   </td>
                   <td style={{ padding: '16px', fontSize: '14px', fontWeight: '500' }}>
-                    {report.reporter?.full_name || 'Unknown'}
+                    {review.reviewer?.full_name || 'Unknown'}
                   </td>
-                  <td style={{ padding: '16px', fontSize: '14px', fontWeight: '500', color: 'var(--red-600)' }}>
-                    {report.reported?.full_name || 'Unknown'}
+                  <td style={{ padding: '16px', fontSize: '14px', fontWeight: '500' }}>
+                    {review.reviewee?.full_name || 'Unknown'}
                   </td>
-                  <td style={{ padding: '16px' }}>
-                    <div style={{ fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>{report.reason}</div>
-                    <div style={{ fontSize: '13px', color: 'var(--text-secondary)', maxWidth: '300px' }}>{report.details}</div>
-                  </td>
-                  <td style={{ padding: '16px' }}>
-                    <span style={{
-                      padding: '4px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '700',
-                      background: report.status === 'resolved' ? 'var(--green-100)' : 'var(--orange-100)',
-                      color: report.status === 'resolved' ? 'var(--green-700)' : 'var(--orange-700)'
-                    }}>
-                      {report.status.toUpperCase()}
-                    </span>
+                  <td style={{ padding: '16px', fontSize: '14px' }}>
+                    {review.tasks?.title || 'Unknown Task'}
                   </td>
                   <td style={{ padding: '16px' }}>
-                    {report.status === 'pending' && (
-                      <button 
-                        onClick={() => resolveReport(report.id)}
-                        className="btn btn-outline" 
-                        style={{ padding: '6px 12px', fontSize: '12px' }}
-                      >
-                        Resolve
-                      </button>
-                    )}
+                    <div style={{ display: 'flex', color: '#fbbf24', fontSize: '16px' }}>
+                      {'★'.repeat(review.rating)}{'☆'.repeat(5 - review.rating)}
+                    </div>
+                  </td>
+                  <td style={{ padding: '16px', fontSize: '13px', color: 'var(--text-secondary)', maxWidth: '300px' }}>
+                    {review.comment || <em>No comment provided.</em>}
                   </td>
                 </tr>
               ))

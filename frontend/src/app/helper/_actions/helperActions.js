@@ -38,9 +38,11 @@ export async function acceptTask(rawInput) {
   await supabase.from('notifications').insert({
     user_id: data.seeker_id,
     title: 'Task Accepted! 🤝',
-    message: `A helper has accepted your task: "${data.title}"`,
-    type: 'task_accepted',
-    link: `/chat/${data.id}`
+    body: `A helper has accepted your task: "${data.title}"`,
+    data: {
+      type: 'task_accepted',
+      route: `/chat/${data.id}`
+    }
   });
 
   revalidatePath('/helper')
@@ -96,8 +98,8 @@ export async function cancelTask(rawInput) {
   await supabase.from('notifications').insert({
     user_id: task.seeker_id,
     title: 'Task Cancelled ⚠️',
-    message: `A helper cancelled your task: "${task.title}". It is back on the open market.`,
-    type: 'alert'
+    body: `A helper cancelled your task: "${task.title}". It is back on the open market.`,
+    data: { type: 'alert' }
   });
 
   revalidatePath('/helper');
@@ -120,47 +122,12 @@ export async function completeTask(taskId) {
   if (task.helper_id !== user.id) return { success: false, error: 'Not your task' };
   if (task.status !== 'accepted') return { success: false, error: 'Task is not accepted' };
 
-  // 1. Mark task as completed
-  const { error: updateError } = await supabase
-    .from('tasks')
-    .update({ status: 'completed' })
-    .eq('id', taskId);
-
-  if (updateError) return { success: false, error: 'Failed to complete task' };
-
-  // 2. Fetch current helper earnings
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('total_earnings')
-    .eq('id', user.id)
-    .single();
-    
-  const currentEarnings = Number(profile?.total_earnings || 0);
-  const newEarnings = currentEarnings + Number(task.pay || 0);
-
-  // 3. Update total_earnings for helper
-  await supabase
-    .from('profiles')
-    .update({ total_earnings: newEarnings })
-    .eq('id', user.id);
-
-  // 4. Create payout transaction
-  await supabase.from('transactions').insert({
-    task_id: taskId,
-    user_id: user.id,
-    amount: task.pay,
-    type: 'payout',
-    status: 'completed'
+  // 1. Mark task as completed, transfer funds, update trust score, notify users
+  const { error: updateError } = await supabase.rpc('complete_task_with_trust', {
+    p_task_id: taskId
   });
 
-  // 5. Notify seeker
-  await supabase.from('notifications').insert({
-    user_id: task.seeker_id,
-    title: 'Task Completed! ✅',
-    message: `Your task "${task.title}" has been completed. How was your experience? Leave feedback!`,
-    type: 'review_request',
-    link: `/seeker/reviews/new?taskId=${taskId}`
-  });
+  if (updateError) return { success: false, error: 'Failed to complete task: ' + updateError.message };
 
   revalidatePath('/helper/tasks');
   return { success: true };

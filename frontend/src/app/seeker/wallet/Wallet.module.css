@@ -11,7 +11,7 @@
 .pageTitle {
   font-size: 2rem;
   font-weight: 700;
-  color: var(--text-dark);
+  color: var(--text-primary);
   margin-bottom: 0.5rem;
 }
 
@@ -52,7 +52,7 @@
 }
 
 .historyCard {
-  background: white;
+  background: var(--card-bg);
   padding: 2rem;
 }
 

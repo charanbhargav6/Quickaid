@@ -85,9 +85,11 @@ export default function ChatRoom({ initialMessages, taskId, userId, taskStatus }
           await supabase.from('notifications').insert({
             user_id: recipientId,
             title: 'New Message 💬',
-            message: `You have a new message: "${content.substring(0, 30)}${content.length > 30 ? '...' : ''}"`,
-            type: 'message',
-            link: `/chat/${taskId}`
+            body: `You have a new message: "${content.substring(0, 30)}${content.length > 30 ? '...' : ''}"`,
+            data: {
+              type: 'message',
+              route: `/chat/${taskId}`
+            }
           });
         }
       }
