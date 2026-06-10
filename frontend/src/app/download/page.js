@@ -9,7 +9,8 @@ export default function DownloadPage() {
     if (typeof window !== 'undefined') {
       const origin = window.location.origin;
       if (origin.includes('localhost')) {
-        setSiteUrl('https://quickaid-rho.vercel.app');
+        const fallbackUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://quickaid-rho.vercel.app';
+        setSiteUrl(fallbackUrl);
       } else {
         setSiteUrl(origin);
       }

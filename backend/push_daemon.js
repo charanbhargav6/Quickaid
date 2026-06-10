@@ -1,4 +1,5 @@
 require('dotenv').config({ path: '../frontend/.env.local' });
+require('dotenv').config({ path: './.env' });
 const { createClient } = require('@supabase/supabase-js');
 const admin = require('firebase-admin');
 
