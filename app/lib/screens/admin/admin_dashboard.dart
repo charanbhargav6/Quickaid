@@ -37,7 +37,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
         if (profile != null) _currentUser = profile;
       }
       _users = await SupabaseService.getAllProfiles();
-      _tasks = await SupabaseService.getOpenTasks(); // We can fetch all tasks, but getOpenTasks is fine for now
+      _tasks = await SupabaseService.getOpenTasks(''); // We can fetch all tasks, but getOpenTasks is fine for now
     } catch (e) {
       debugPrint('Error loading admin data: $e');
     } finally {

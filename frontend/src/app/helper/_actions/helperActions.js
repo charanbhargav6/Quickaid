@@ -18,8 +18,10 @@ export async function acceptTask(rawInput) {
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) return { success: false, error: 'Unauthorized' }
   
-  if (user.app_metadata?.role !== 'helper') {
-    return { success: false, error: 'Forbidden: Only helpers can accept tasks' }
+  // Prevent accepting own task
+  const { data: checkTask } = await supabase.from('tasks').select('seeker_id').eq('id', taskId).single();
+  if (checkTask && checkTask.seeker_id === user.id) {
+    return { success: false, error: 'You cannot accept your own task.' };
   }
 
   // Atomic Update to prevent race conditions
@@ -144,10 +146,6 @@ export async function toggleOnlineStatus(currentStatus) {
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) return { success: false, error: 'Unauthorized' }
   
-  if (user.app_metadata?.role !== 'helper') {
-    return { success: false, error: 'Forbidden' }
-  }
-
   const newStatus = !parsed.data
 
   const { error } = await supabase

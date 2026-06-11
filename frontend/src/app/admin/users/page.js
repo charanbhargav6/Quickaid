@@ -7,9 +7,19 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filterRole, setFilterRole] = useState('all');
+  const [currentAdminEmail, setCurrentAdminEmail] = useState(null);
 
   useEffect(() => {
     fetchUsers();
+
+    const fetchCurrentUser = async () => {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setCurrentAdminEmail(user.email);
+      }
+    };
+    fetchCurrentUser();
 
     const supabase = createClient();
     const channel = supabase
@@ -128,17 +138,19 @@ export default function UsersPage() {
                       )}
                     </td>
                     <td style={{ textAlign: 'right' }}>
-                      <select 
-                        className="input" 
-                        style={{ width: 'auto', padding: '6px 10px', fontSize: '13px', display: 'inline-block', marginRight: '8px' }}
-                        value={user.role}
-                        onChange={(e) => handleChangeRole(user.id, e.target.value)}
-                      >
-                        <option value="seeker">Demote to Seeker</option>
-                        <option value="helper">Demote to Helper</option>
-                        <option value="both">Change to Both</option>
-                        <option value="admin">Promote to Admin</option>
-                      </select>
+                      {currentAdminEmail === 'pro171903@gmail.com' && (
+                        <select 
+                          className="input" 
+                          style={{ width: 'auto', padding: '6px 10px', fontSize: '13px', display: 'inline-block', marginRight: '8px' }}
+                          value={user.role}
+                          onChange={(e) => handleChangeRole(user.id, e.target.value)}
+                        >
+                          <option value="seeker">Demote to Seeker</option>
+                          <option value="helper">Demote to Helper</option>
+                          <option value="both">Change to Both</option>
+                          <option value="admin">Promote to Admin</option>
+                        </select>
+                      )}
                       <button 
                         className={`btn ${user.is_suspended ? 'btn-primary' : 'btn-outline'}`}
                         style={{ padding: '6px 12px' }}

@@ -24,6 +24,7 @@ export default async function HelperDashboard() {
     .from('tasks')
     .select('*')
     .eq('status', 'open')
+    .neq('seeker_id', user.id)
     .order('created_at', { ascending: false })
     .limit(50);
 

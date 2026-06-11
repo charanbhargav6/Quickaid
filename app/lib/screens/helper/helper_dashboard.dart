@@ -40,7 +40,7 @@ class _HelperDashboardState extends State<HelperDashboard> {
         }
       }
 
-      _openTasks = await SupabaseService.getOpenTasks();
+      _openTasks = await SupabaseService.getOpenTasks(SupabaseService.currentUser!.id);
       
       final myTasksRes = await SupabaseService.client
           .from('tasks')

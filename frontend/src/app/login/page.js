@@ -63,12 +63,10 @@ export default function Login() {
         const role = profileData?.role;
         if (role === 'admin') {
           router.push('/admin/dashboard');
-        } else if (role === 'seeker') {
-          router.push('/seeker');
-        } else if (role === 'helper') {
-          router.push('/helper');
         } else {
-          router.push('/dashboard');
+          // Both seeker, helper, and both roles default to the seeker dashboard
+          // where they can use the Sidebar toggle to switch to helper mode.
+          router.push('/seeker');
         }
       }
     }

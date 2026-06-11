@@ -10,7 +10,6 @@ export default function Register() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState('seeker');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -28,7 +27,7 @@ export default function Register() {
         data: {
           full_name: fullName,
           phone: phone || null,
-          role: role,
+          role: 'both',
         }
       }
     });
@@ -113,18 +112,7 @@ export default function Register() {
             />
           </div>
 
-          <div className={styles.inputGroup}>
-            <label>Role</label>
-            <select 
-              className="input" 
-              value={role} 
-              onChange={(e) => setRole(e.target.value)}
-            >
-              <option value="seeker">Seeker (Post Tasks)</option>
-              <option value="helper">Helper (Complete Tasks)</option>
-              <option value="both">Both</option>
-            </select>
-          </div>
+
 
           <button type="submit" className={`btn btn-primary ${styles.loginBtn}`} disabled={loading} style={{ marginTop: '1rem' }}>
             {loading ? 'Creating Account...' : 'Sign Up'}

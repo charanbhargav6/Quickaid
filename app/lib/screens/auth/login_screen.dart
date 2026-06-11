@@ -44,9 +44,8 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       if (role == 'admin') {
         Navigator.pushReplacementNamed(context, '/admin');
-      } else if (role == 'helper') {
-        Navigator.pushReplacementNamed(context, '/helper');
       } else {
+        // Both seeker, helper, and both roles default to the seeker dashboard
         Navigator.pushReplacementNamed(context, '/seeker');
       }
 

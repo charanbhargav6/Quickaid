@@ -1,13 +1,19 @@
 'use client';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { createClient } from '@/lib/supabase';
 import AcceptTaskButton from '@/components/AcceptTaskButton';
 
 export default function RealtimeHelperTasks({ initialTasks }) {
   const [tasks, setTasks] = useState(initialTasks);
 
+  const currentUserId = React.useRef(null);
+
   useEffect(() => {
     const supabase = createClient();
+    
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) currentUserId.current = user.id;
+    });
 
     // Subscribe to new 'open' tasks in the public schema
     const channel = supabase
@@ -18,7 +24,11 @@ export default function RealtimeHelperTasks({ initialTasks }) {
         table: 'tasks',
       }, (payload) => {
         if (payload.eventType === 'INSERT' && payload.new.status === 'open') {
-          setTasks((prev) => [payload.new, ...prev]);
+          // Do not show the task if the user is the one who posted it
+          setTasks((prev) => {
+            if (currentUserId.current && payload.new.seeker_id === currentUserId.current) return prev;
+            return [payload.new, ...prev];
+          });
         } else if (payload.eventType === 'UPDATE') {
           // If a task is no longer open, remove it from the list
           if (payload.new.status !== 'open') {

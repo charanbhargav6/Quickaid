@@ -135,11 +135,12 @@ class SupabaseService {
   }
 
   // ── TASKS ────────────────────────────────────────────────
-  static Future<List<Map<String, dynamic>>> getOpenTasks() async {
+  static Future<List<Map<String, dynamic>>> getOpenTasks(String userId) async {
     final res = await client
         .from('tasks')
         .select('*, profiles!seeker_id(full_name, trust_score)')
         .eq('status', 'open')
+        .neq('seeker_id', userId)
         .order('created_at', ascending: false);
     return List<Map<String, dynamic>>.from(res);
   }
@@ -168,6 +169,12 @@ class SupabaseService {
   }
 
   static Future<void> acceptTask(String taskId, String helperId) async {
+    // Check if the user is the seeker
+    final task = await client.from('tasks').select('seeker_id').eq('id', taskId).maybeSingle();
+    if (task != null && task['seeker_id'] == helperId) {
+      throw Exception('You cannot accept your own task.');
+    }
+
     await client
         .from('tasks')
         .update({'status': 'accepted', 'helper_id': helperId})

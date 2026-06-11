@@ -57,6 +57,9 @@ export default function Sidebar() {
   const [role, setRole] = useState('seeker');
   const [profile, setProfile] = useState(null);
 
+  // Determine current mode from URL
+  const currentMode = pathname?.startsWith('/helper') ? 'helper' : 'seeker';
+
   const fetchUnreadCount = async () => {
     try {
       const supabase = createClient();
@@ -101,6 +104,14 @@ export default function Sidebar() {
     router.push('/login');
   };
 
+  const handleToggleMode = () => {
+    if (currentMode === 'seeker') {
+      router.push('/helper');
+    } else {
+      router.push('/seeker');
+    }
+  };
+
   return (
     <aside className={styles.sidebar}>
       {/* ── Brand ──────────────────── */}
@@ -113,9 +124,44 @@ export default function Sidebar() {
         </div>
       </div>
 
+      {/* ── Mode Toggle ────────────── */}
+      {role !== 'admin' && (
+        <div style={{ padding: '0 1.5rem', marginBottom: '1rem' }}>
+          <div 
+            onClick={handleToggleMode}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              background: 'var(--bg-secondary)',
+              padding: '0.5rem 0.75rem',
+              borderRadius: '12px',
+              cursor: 'pointer',
+              border: '1px solid var(--border-color)',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '18px' }}>
+                {currentMode === 'seeker' ? '👀' : '🤝'}
+              </span>
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                <span style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 'bold' }}>
+                  Current Mode
+                </span>
+                <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                  {currentMode === 'seeker' ? 'Seeker' : 'Helper'}
+                </span>
+              </div>
+            </div>
+            <span style={{ fontSize: '20px', color: 'var(--primary)' }}>⇄</span>
+          </div>
+        </div>
+      )}
+
       {/* ── Navigation ─────────────── */}
       <nav className={styles.nav}>
-        {(role === 'admin' ? ADMIN_NAV : role === 'helper' ? HELPER_NAV : SEEKER_NAV).map((item, i) => {
+        {(role === 'admin' ? ADMIN_NAV : currentMode === 'helper' ? HELPER_NAV : SEEKER_NAV).map((item, i) => {
           if (item.divider) {
             return <div key={i} className={styles.divider} />;
           }
@@ -124,7 +170,7 @@ export default function Sidebar() {
             <Link 
               key={item.path}
               href={item.path}
-              className={`${styles.navItem} ${pathname === item.path ? styles.active : ''}`}
+              className={`${styles.navItem} ${pathname === item.path || (item.path !== '/seeker' && item.path !== '/helper' && pathname.startsWith(item.path)) ? styles.active : ''}`}
             >
               <span className={styles.navIcon}>{item.icon}</span>
               <span className={styles.navLabel}>{item.label}</span>
@@ -150,7 +196,7 @@ export default function Sidebar() {
         </div>
         <div className={styles.userInfo}>
           <p className={styles.userName}>{profile?.full_name || 'User'}</p>
-          <p className={styles.userEmail}>{role.toUpperCase()}</p>
+          <p className={styles.userEmail}>{role === 'admin' ? 'ADMIN' : 'USER'}</p>
           <span className={styles.userStatus}>● Online</span>
         </div>
         <div className={styles.verifiedBadge}>Verified User</div>

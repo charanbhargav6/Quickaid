@@ -51,53 +51,105 @@ class AppDrawer extends StatelessWidget {
               
               // Navigation
               Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  children: [
-                    _DrawerItem(icon: Icons.dashboard_outlined, label: 'Dashboard', active: true, onTap: () {
-                      Navigator.pop(context);
-                      if (role == 'admin') {
-                        Navigator.pushReplacementNamed(context, '/admin');
-                      } else if (role == 'helper') {
-                        Navigator.pushReplacementNamed(context, '/helper');
-                      } else {
-                        Navigator.pushReplacementNamed(context, '/seeker');
-                      }
-                    }),
-                    _DrawerItem(icon: Icons.task_alt, label: 'My Tasks', onTap: () { Navigator.pop(context); Navigator.pushReplacementNamed(context, '/my_tasks'); }),
-                    if (role == 'seeker' || role == 'admin')
-                      _DrawerItem(icon: Icons.add_box_outlined, label: 'Post Task', onTap: () { Navigator.pop(context); Navigator.pushReplacementNamed(context, '/post_task'); }),
-                    if (role == 'helper' || role == 'admin')
-                      _DrawerItem(icon: Icons.account_balance_wallet_outlined, label: 'Earnings', onTap: () { Navigator.pop(context); Navigator.pushReplacementNamed(context, '/earnings'); }),
-                    _DrawerItem(icon: Icons.message_outlined, label: 'Messages', badge: 3, onTap: () { Navigator.pop(context); Navigator.pushReplacementNamed(context, '/messages'); }),
-                    _DrawerItem(icon: Icons.notifications_none, label: 'Notifications', badge: 2, onTap: () { Navigator.pop(context); Navigator.pushReplacementNamed(context, '/notifications'); }),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8),
-                      child: Divider(color: Colors.white24, height: 1),
-                    ),
-                    _DrawerItem(icon: Icons.settings_outlined, label: 'Settings', onTap: () { Navigator.pop(context); Navigator.pushReplacementNamed(context, '/settings'); }),
-                    _DrawerItem(icon: Icons.privacy_tip_outlined, label: 'Privacy Policy', color: Colors.white54, onTap: () {
-                      Navigator.pop(context);
-                      launchUrl(Uri.parse('http://localhost:3000/privacy'));
-                    }),
-                    _DrawerItem(icon: Icons.description_outlined, label: 'Terms of Service', color: Colors.white54, onTap: () {
-                      Navigator.pop(context);
-                      launchUrl(Uri.parse('http://localhost:3000/terms'));
-                    }),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 8),
-                      child: Divider(color: Colors.white24, height: 1),
-                    ),
-                    _DrawerItem(
-                      icon: themeController.themeMode == ThemeMode.dark ? Icons.light_mode : Icons.dark_mode, 
-                      label: themeController.themeMode == ThemeMode.dark ? 'Light Mode' : 'Dark Mode', 
-                      color: Colors.white,
-                      onTap: () {
-                        themeController.toggleTheme();
-                        Navigator.pop(context);
-                      }
-                    ),
-                  ],
+                child: Builder(
+                  builder: (context) {
+                    final currentRoute = ModalRoute.of(context)?.settings.name ?? '/seeker';
+                    final isHelperMode = currentRoute.startsWith('/helper') || currentRoute == '/my_tasks' || currentRoute == '/earnings';
+                    final isSeekerMode = !isHelperMode && currentRoute != '/admin';
+
+                    return ListView(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      children: [
+                        // Mode Toggle for non-admins
+                        if (role != 'admin')
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.pop(context);
+                              if (isSeekerMode) {
+                                Navigator.pushReplacementNamed(context, '/helper');
+                              } else {
+                                Navigator.pushReplacementNamed(context, '/seeker');
+                              }
+                            },
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 16),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.white24),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(isSeekerMode ? Icons.remove_red_eye : Icons.handshake, color: Colors.white),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text('Current Mode', style: TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold)),
+                                        Text(isSeekerMode ? 'Seeker' : 'Helper', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(Icons.swap_horiz, color: Colors.white),
+                                ],
+                              ),
+                            ),
+                          ),
+
+                        _DrawerItem(icon: Icons.dashboard_outlined, label: 'Dashboard', active: true, onTap: () {
+                          Navigator.pop(context);
+                          if (role == 'admin') {
+                            Navigator.pushReplacementNamed(context, '/admin');
+                          } else if (isHelperMode) {
+                            Navigator.pushReplacementNamed(context, '/helper');
+                          } else {
+                            Navigator.pushReplacementNamed(context, '/seeker');
+                          }
+                        }),
+                        
+                        if (isHelperMode || role == 'admin')
+                          _DrawerItem(icon: Icons.task_alt, label: 'My Tasks', onTap: () { Navigator.pop(context); Navigator.pushReplacementNamed(context, '/my_tasks'); }),
+                        
+                        if (isSeekerMode || role == 'admin')
+                          _DrawerItem(icon: Icons.add_box_outlined, label: 'Post Task', onTap: () { Navigator.pop(context); Navigator.pushReplacementNamed(context, '/post_task'); }),
+                        
+                        if (isHelperMode || role == 'admin')
+                          _DrawerItem(icon: Icons.account_balance_wallet_outlined, label: 'Earnings', onTap: () { Navigator.pop(context); Navigator.pushReplacementNamed(context, '/earnings'); }),
+                        
+                        _DrawerItem(icon: Icons.message_outlined, label: 'Messages', badge: 3, onTap: () { Navigator.pop(context); Navigator.pushReplacementNamed(context, '/messages'); }),
+                        _DrawerItem(icon: Icons.notifications_none, label: 'Notifications', badge: 2, onTap: () { Navigator.pop(context); Navigator.pushReplacementNamed(context, '/notifications'); }),
+                        
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8),
+                          child: Divider(color: Colors.white24, height: 1),
+                        ),
+                        _DrawerItem(icon: Icons.settings_outlined, label: 'Settings', onTap: () { Navigator.pop(context); Navigator.pushReplacementNamed(context, '/settings'); }),
+                        _DrawerItem(icon: Icons.privacy_tip_outlined, label: 'Privacy Policy', color: Colors.white54, onTap: () {
+                          Navigator.pop(context);
+                          launchUrl(Uri.parse('http://localhost:3000/privacy'));
+                        }),
+                        _DrawerItem(icon: Icons.description_outlined, label: 'Terms of Service', color: Colors.white54, onTap: () {
+                          Navigator.pop(context);
+                          launchUrl(Uri.parse('http://localhost:3000/terms'));
+                        }),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8),
+                          child: Divider(color: Colors.white24, height: 1),
+                        ),
+                        _DrawerItem(
+                          icon: themeController.themeMode == ThemeMode.dark ? Icons.light_mode : Icons.dark_mode, 
+                          label: themeController.themeMode == ThemeMode.dark ? 'Light Mode' : 'Dark Mode', 
+                          color: Colors.white,
+                          onTap: () {
+                            themeController.toggleTheme();
+                            Navigator.pop(context);
+                          }
+                        ),
+                      ],
+                    );
+                  }
                 ),
               ),
               
