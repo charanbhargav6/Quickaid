@@ -40,6 +40,12 @@ export default function Register() {
     }
 
     if (data?.user) {
+      // Check for Email Enumeration Protection masking existing email
+      if (data.user.identities && data.user.identities.length === 0) {
+        setError('This email address is already registered. Please sign in.');
+        setLoading(false);
+        return;
+      }
       router.push('/login?registered=true');
     } else {
       setError('An unexpected error occurred.');

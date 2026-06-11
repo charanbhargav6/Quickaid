@@ -25,6 +25,11 @@ class SupabaseService {
         'role': role,
       },
     );
+    
+    // Check for Email Enumeration Protection masking existing email
+    if (res.user != null && res.user!.identities != null && res.user!.identities!.isEmpty) {
+      throw const AuthException('This email address is already registered. Please sign in.');
+    }
   }
 
   static Future<String> getDeviceId() async {
