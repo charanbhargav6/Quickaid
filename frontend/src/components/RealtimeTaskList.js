@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase'; // Using the browser client for sockets
 
+import { motion } from 'framer-motion';
+
 export default function RealtimeTaskList({ initialTasks, userId }) {
   const [tasks, setTasks] = useState(initialTasks);
 
@@ -51,8 +53,13 @@ export default function RealtimeTaskList({ initialTasks, userId }) {
         </tr>
       </thead>
       <tbody>
-        {tasks.map(task => (
-          <tr key={task.id}>
+        {tasks.map((task, idx) => (
+          <motion.tr 
+            key={task.id}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3, delay: idx * 0.05 }}
+          >
             <td>
               <div style={{ fontWeight: 500 }}>{task.title}</div>
               <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{task.description}</div>
@@ -76,9 +83,9 @@ export default function RealtimeTaskList({ initialTasks, userId }) {
                 </button>
               )}
             </td>
-            <td>${task.price?.toFixed(2)}</td>
+            <td>₹{task.pay?.toFixed(2)}</td>
             <td>{new Date(task.created_at).toLocaleDateString()}</td>
-          </tr>
+          </motion.tr>
         ))}
       </tbody>
     </table>

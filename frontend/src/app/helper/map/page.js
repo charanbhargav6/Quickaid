@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import dynamic from 'next/dynamic';
-import { acceptTask } from '@/app/helper/_actions/helperActions';
+import { acceptTask, submitOffer } from '@/app/helper/_actions/helperActions';
 import { useRouter } from 'next/navigation';
 
 const LiveMap = dynamic(() => import('./LiveMap'), { ssr: false, loading: () => <div className="skeleton" style={{ height: 'calc(100vh - 150px)', borderRadius: '16px' }}></div> });
@@ -16,6 +16,15 @@ export default function MapPage() {
   const [errorMsg, setErrorMsg] = useState(null);
   const [radiusKm, setRadiusKm] = useState(10);
   const [user, setUser] = useState(null);
+  
+  // Filter States
+  const [searchQuery, setSearchQuery] = useState('');
+  const [category, setCategory] = useState('');
+  const [minPay, setMinPay] = useState('');
+
+  // Offer State
+  const [offerTask, setOfferTask] = useState(null);
+  const [offerAmount, setOfferAmount] = useState('');
 
   useEffect(() => {
     // Get current user
@@ -24,15 +33,19 @@ export default function MapPage() {
     });
   }, []);
 
-  const fetchTasks = async (lat, lng, radius, helperId) => {
+  const fetchTasks = async (lat, lng, radius, helperId, search, cat, pay) => {
     setLoading(true);
-    const { data, error } = await supabase
-      .rpc('get_nearby_tasks', {
-        p_lat: lat,
-        p_lng: lng,
-        p_radius_km: radius,
-        p_helper_id: helperId
-      });
+    const params = {
+      p_lat: lat,
+      p_lng: lng,
+      p_radius_km: radius,
+      p_helper_id: helperId
+    };
+    if (search) params.p_search_query = search;
+    if (cat) params.p_category = cat;
+    if (pay) params.p_min_pay = Number(pay);
+
+    const { data, error } = await supabase.rpc('get_nearby_tasks', params);
       
     if (data) setTasks(data);
     else if (error) console.error(error);
@@ -54,7 +67,7 @@ export default function MapPage() {
         const { latitude, longitude } = position.coords;
         setLocation([latitude, longitude]);
         setErrorMsg(null);
-        fetchTasks(latitude, longitude, radiusKm, user.id);
+        fetchTasks(latitude, longitude, radiusKm, user.id, searchQuery, category, minPay);
       },
       (error) => {
         console.error("Error getting location:", error);
@@ -62,7 +75,7 @@ export default function MapPage() {
         setLoading(false);
       }
     );
-  }, [user, radiusKm]);
+  }, [user, radiusKm, searchQuery, category, minPay]);
 
   useEffect(() => {
     if (!location || !user) return;
@@ -70,22 +83,37 @@ export default function MapPage() {
     // Subscribe to real-time changes so pins appear instantly
     const channel = supabase.channel('public:tasks')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tasks' }, payload => {
-        fetchTasks(location[0], location[1], radiusKm, user.id);
+        fetchTasks(location[0], location[1], radiusKm, user.id, searchQuery, category, minPay);
       })
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [location, radiusKm, user]);
+  }, [location, radiusKm, user, searchQuery, category, minPay]);
 
   const handleAcceptTask = async (taskId) => {
-    const res = await acceptTask(taskId);
+    const res = await acceptTask({ taskId });
     if (res.success) {
       alert("Task accepted! Redirecting to My Tasks...");
       router.push('/helper/tasks');
     } else {
       alert(res.error || "Failed to accept task.");
+    }
+  };
+
+  const handleSubmitOffer = async () => {
+    if (!offerAmount || isNaN(offerAmount) || Number(offerAmount) <= 0) {
+      alert("Please enter a valid amount.");
+      return;
+    }
+    const res = await submitOffer({ taskId: offerTask.id, proposedPay: Number(offerAmount) });
+    if (res.success) {
+      alert("Offer submitted! The seeker will review your offer.");
+      setOfferTask(null);
+      setOfferAmount('');
+    } else {
+      alert(res.error || "Failed to submit offer.");
     }
   };
 
@@ -124,11 +152,66 @@ export default function MapPage() {
           </div>
         </div>
       </header>
+
+      {/* Filters Bar */}
+      <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+        <input 
+          type="text" 
+          placeholder="Search tasks..." 
+          className="input" 
+          style={{ flex: 1, minWidth: '200px' }}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+        <select 
+          className="input" 
+          style={{ width: '200px' }}
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+        >
+          <option value="">All Categories</option>
+          <option value="Cleaning">Cleaning</option>
+          <option value="Delivery">Delivery</option>
+          <option value="Tech Support">Tech Support</option>
+          <option value="Handyman">Handyman</option>
+          <option value="Other">Other</option>
+        </select>
+        <input 
+          type="number" 
+          placeholder="Min Pay (₹)" 
+          className="input" 
+          style={{ width: '150px' }}
+          value={minPay}
+          onChange={(e) => setMinPay(e.target.value)}
+        />
+      </div>
       
       {loading && !location ? (
         <div className="skeleton" style={{ height: 'calc(100vh - 150px)', borderRadius: '16px' }}></div>
       ) : (
-        <LiveMap tasks={tasks} onAccept={handleAcceptTask} userLocation={location} />
+        <LiveMap tasks={tasks} onAccept={handleAcceptTask} onCounterOffer={setOfferTask} userLocation={location} />
+      )}
+
+      {offerTask && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
+          <div style={{ background: 'white', padding: '2rem', borderRadius: '12px', width: '400px', maxWidth: '90%' }}>
+            <h3 style={{ marginTop: 0 }}>Counter Offer</h3>
+            <p>Task: <strong>{offerTask.title}</strong></p>
+            <p>Original Pay: ₹{offerTask.pay}</p>
+            <input 
+              type="number" 
+              className="input" 
+              placeholder="Your proposed pay (₹)" 
+              value={offerAmount} 
+              onChange={(e) => setOfferAmount(e.target.value)} 
+              style={{ width: '100%', marginBottom: '1rem' }}
+            />
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+              <button className="btn" onClick={() => setOfferTask(null)}>Cancel</button>
+              <button className="btn btn-primary" onClick={handleSubmitOffer}>Submit Offer</button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

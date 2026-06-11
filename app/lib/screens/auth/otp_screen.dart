@@ -101,17 +101,17 @@ class _OtpScreenState extends State<OtpScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'Enter the 6-digit OTP sent to\n${widget.email}',
+              'Enter the OTP sent to\n${widget.email}',
               style: TextStyle(fontSize: 16, color: theme.colorScheme.onSurface.withOpacity(0.7)),
             ),
             const SizedBox(height: 24),
             TextField(
               controller: _otpCtrl,
               keyboardType: TextInputType.number,
-              maxLength: 6,
+              maxLength: 8,
               style: TextStyle(color: theme.colorScheme.onSurface),
               decoration: InputDecoration(
-                hintText: '6-digit OTP',
+                hintText: 'OTP (6-8 digits)',
                 hintStyle: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.3)),
                 filled: true,
                 fillColor: theme.colorScheme.onSurface.withOpacity(0.05),

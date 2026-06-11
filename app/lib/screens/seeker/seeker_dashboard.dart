@@ -10,6 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:typed_data';
 import '../../widgets/skeleton_loader.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class SeekerDashboard extends StatefulWidget {
   final bool openPostTask;
@@ -23,6 +24,7 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
   bool _loading = true;
   List<Map<String, dynamic>> _myTasks = [];
   List<Map<String, dynamic>> _activeHelpers = [];
+  List<Map<String, dynamic>> _incomingOffers = [];
   Map<String, dynamic> _currentUser = {};
   Position? _currentPosition;
 
@@ -70,6 +72,9 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
         _activeHelpers = []; // Fallback to empty if no location per user instructions
         _currentPosition = null;
       }
+
+      // Fetch offers
+      _incomingOffers = await SupabaseService.getIncomingOffers();
     } catch (e) {
       debugPrint('Error loading seeker data: $e');
     } finally {
@@ -220,6 +225,14 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
                 ),
                 const SizedBox(height: 24),
                 
+                // Incoming Offers
+                if (_incomingOffers.isNotEmpty) ...[
+                  const Text('Incoming Counter-Offers', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.blue)),
+                  const SizedBox(height: 12),
+                  ..._incomingOffers.map((o) => _buildOfferCard(o)),
+                  const SizedBox(height: 24),
+                ],
+
                 // Task List
                 const Text('My Recent Tasks', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
@@ -260,6 +273,69 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
         ],
       ),
     );
+  }
+
+  Widget _buildOfferCard(Map<String, dynamic> offer) {
+    final taskTitle = offer['tasks']?['title'] ?? 'Task';
+    final originalPay = offer['tasks']?['pay'] ?? 0.0;
+    final proposedPay = offer['proposed_pay'] ?? 0.0;
+    final helperName = offer['profiles']?['full_name'] ?? 'Helper';
+    final trustScore = offer['profiles']?['trust_score'] ?? 0;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: const BorderSide(color: Colors.blue, width: 2)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(taskTitle, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: const BoxDecoration(color: Color(0xFFFEF08A), borderRadius: BorderRadius.all(Radius.circular(4))),
+                  child: const Text('Pending Offer', style: TextStyle(color: Color(0xFF854D0E), fontSize: 12, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text('$helperName (Trust Score: $trustScore/100) proposed a new price.', style: const TextStyle(color: Color(0xFF64748B))),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Text('₹$originalPay', style: const TextStyle(decoration: TextDecoration.lineThrough, color: Colors.grey)),
+                const SizedBox(width: 12),
+                Text('₹$proposedPay', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.green)),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E), minimumSize: const Size.fromHeight(40)),
+              onPressed: () async {
+                try {
+                  await SupabaseService.acceptOffer(
+                    offer['id'], 
+                    offer['task_id'], 
+                    offer['helper_id'], 
+                    double.tryParse(proposedPay.toString()) ?? 0.0, 
+                    double.tryParse(originalPay.toString()) ?? 0.0,
+                    offer['profiles']?['fcm_token'] ?? ''
+                  );
+                  _loadData();
+                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Offer Accepted!')));
+                } catch (e) {
+                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                }
+              },
+              child: const Text('Accept Offer', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    ).animate().fade(duration: 400.ms).slideY(begin: 0.1, end: 0, duration: 400.ms, curve: Curves.easeOutQuad);
   }
 
   Widget _buildTaskCard(Map<String, dynamic> task) {
@@ -376,7 +452,7 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
           ],
         ),
       ),
-    );
+    ).animate().fade(duration: 300.ms).slideX(begin: 0.1, end: 0, duration: 300.ms, curve: Curves.easeOut);
   }
 
   void _deleteTaskConfirm(String taskId) {

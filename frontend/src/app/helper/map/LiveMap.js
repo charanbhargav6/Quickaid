@@ -5,7 +5,7 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet-defaulticon-compatibility';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
 
-export default function LiveMap({ tasks, onAccept, userLocation }) {
+export default function LiveMap({ tasks, onAccept, onCounterOffer, userLocation }) {
   // Default to a central location (Mumbai) if no user location
   const center = userLocation || [19.0760, 72.8777];
 
@@ -39,16 +39,28 @@ export default function LiveMap({ tasks, onAccept, userLocation }) {
                     <span className="badge badge-blue">Open</span>
                   </div>
                   
-                  <button 
-                    className="btn btn-primary" 
-                    style={{ width: '100%', padding: '8px' }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onAccept(task.id);
-                    }}
-                  >
-                    Accept Task
-                  </button>
+                  <div style={{ display: 'flex', gap: '8px', flexDirection: 'column' }}>
+                    <button 
+                      className="btn btn-primary" 
+                      style={{ width: '100%', padding: '8px' }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAccept(task.id);
+                      }}
+                    >
+                      Accept Task
+                    </button>
+                    <button 
+                      className="btn" 
+                      style={{ width: '100%', padding: '8px', background: 'var(--bg-light)', color: 'var(--text-dark)' }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onCounterOffer) onCounterOffer(task);
+                      }}
+                    >
+                      Counter Offer
+                    </button>
+                  </div>
                 </div>
               </Popup>
             </Marker>

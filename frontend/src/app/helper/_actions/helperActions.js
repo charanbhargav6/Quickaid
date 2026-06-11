@@ -194,3 +194,61 @@ export async function toggleOnlineStatus(currentStatus) {
   revalidatePath('/helper')
   return { success: true, is_available: newStatus }
 }
+
+const submitOfferSchema = z.object({
+  taskId: z.string().uuid("Invalid Task ID"),
+  proposedPay: z.number().min(1, "Pay must be greater than 0")
+})
+
+export async function submitOffer(rawInput) {
+  const parsed = submitOfferSchema.safeParse(rawInput)
+  if (!parsed.success) return { success: false, error: 'Invalid input data' }
+  
+  const { taskId, proposedPay } = parsed.data
+  const supabase = await createClient()
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) return { success: false, error: 'Unauthorized' }
+
+  // Check if task is still open
+  const { data: task, error: taskError } = await supabase.from('tasks').select('status, seeker_id, title').eq('id', taskId).single()
+  if (taskError || !task || task.status !== 'open') {
+    return { success: false, error: 'Task is no longer open for offers.' }
+  }
+
+  if (task.seeker_id === user.id) {
+    return { success: false, error: 'Cannot bid on your own task.' }
+  }
+
+  // Insert or update offer
+  const { error: offerError } = await supabase.from('task_offers').upsert({
+    task_id: taskId,
+    helper_id: user.id,
+    proposed_pay: proposedPay,
+    status: 'pending',
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'task_id, helper_id' })
+
+  if (offerError) return { success: false, error: 'Failed to submit offer: ' + offerError.message }
+
+  // Notify seeker about the new offer
+  await supabase.from('notifications').insert({
+    user_id: task.seeker_id,
+    title: 'New Offer Received! 💸',
+    body: `A helper has proposed ₹${proposedPay} for your task: "${task.title}"`,
+    data: { type: 'new_offer', taskId: taskId }
+  });
+
+  const { data: seekerProfile } = await supabase.from('profiles').select('fcm_token').eq('id', task.seeker_id).single();
+  if (seekerProfile && seekerProfile.fcm_token) {
+    await sendPushNotification(
+      seekerProfile.fcm_token,
+      'New Offer Received! 💸',
+      `A helper has proposed ₹${proposedPay} for your task: "${task.title}"`,
+      { type: 'new_offer', taskId }
+    );
+  }
+
+  revalidatePath('/helper')
+  return { success: true }
+}

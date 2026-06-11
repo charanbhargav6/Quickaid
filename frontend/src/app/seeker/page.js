@@ -4,6 +4,7 @@ import PostTaskModal from '@/components/PostTaskModal';
 import RealtimeTaskList from '@/components/RealtimeTaskList';
 import { Suspense } from 'react';
 import NearbyHelpers from '@/components/NearbyHelpers';
+import IncomingOffers from '@/components/IncomingOffers';
 
 export default async function SeekerDashboard() {
   const supabase = await createClient();
@@ -40,6 +41,9 @@ export default async function SeekerDashboard() {
         <section>
           <NearbyHelpers />
         </section>
+
+        {/* Incoming Offers Section */}
+        <IncomingOffers userId={user.id} />
 
         {/* My Tasks Section */}
         <section>

@@ -72,6 +72,24 @@ export default function Login() {
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError("Please enter your email address first.");
+      return;
+    }
+    setLoading(true);
+    const supabase = createClient();
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) {
+      setError(error.message);
+    } else {
+      setError("Password reset link sent to your email.");
+    }
+    setLoading(false);
+  };
+
   return (
     <div className={styles.loginContainer}>
       <div className={`${styles.loginCard} card`}>
@@ -80,7 +98,7 @@ export default function Login() {
           <h1 className={styles.logoText}>Quick<span className={styles.primaryText}>Aid</span></h1>
         </div>
         
-        {error && <div className={styles.errorMessage} style={{ color: 'red', marginBottom: '1rem', textAlign: 'center' }}>{error}</div>}
+        {error && <div className={styles.errorMessage} style={{ color: error.includes('sent') ? 'green' : 'red', marginBottom: '1rem', textAlign: 'center' }}>{error}</div>}
         
         <form onSubmit={handleLogin} className={styles.form}>
           <div className={styles.inputGroup}>
@@ -105,6 +123,15 @@ export default function Login() {
               onChange={(e) => setPassword(e.target.value)}
               required
             />
+            <div style={{ textAlign: 'right', marginTop: '0.5rem' }}>
+              <button 
+                type="button" 
+                onClick={handleForgotPassword} 
+                style={{ background: 'none', border: 'none', color: 'var(--primary)', cursor: 'pointer', fontSize: '13px', fontWeight: '500' }}
+              >
+                Forgot Password?
+              </button>
+            </div>
           </div>
 
           <button type="submit" className={`btn btn-primary ${styles.loginBtn}`} disabled={loading}>

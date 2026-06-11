@@ -1,6 +1,7 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/foundation.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'supabase_service.dart';
 
 @pragma('vm:entry-point')
@@ -65,8 +66,29 @@ class NotificationService {
     // 5. Handle app opened from a push notification
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       debugPrint('A new onMessageOpenedApp event was published!');
-      // TODO: Navigate to specific screen based on message.data
+      _handleNotificationClick(message);
     });
+
+    // 6. Handle notification tap if app was killed
+    final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+    if (initialMessage != null) {
+      _handleNotificationClick(initialMessage);
+    }
+  }
+
+  static void _handleNotificationClick(RemoteMessage message) async {
+    final type = message.data['type'];
+    if (type == 'app_update') {
+      final downloadUrl = message.data['download_url'];
+      if (downloadUrl != null) {
+        final uri = Uri.parse(downloadUrl);
+        if (await canLaunchUrl(uri)) {
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        } else {
+          debugPrint('Could not launch $downloadUrl');
+        }
+      }
+    }
   }
 
   static Future<void> _showLocalNotification(RemoteMessage message) async {

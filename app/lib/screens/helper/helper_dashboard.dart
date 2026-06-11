@@ -6,6 +6,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../widgets/skeleton_loader.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 class HelperDashboard extends StatefulWidget {
   const HelperDashboard({super.key});
@@ -22,6 +23,10 @@ class _HelperDashboardState extends State<HelperDashboard> {
   bool _showMap = false;
   bool _isAvailable = false;
   int _activeTab = 0; // 0: Feed, 1: My Jobs
+  
+  String _searchQuery = '';
+  String _category = '';
+  double? _minPay;
 
   @override
   void initState() {
@@ -51,7 +56,14 @@ class _HelperDashboardState extends State<HelperDashboard> {
       
       if (serviceEnabled && (permission == LocationPermission.whileInUse || permission == LocationPermission.always)) {
         Position position = await Geolocator.getCurrentPosition();
-        _openTasks = await SupabaseService.getNearbyTasks(position.latitude, position.longitude, 10.0);
+        _openTasks = await SupabaseService.getNearbyTasks(
+          position.latitude, 
+          position.longitude, 
+          10.0,
+          searchQuery: _searchQuery,
+          category: _category,
+          minPay: _minPay,
+        );
         // If available, update their current location too
         if (_isAvailable) {
           await SupabaseService.toggleAvailability(4, lat: position.latitude, lng: position.longitude);
@@ -211,6 +223,68 @@ class _HelperDashboardState extends State<HelperDashboard> {
           ),
         ),
         Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Column(
+            children: [
+              TextField(
+                decoration: InputDecoration(
+                  hintText: 'Search tasks...',
+                  prefixIcon: const Icon(Icons.search),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  contentPadding: const EdgeInsets.symmetric(vertical: 0),
+                ),
+                onChanged: (val) {
+                  _searchQuery = val;
+                  // Optional: use debounce here instead of reloading on every keystroke
+                },
+                onSubmitted: (val) => _loadData(),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: DropdownButtonFormField<String>(
+                      decoration: InputDecoration(border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0)),
+                      value: _category.isEmpty ? null : _category,
+                      hint: const Text('Category'),
+                      items: const [
+                        DropdownMenuItem(value: '', child: Text('All')),
+                        DropdownMenuItem(value: 'Cleaning', child: Text('Cleaning')),
+                        DropdownMenuItem(value: 'Delivery', child: Text('Delivery')),
+                        DropdownMenuItem(value: 'Tech Support', child: Text('Tech Support')),
+                        DropdownMenuItem(value: 'Handyman', child: Text('Handyman')),
+                        DropdownMenuItem(value: 'Other', child: Text('Other')),
+                      ],
+                      onChanged: (val) {
+                        setState(() => _category = val ?? '');
+                        _loadData();
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    flex: 1,
+                    child: TextField(
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(hintText: 'Min ₹', border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0)),
+                      onChanged: (val) {
+                        _minPay = double.tryParse(val);
+                      },
+                      onSubmitted: (val) => _loadData(),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton(
+                    icon: const Icon(Icons.check_circle, color: Colors.green, size: 32),
+                    onPressed: _loadData,
+                  )
+                ],
+              ),
+            ],
+          ),
+        ),
+        Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -345,6 +419,53 @@ class _HelperDashboardState extends State<HelperDashboard> {
     return null;
   }
 
+  void _showCounterOfferDialog(String taskId, String title, double originalPay) {
+    final payCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Counter Offer'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Task: $title', style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text('Original Pay: ₹$originalPay'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: payCtrl,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Your Proposed Pay (₹)', border: OutlineInputBorder()),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E)),
+            onPressed: () async {
+              final proposedPay = double.tryParse(payCtrl.text);
+              if (proposedPay == null || proposedPay <= 0) {
+                if (context.mounted) ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Enter a valid amount')));
+                return;
+              }
+              try {
+                await SupabaseService.submitOffer(taskId, proposedPay);
+                if (context.mounted) {
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Offer submitted!')));
+                }
+              } catch (e) {
+                if (context.mounted) ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('Error: $e')));
+              }
+            },
+            child: const Text('Submit', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildOpenTaskCard(Map<String, dynamic> task) {
     final seeker = task['profiles'] ?? task['seeker'];
     final trustScore = seeker != null ? seeker['trust_score'] : null;
@@ -433,15 +554,29 @@ class _HelperDashboardState extends State<HelperDashboard> {
             ],
 
             const SizedBox(height: 16),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E), minimumSize: const Size.fromHeight(40)),
-              onPressed: () => _acceptTask(task['id']),
-              child: const Text('Accept Job', style: TextStyle(color: Colors.white)),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E), minimumSize: const Size.fromHeight(40)),
+                    onPressed: () => _acceptTask(task['id']),
+                    child: const Text('Accept Job', style: TextStyle(color: Colors.white)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(40)),
+                    onPressed: () => _showCounterOfferDialog(task['id'], task['title'], double.tryParse(task['pay'].toString()) ?? 0.0),
+                    child: const Text('Counter Offer'),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
       ),
-    );
+    ).animate().fade(duration: 300.ms).slideY(begin: 0.1, end: 0, duration: 300.ms, curve: Curves.easeOut);
   }
 
   Widget _buildMyJobCard(Map<String, dynamic> task) {
@@ -521,7 +656,7 @@ class _HelperDashboardState extends State<HelperDashboard> {
           ],
         ),
       ),
-    );
+    ).animate().fade(duration: 300.ms).slideX(begin: -0.1, end: 0, duration: 300.ms, curve: Curves.easeOut);
   }
 
   void _showReviewDialog(String taskId, String revieweeId, String? name) {
