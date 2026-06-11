@@ -16,16 +16,15 @@ class SupabaseService {
     String? phone,
     String role = 'seeker',
   }) async {
-    final res = await client.auth.signUp(email: email, password: password);
-    if (res.user != null) {
-      await client.from('profiles').insert({
-        'id': res.user!.id,
-        'email': email,
+    final res = await client.auth.signUp(
+      email: email,
+      password: password,
+      data: {
         'full_name': fullName,
         'phone': phone,
         'role': role,
-      });
-    }
+      },
+    );
   }
 
   static Future<String> getDeviceId() async {
@@ -44,6 +43,17 @@ class SupabaseService {
   }) async {
     final res = await auth.signInWithPassword(email: email, password: password);
     
+    // Sync metadata to profile
+    if (res.user != null && res.user!.userMetadata != null) {
+      final meta = res.user!.userMetadata!;
+      if (meta.containsKey('role')) {
+        await client.from('profiles').update({
+          'full_name': meta['full_name'],
+          'phone': meta['phone'],
+          'role': meta['role'] ?? 'seeker',
+        }).eq('id', res.user!.id);
+      }
+    }
     // Check device logic
     if (res.user != null) {
       final deviceId = await getDeviceId();

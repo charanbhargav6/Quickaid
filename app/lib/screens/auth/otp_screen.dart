@@ -82,11 +82,18 @@ class _OtpScreenState extends State<OtpScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.isNewDevice ? 'Verify Device' : 'Reset Password'),
+        title: Text(
+          widget.isNewDevice ? 'Verify Device' : 'Reset Password',
+          style: TextStyle(color: theme.colorScheme.onSurface),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        iconTheme: IconThemeData(color: theme.colorScheme.onSurface),
       ),
       body: Padding(
         padding: const EdgeInsets.all(24.0),
@@ -95,19 +102,19 @@ class _OtpScreenState extends State<OtpScreen> {
           children: [
             Text(
               'Enter the 6-digit OTP sent to\n${widget.email}',
-              style: const TextStyle(fontSize: 16, color: Colors.white70),
+              style: TextStyle(fontSize: 16, color: theme.colorScheme.onSurface.withOpacity(0.7)),
             ),
             const SizedBox(height: 24),
             TextField(
               controller: _otpCtrl,
               keyboardType: TextInputType.number,
               maxLength: 6,
-              style: const TextStyle(color: Colors.white),
+              style: TextStyle(color: theme.colorScheme.onSurface),
               decoration: InputDecoration(
                 hintText: '6-digit OTP',
-                hintStyle: const TextStyle(color: Colors.white30),
+                hintStyle: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.3)),
                 filled: true,
-                fillColor: Colors.white.withValues(alpha: 0.05),
+                fillColor: theme.colorScheme.onSurface.withOpacity(0.05),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
@@ -117,12 +124,12 @@ class _OtpScreenState extends State<OtpScreen> {
               TextField(
                 controller: _newPassCtrl,
                 obscureText: true,
-                style: const TextStyle(color: Colors.white),
+                style: TextStyle(color: theme.colorScheme.onSurface),
                 decoration: InputDecoration(
                   hintText: 'New Password',
-                  hintStyle: const TextStyle(color: Colors.white30),
+                  hintStyle: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.3)),
                   filled: true,
-                  fillColor: Colors.white.withValues(alpha: 0.05),
+                  fillColor: theme.colorScheme.onSurface.withOpacity(0.05),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               ),

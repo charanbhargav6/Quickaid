@@ -27,6 +27,15 @@ export default function Login() {
       setError(error.message);
       setLoading(false);
     } else {
+      // Sync metadata to profile since trigger defaults to seeker
+      if (data?.user?.user_metadata) {
+        await supabase.from('profiles').update({
+          full_name: data.user.user_metadata.full_name,
+          phone: data.user.user_metadata.phone,
+          role: data.user.user_metadata.role || 'seeker',
+        }).eq('id', data.user.id);
+      }
+
       // Fetch user role
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')

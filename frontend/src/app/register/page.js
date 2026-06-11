@@ -24,6 +24,13 @@ export default function Register() {
     const { data, error: authError } = await supabase.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          full_name: fullName,
+          phone: phone || null,
+          role: role,
+        }
+      }
     });
     
     if (authError) {
@@ -33,23 +40,7 @@ export default function Register() {
     }
 
     if (data?.user) {
-      // Insert profile data
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: data.user.id,
-          email: email,
-          full_name: fullName,
-          phone: phone || null,
-          role: role,
-        });
-
-      if (profileError) {
-        setError('Failed to create user profile. Please contact support.');
-        setLoading(false);
-      } else {
-        router.push('/login?registered=true');
-      }
+      router.push('/login?registered=true');
     } else {
       setError('An unexpected error occurred.');
       setLoading(false);
