@@ -48,18 +48,7 @@ class SupabaseService {
   }) async {
     final res = await auth.signInWithPassword(email: email, password: password);
     
-    // Sync metadata to profile
-    if (res.user != null && res.user!.userMetadata != null) {
-      final meta = res.user!.userMetadata!;
-      if (meta.containsKey('role')) {
-        await client.from('profiles').update({
-          'full_name': meta['full_name'],
-          'phone': meta['phone'],
-          'role': meta['role'] ?? 'seeker',
-        }).eq('id', res.user!.id);
-      }
-    }
-    // Check device logic
+    // Check device logic and sync profile
     if (res.user != null) {
       final deviceId = await getDeviceId();
       final deviceCheck = await client.from('user_devices')
@@ -77,6 +66,24 @@ class SupabaseService {
         // Recognized device -> update last login
         await NotificationService.syncTokenToSupabase();
         await client.rpc('log_device_login', params: {'p_device_id': deviceId});
+        
+        // Fetch current profile to prevent overwriting admins
+        final profile = await getProfile(res.user!.id);
+        if (profile != null && profile['role'] != 'admin' && res.user!.userMetadata != null) {
+          final meta = res.user!.userMetadata!;
+          final needsSync = 
+            (meta['role'] != null && meta['role'] != profile['role']) ||
+            (meta['full_name'] != null && meta['full_name'] != profile['full_name']) ||
+            (meta['phone'] != null && meta['phone'] != profile['phone']);
+            
+          if (needsSync) {
+            await client.from('profiles').update({
+              'full_name': meta['full_name'] ?? profile['full_name'],
+              'phone': meta['phone'] ?? profile['phone'],
+              'role': meta['role'] ?? profile['role'],
+            }).eq('id', res.user!.id);
+          }
+        }
         
         // Save verification timestamp for 30-day relogin check
         final prefs = await SharedPreferences.getInstance();

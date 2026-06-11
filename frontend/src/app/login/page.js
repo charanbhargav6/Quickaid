@@ -27,21 +27,34 @@ export default function Login() {
       setError(error.message);
       setLoading(false);
     } else {
-      // Sync metadata to profile since trigger defaults to seeker
-      if (data?.user?.user_metadata) {
-        await supabase.from('profiles').update({
-          full_name: data.user.user_metadata.full_name,
-          phone: data.user.user_metadata.phone,
-          role: data.user.user_metadata.role || 'seeker',
-        }).eq('id', data.user.id);
-      }
-
-      // Fetch user role
-      const { data: profileData, error: profileError } = await supabase
+      // Fetch user role FIRST to prevent overwriting admins
+      let { data: profileData, error: profileError } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, full_name, phone')
         .eq('id', data.user.id)
         .single();
+
+      if (!profileError && profileData) {
+        // Only sync if user is not admin, and we have metadata to sync
+        const meta = data?.user?.user_metadata;
+        if (profileData.role !== 'admin' && meta) {
+          const needsSync = 
+            (meta.role && meta.role !== profileData.role) ||
+            (meta.full_name && meta.full_name !== profileData.full_name) ||
+            (meta.phone && meta.phone !== profileData.phone);
+            
+          if (needsSync) {
+            await supabase.from('profiles').update({
+              full_name: meta.full_name || profileData.full_name,
+              phone: meta.phone || profileData.phone,
+              role: meta.role || profileData.role,
+            }).eq('id', data.user.id);
+            
+            // Update local variable for routing
+            profileData.role = meta.role || profileData.role;
+          }
+        }
+      }
 
       if (profileError) {
         setError('Failed to fetch user profile.');
