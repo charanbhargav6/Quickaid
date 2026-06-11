@@ -9,6 +9,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:typed_data';
 import '../../widgets/skeleton_loader.dart';
+import 'package:geolocator/geolocator.dart';
 
 class SeekerDashboard extends StatefulWidget {
   final bool openPostTask;
@@ -23,6 +24,7 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
   List<Map<String, dynamic>> _myTasks = [];
   List<Map<String, dynamic>> _activeHelpers = [];
   Map<String, dynamic> _currentUser = {};
+  Position? _currentPosition;
 
   @override
   void initState() {
@@ -52,7 +54,22 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
       
       _myTasks = List<Map<String, dynamic>>.from(tasks);
       
-      _activeHelpers = await SupabaseService.getActiveHelpers();
+      // Get location for nearby helpers
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      LocationPermission permission = await Geolocator.checkPermission();
+      
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      
+      if (serviceEnabled && (permission == LocationPermission.whileInUse || permission == LocationPermission.always)) {
+        Position position = await Geolocator.getCurrentPosition();
+        _currentPosition = position;
+        _activeHelpers = await SupabaseService.getNearbyHelpers(position.latitude, position.longitude, 10.0);
+      } else {
+        _activeHelpers = []; // Fallback to empty if no location per user instructions
+        _currentPosition = null;
+      }
     } catch (e) {
       debugPrint('Error loading seeker data: $e');
     } finally {
@@ -140,48 +157,62 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                SizedBox(
-                  height: 200,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: FlutterMap(
-                      options: const MapOptions(
-                        initialCenter: LatLng(12.9692, 79.1559), // Default VIT Campus
-                        initialZoom: 14.0,
-                      ),
+                if (_currentPosition == null)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 24),
+                    child: Center(child: Text('Location unavailable. Cannot show nearby helpers.')),
+                  )
+                else
+                  SizedBox(
+                    height: 200,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: FlutterMap(
+                        options: MapOptions(
+                          initialCenter: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+                          initialZoom: 14.0,
+                        ),
                       children: [
                         TileLayer(
                           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                           userAgentPackageName: 'com.example.app',
                         ),
                         MarkerLayer(
-                          markers: _activeHelpers.where((h) => h['current_lat'] != null && h['current_lng'] != null).map((h) {
-                            return Marker(
-                              point: LatLng(h['current_lat'].toDouble(), h['current_lng'].toDouble()),
-                              width: 60,
-                              height: 60,
-                              child: Column(
-                                children: [
-                                  const Icon(Icons.directions_run, color: Color(0xFF2563EB), size: 36),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-                                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4), border: Border.all(color: const Color(0xFF2563EB))),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(h['full_name']?.toString().split(' ')[0] ?? 'Helper', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black)),
-                                        if (h['trust_score'] != null && h['trust_score'] >= 30 && h['trust_score'] <= 50)
-                                          const Padding(
-                                            padding: EdgeInsets.only(left: 2.0),
-                                            child: Icon(Icons.warning, color: Colors.amber, size: 10),
-                                          )
-                                      ],
+                          markers: [
+                            Marker(
+                              point: LatLng(_currentPosition!.latitude, _currentPosition!.longitude),
+                              width: 40,
+                              height: 40,
+                              child: const Icon(Icons.my_location, color: Colors.blue, size: 30),
+                            ),
+                            ..._activeHelpers.where((h) => h['current_lat'] != null && h['current_lng'] != null).map((h) {
+                              return Marker(
+                                point: LatLng(h['current_lat'].toDouble(), h['current_lng'].toDouble()),
+                                width: 60,
+                                height: 60,
+                                child: Column(
+                                  children: [
+                                    const Icon(Icons.directions_run, color: Color(0xFF2563EB), size: 36),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4), border: Border.all(color: const Color(0xFF2563EB))),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(h['full_name']?.toString().split(' ')[0] ?? 'Helper', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black)),
+                                          if (h['trust_score'] != null && h['trust_score'] >= 30 && h['trust_score'] <= 50)
+                                            const Padding(
+                                              padding: EdgeInsets.only(left: 2.0),
+                                              child: Icon(Icons.warning, color: Colors.amber, size: 10),
+                                            )
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }).toList(),
+                                  ],
+                                ),
+                              );
+                            }),
+                          ],
                         ),
                       ],
                     ),

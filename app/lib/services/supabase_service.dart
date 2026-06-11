@@ -263,9 +263,32 @@ class SupabaseService {
   static Future<List<Map<String, dynamic>>> getActiveHelpers() async {
     final res = await client
         .from('profiles')
-        .select()
+        .select('*')
         .eq('is_available', true)
         .gte('available_until', DateTime.now().toUtc().toIso8601String());
+    return List<Map<String, dynamic>>.from(res);
+  }
+
+  // ── GEOLOCATION ─────────────────────────────────────────
+  static Future<List<Map<String, dynamic>>> getNearbyTasks(double lat, double lng, double radiusKm) async {
+    final user = currentUser;
+    if (user == null) throw Exception('Not authenticated');
+
+    final res = await client.rpc('get_nearby_tasks', params: {
+      'p_lat': lat,
+      'p_lng': lng,
+      'p_radius_km': radiusKm,
+      'p_helper_id': user.id
+    });
+    return List<Map<String, dynamic>>.from(res);
+  }
+
+  static Future<List<Map<String, dynamic>>> getNearbyHelpers(double lat, double lng, double radiusKm) async {
+    final res = await client.rpc('get_nearby_helpers', params: {
+      'p_lat': lat,
+      'p_lng': lng,
+      'p_radius_km': radiusKm
+    });
     return List<Map<String, dynamic>>.from(res);
   }
 

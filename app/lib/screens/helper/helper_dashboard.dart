@@ -5,6 +5,7 @@ import '../shared/chat_screen.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../widgets/skeleton_loader.dart';
+import 'package:geolocator/geolocator.dart';
 
 class HelperDashboard extends StatefulWidget {
   const HelperDashboard({super.key});
@@ -40,7 +41,24 @@ class _HelperDashboardState extends State<HelperDashboard> {
         }
       }
 
-      _openTasks = await SupabaseService.getOpenTasks(SupabaseService.currentUser!.id);
+      // Get location for nearby tasks
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      LocationPermission permission = await Geolocator.checkPermission();
+      
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      
+      if (serviceEnabled && (permission == LocationPermission.whileInUse || permission == LocationPermission.always)) {
+        Position position = await Geolocator.getCurrentPosition();
+        _openTasks = await SupabaseService.getNearbyTasks(position.latitude, position.longitude, 10.0);
+        // If available, update their current location too
+        if (_isAvailable) {
+          await SupabaseService.toggleAvailability(4, lat: position.latitude, lng: position.longitude);
+        }
+      } else {
+        _openTasks = []; // Fallback to empty if no location
+      }
       
       final myTasksRes = await SupabaseService.client
           .from('tasks')
@@ -341,10 +359,28 @@ class _HelperDashboardState extends State<HelperDashboard> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(color: const Color(0xFFFFF7ED), borderRadius: BorderRadius.circular(4)),
-                  child: Text(task['category'] ?? 'General', style: const TextStyle(color: Color(0xFFEA580C), fontSize: 12, fontWeight: FontWeight.bold)),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(color: const Color(0xFFFFF7ED), borderRadius: BorderRadius.circular(4)),
+                      child: Text(task['category'] ?? 'General', style: const TextStyle(color: Color(0xFFEA580C), fontSize: 12, fontWeight: FontWeight.bold)),
+                    ),
+                    if (task['distance_km'] != null) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(4)),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.location_on, size: 12, color: Color(0xFF3B82F6)),
+                            const SizedBox(width: 4),
+                            Text('${task['distance_km'].toStringAsFixed(1)} km', style: const TextStyle(color: Color(0xFF3B82F6), fontSize: 12, fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
                 Text('₹${task['pay']}', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF22C55E), fontSize: 16)),
               ],

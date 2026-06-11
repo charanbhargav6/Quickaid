@@ -62,6 +62,10 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
         }
 
         final profile = await SupabaseService.getProfile(session.user.id);
+        
+        // Sync push notification token
+        await NotificationService.syncTokenToSupabase();
+        
         if (!mounted) return;
         final role = profile?['role'] as String? ?? 'seeker';
         if (role == 'admin') {

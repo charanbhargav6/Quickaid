@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/server'
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
+import { sendPushNotification } from '@/utils/push'
 
 const acceptTaskSchema = z.object({
   taskId: z.string().uuid("Invalid Task ID"),
@@ -46,6 +47,17 @@ export async function acceptTask(rawInput) {
       route: `/chat/${data.id}`
     }
   });
+
+  // Send Push Notification
+  const { data: seekerProfile } = await supabase.from('profiles').select('fcm_token').eq('id', data.seeker_id).single();
+  if (seekerProfile && seekerProfile.fcm_token) {
+    await sendPushNotification(
+      seekerProfile.fcm_token,
+      'Task Accepted! 🤝',
+      `A helper has accepted your task: "${data.title}"`,
+      { type: 'task_accepted', taskId: data.id }
+    );
+  }
 
   revalidatePath('/helper')
   return { success: true, task: data }
@@ -104,6 +116,17 @@ export async function cancelTask(rawInput) {
     data: { type: 'alert' }
   });
 
+  // Send Push Notification
+  const { data: seekerProfile } = await supabase.from('profiles').select('fcm_token').eq('id', task.seeker_id).single();
+  if (seekerProfile && seekerProfile.fcm_token) {
+    await sendPushNotification(
+      seekerProfile.fcm_token,
+      'Task Cancelled ⚠️',
+      `A helper cancelled your task: "${task.title}". It is back on the open market.`,
+      { type: 'alert', taskId }
+    );
+  }
+
   revalidatePath('/helper');
   return { success: true, penaltyApplied };
 }
@@ -130,6 +153,17 @@ export async function completeTask(taskId) {
   });
 
   if (updateError) return { success: false, error: 'Failed to complete task: ' + updateError.message };
+
+  // Send Push Notification
+  const { data: seekerProfile } = await supabase.from('profiles').select('fcm_token').eq('id', task.seeker_id).single();
+  if (seekerProfile && seekerProfile.fcm_token) {
+    await sendPushNotification(
+      seekerProfile.fcm_token,
+      'Task Completed! ✅',
+      `Your task "${task.title}" has been marked as completed. Please review your helper.`,
+      { type: 'task_completed', taskId }
+    );
+  }
 
   revalidatePath('/helper/tasks');
   return { success: true };

@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import PostTaskModal from '@/components/PostTaskModal';
 import RealtimeTaskList from '@/components/RealtimeTaskList';
 import { Suspense } from 'react';
+import NearbyHelpers from '@/components/NearbyHelpers';
 
 export default async function SeekerDashboard() {
   const supabase = await createClient();
@@ -11,12 +12,6 @@ export default async function SeekerDashboard() {
   if (!user) {
     redirect('/login');
   }
-
-  // Fetch active helpers
-  const { data: activeHelpers } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('role', 'helper');
 
   // Fetch initial tasks
   const { data: myTasks } = await supabase
@@ -43,35 +38,7 @@ export default async function SeekerDashboard() {
         
         {/* Active Helpers Section */}
         <section>
-          <div className="section-header">
-            <h2 className="section-title">Active Helpers Available</h2>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1rem' }}>
-            {!activeHelpers || activeHelpers.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)' }}>No helpers available right now.</p>
-            ) : (
-              activeHelpers.map(helper => (
-                <div key={helper.id} className="card" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--primary-light)', color: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 'bold' }}>
-                    {helper.full_name ? helper.full_name[0] : 'H'}
-                  </div>
-                  <div>
-                    <h3 style={{ fontSize: '16px', margin: 0 }}>
-                      <a href={`/profile/${helper.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                        {helper.full_name || 'Helper'}
-                      </a>
-                    </h3>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
-                      <span className="badge badge-green">● Online</span>
-                      {helper.trust_score >= 30 && helper.trust_score <= 50 && (
-                        <span className="badge badge-red" style={{ fontSize: '10px' }}>⚠️ Warning</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+          <NearbyHelpers />
         </section>
 
         {/* My Tasks Section */}

@@ -5,14 +5,14 @@ import 'leaflet/dist/leaflet.css';
 import 'leaflet-defaulticon-compatibility';
 import 'leaflet-defaulticon-compatibility/dist/leaflet-defaulticon-compatibility.css';
 
-export default function LiveMap({ tasks, onAccept }) {
-  // Default to a central location (Mumbai)
-  const defaultCenter = [19.0760, 72.8777];
+export default function LiveMap({ tasks, onAccept, userLocation }) {
+  // Default to a central location (Mumbai) if no user location
+  const center = userLocation || [19.0760, 72.8777];
 
   return (
     <div style={{ height: 'calc(100vh - 150px)', width: '100%', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: '0 4px 15px rgba(0,0,0,0.05)' }}>
       <MapContainer 
-        center={defaultCenter} 
+        center={center} 
         zoom={12} 
         scrollWheelZoom={true} 
         style={{ height: '100%', width: '100%' }}
