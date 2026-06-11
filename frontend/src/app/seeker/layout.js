@@ -1,6 +1,7 @@
 import Sidebar from '@/components/Sidebar';
 import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
+import ReviewModal from '@/components/ReviewModal';
 
 export default async function SeekerLayout({ children }) {
   const supabase = await createClient();
@@ -19,6 +20,7 @@ export default async function SeekerLayout({ children }) {
       <Sidebar />
       <main className="main-content">
         {children}
+        <ReviewModal />
       </main>
     </div>
   );

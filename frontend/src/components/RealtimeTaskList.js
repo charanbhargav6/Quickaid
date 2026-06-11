@@ -61,6 +61,20 @@ export default function RealtimeTaskList({ initialTasks, userId }) {
               <span className={`badge ${task.status === 'open' ? 'badge-blue' : task.status === 'completed' ? 'badge-green' : 'badge-gray'}`}>
                 {task.status.toUpperCase()}
               </span>
+              {task.status === 'completed' && (
+                <button 
+                  className="btn btn-outline" 
+                  style={{ marginLeft: '10px', fontSize: '12px', padding: '4px 8px' }}
+                  onClick={() => {
+                    // Trigger modal logic here later
+                    if(window) {
+                      window.dispatchEvent(new CustomEvent('open-review-modal', { detail: task }));
+                    }
+                  }}
+                >
+                  Leave Review
+                </button>
+              )}
             </td>
             <td>${task.price?.toFixed(2)}</td>
             <td>{new Date(task.created_at).toLocaleDateString()}</td>

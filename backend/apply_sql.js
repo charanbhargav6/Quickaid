@@ -29,5 +29,10 @@ async function runSQLFile(filename) {
   }
 }
 
-runSQLFile('phase7_trust_safety.sql');
-runSQLFile('phase8_helper_availability.sql');
+const args = process.argv.slice(2);
+if (args.length > 0) {
+  args.forEach(runSQLFile);
+} else {
+  runSQLFile('phase7_trust_safety.sql');
+  runSQLFile('phase8_helper_availability.sql');
+}

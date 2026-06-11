@@ -56,8 +56,17 @@ export default async function SeekerDashboard() {
                     {helper.full_name ? helper.full_name[0] : 'H'}
                   </div>
                   <div>
-                    <h3 style={{ fontSize: '16px', margin: 0 }}>{helper.full_name || 'Helper'}</h3>
-                    <span className="badge badge-green" style={{ marginTop: '4px' }}>● Online</span>
+                    <h3 style={{ fontSize: '16px', margin: 0 }}>
+                      <a href={`/profile/${helper.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                        {helper.full_name || 'Helper'}
+                      </a>
+                    </h3>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '4px' }}>
+                      <span className="badge badge-green">● Online</span>
+                      {helper.trust_score >= 30 && helper.trust_score <= 50 && (
+                        <span className="badge badge-red" style={{ fontSize: '10px' }}>⚠️ Warning</span>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))

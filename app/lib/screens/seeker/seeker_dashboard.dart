@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
 import '../shared/app_drawer.dart';
 import '../shared/chat_screen.dart';
+import '../shared/helper_profile_screen.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
@@ -45,7 +46,7 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
       
       final tasks = await SupabaseService.client
           .from('tasks')
-          .select('*, helper:profiles!helper_id(full_name, phone)')
+          .select('*, helper:profiles!helper_id(full_name, phone, trust_score)')
           .eq('seeker_id', _currentUser['id'])
           .order('created_at', ascending: false);
       
@@ -165,7 +166,17 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                                     decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4), border: Border.all(color: const Color(0xFF2563EB))),
-                                    child: Text(h['full_name']?.toString().split(' ')[0] ?? 'Helper', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black)),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(h['full_name']?.toString().split(' ')[0] ?? 'Helper', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.black)),
+                                        if (h['trust_score'] != null && h['trust_score'] >= 30 && h['trust_score'] <= 50)
+                                          const Padding(
+                                            padding: EdgeInsets.only(left: 2.0),
+                                            child: Icon(Icons.warning, color: Colors.amber, size: 10),
+                                          )
+                                      ],
+                                    ),
                                   ),
                                 ],
                               ),
@@ -287,7 +298,21 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text('Helper', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
-                          Text(task['helper']['full_name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold)),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(context, MaterialPageRoute(builder: (ctx) => HelperProfileScreen(helperId: task['helper_id'])));
+                            },
+                            child: Row(
+                              children: [
+                                Text(task['helper']['full_name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue, decoration: TextDecoration.underline)),
+                                if (task['helper']['trust_score'] != null && task['helper']['trust_score'] >= 30 && task['helper']['trust_score'] <= 50)
+                                  const Padding(
+                                    padding: EdgeInsets.only(left: 4.0),
+                                    child: Icon(Icons.warning, color: Colors.amber, size: 16),
+                                  )
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                     ),
