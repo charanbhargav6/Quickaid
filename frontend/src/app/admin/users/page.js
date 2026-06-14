@@ -145,9 +145,7 @@ export default function UsersPage() {
                           value={user.role}
                           onChange={(e) => handleChangeRole(user.id, e.target.value)}
                         >
-                          <option value="seeker">Demote to Seeker</option>
-                          <option value="helper">Demote to Helper</option>
-                          <option value="both">Change to Both</option>
+                          <option value="seeker">Demote to User</option>
                           <option value="admin">Promote to Admin</option>
                         </select>
                       )}
