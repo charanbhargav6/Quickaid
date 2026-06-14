@@ -126,13 +126,17 @@ class AppDrawer extends StatelessWidget {
                           child: Divider(color: Colors.white24, height: 1),
                         ),
                         _DrawerItem(icon: Icons.settings_outlined, label: 'Settings', onTap: () { Navigator.pop(context); Navigator.pushReplacementNamed(context, '/settings'); }),
+                        _DrawerItem(icon: Icons.help_outline, label: 'Support & FAQ', onTap: () {
+                          Navigator.pop(context);
+                          Navigator.pushNamed(context, '/support');
+                        }),
                         _DrawerItem(icon: Icons.privacy_tip_outlined, label: 'Privacy Policy', color: Colors.white54, onTap: () {
                           Navigator.pop(context);
-                          launchUrl(Uri.parse('http://localhost:3000/privacy'));
+                          Navigator.pushNamed(context, '/legal');
                         }),
                         _DrawerItem(icon: Icons.description_outlined, label: 'Terms of Service', color: Colors.white54, onTap: () {
                           Navigator.pop(context);
-                          launchUrl(Uri.parse('http://localhost:3000/terms'));
+                          Navigator.pushNamed(context, '/legal');
                         }),
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 8),

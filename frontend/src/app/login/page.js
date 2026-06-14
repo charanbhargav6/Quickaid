@@ -8,6 +8,7 @@ import Link from 'next/link';
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -35,11 +36,10 @@ export default function Login() {
         .single();
 
       if (!profileError && profileData) {
-        // Only sync if user is not admin, and we have metadata to sync
+        // We no longer sync 'role' from user_metadata to avoid overwriting database role
         const meta = data?.user?.user_metadata;
         if (profileData.role !== 'admin' && meta) {
           const needsSync = 
-            (meta.role && meta.role !== profileData.role) ||
             (meta.full_name && meta.full_name !== profileData.full_name) ||
             (meta.phone && meta.phone !== profileData.phone);
             
@@ -47,11 +47,7 @@ export default function Login() {
             await supabase.from('profiles').update({
               full_name: meta.full_name || profileData.full_name,
               phone: meta.phone || profileData.phone,
-              role: meta.role || profileData.role,
             }).eq('id', data.user.id);
-            
-            // Update local variable for routing
-            profileData.role = meta.role || profileData.role;
           }
         }
       }
@@ -115,14 +111,27 @@ export default function Login() {
           
           <div className={styles.inputGroup}>
             <label>Password</label>
-            <input 
-              type="password" 
-              className="input" 
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            <div style={{ position: 'relative' }}>
+              <input 
+                type={showPassword ? "text" : "password"} 
+                className="input" 
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                style={{ paddingRight: '40px' }}
+              />
+              <button 
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{ 
+                  position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', 
+                  background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '18px' 
+                }}
+              >
+                {showPassword ? '👁️' : '👁️‍🗨️'}
+              </button>
+            </div>
             <div style={{ textAlign: 'right', marginTop: '0.5rem' }}>
               <button 
                 type="button" 

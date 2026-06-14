@@ -188,6 +188,13 @@ export default function Sidebar() {
         </button>
       </nav>
 
+      {/* ── Legal Links ──────── */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '0 24px', marginBottom: '16px', fontSize: '13px' }}>
+        <Link href="/support" style={{ color: 'var(--text-secondary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}><span style={{fontSize: '16px'}}>❓</span> Support & FAQ</Link>
+        <Link href="/terms" style={{ color: 'var(--text-secondary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}><span style={{fontSize: '16px'}}>📄</span> Terms & Conditions</Link>
+        <Link href="/privacy" style={{ color: 'var(--text-secondary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}><span style={{fontSize: '16px'}}>🔒</span> Privacy Policy</Link>
+      </div>
+
       {/* ── User Profile Card ──────── */}
       <div className={styles.userCard}>
         <div className={styles.userAvatar}>

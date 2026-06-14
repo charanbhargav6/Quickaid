@@ -1,40 +1,55 @@
-export const metadata = {
-  title: 'Terms of Service | QuickAid',
-};
+'use client';
+import Link from 'next/link';
+import Sidebar from '@/components/Sidebar';
+import styles from '../seeker/Seeker.module.css';
 
-export default function TermsPage() {
+export default function TermsAndConditions() {
   return (
-    <div style={{ maxWidth: '800px', margin: '40px auto', padding: '0 24px', fontFamily: 'system-ui, sans-serif' }}>
-      <h1 style={{ fontSize: '32px', fontWeight: 'bold', marginBottom: '16px' }}>Terms of Service</h1>
-      <p style={{ color: '#64748b', marginBottom: '32px' }}>Last updated: May 2026</p>
-      
-      <div style={{ lineHeight: '1.6', color: '#334155' }}>
-        <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginTop: '24px', marginBottom: '12px' }}>1. Acceptance of Terms</h2>
-        <p style={{ marginBottom: '16px' }}>
-          By accessing and using the QuickAid platform ("Service"), you agree to be bound by these Terms of Service. If you disagree with any part of the terms, you may not access the Service.
-        </p>
+    <div className={styles.layout}>
+      <Sidebar role="seeker" />
+      <div className={styles.mainContent}>
+        <div style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem' }}>
+          <h1 style={{ marginBottom: '2rem', color: 'var(--text-primary)' }}>Terms and Conditions</h1>
+          
+          <section style={{ marginBottom: '2rem' }}>
+            <h2>1. Introduction</h2>
+            <p style={{ color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+              Welcome to QuickAid (also referred to as LocalHelper). By using our platform, you agree to be bound by these Terms and Conditions. QuickAid is a hyperlocal platform connecting nearby individuals for short-duration physical assistance tasks.
+            </p>
+          </section>
 
-        <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginTop: '24px', marginBottom: '12px' }}>2. User Roles & Responsibilities</h2>
-        <p style={{ marginBottom: '16px' }}>
-          <strong>Seekers:</strong> You agree to provide accurate descriptions of tasks and ensure you have sufficient funds in your wallet to cover the agreed payment before posting a task.
-        </p>
-        <p style={{ marginBottom: '16px' }}>
-          <strong>Helpers:</strong> You agree to perform accepted tasks to the best of your ability, maintain professional conduct, and accurately report task completion.
-        </p>
+          <section style={{ marginBottom: '2rem' }}>
+            <h2>2. User Roles and Responsibilities</h2>
+            <p style={{ color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+              Users can act as both Task Seekers and Helpers. You agree to provide accurate information, maintain the security of your account, and conduct yourself professionally and safely during all interactions. QuickAid is not an employer, and Helpers act as independent contractors.
+            </p>
+          </section>
 
-        <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginTop: '24px', marginBottom: '12px' }}>3. Payments and Wallet</h2>
-        <p style={{ marginBottom: '16px' }}>
-          QuickAid utilizes a secure digital wallet system. Funds are held in escrow once a task is accepted and are transferred to the Helper upon mutual confirmation of task completion. QuickAid is not responsible for disputes regarding task quality, though our Trust Score system helps mitigate such issues.
-        </p>
+          <section style={{ marginBottom: '2rem' }}>
+            <h2>3. Permitted Tasks</h2>
+            <p style={{ color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+              The platform is intended for physical nearby assistance (e.g., carrying luggage, grocery help, queue standing). The following tasks are strictly prohibited: harassment-related requests, illegal deliveries, academic cheating, unsafe transportation, and any activity violating local laws.
+            </p>
+          </section>
 
-        <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginTop: '24px', marginBottom: '12px' }}>4. Account Suspension</h2>
-        <p style={{ marginBottom: '16px' }}>
-          QuickAid administrators reserve the right to suspend or terminate accounts that violate these terms, engage in fraudulent activity, or maintain consistently poor Trust Scores.
-        </p>
-      </div>
-      
-      <div style={{ marginTop: '48px', paddingTop: '24px', borderTop: '1px solid #e2e8f0', textAlign: 'center' }}>
-        <a href="/" style={{ color: '#22c55e', textDecoration: 'none', fontWeight: 'bold' }}>← Back to Home</a>
+          <section style={{ marginBottom: '2rem' }}>
+            <h2>4. Payments and Liability</h2>
+            <p style={{ color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+              Currently, all payments are handled externally directly between the Seeker and the Helper (e.g., via UPI or cash). QuickAid is not responsible for payment disputes, uncompleted tasks, or any damages, injuries, or losses incurred during a task.
+            </p>
+          </section>
+
+          <section style={{ marginBottom: '2rem' }}>
+            <h2>5. Trust and Safety</h2>
+            <p style={{ color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+              We utilize a Trust Score system based on user reviews and completion rates. QuickAid reserves the right to suspend or ban users who violate our community guidelines, receive multiple negative reviews, or engage in suspicious behavior.
+            </p>
+          </section>
+
+          <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '3rem' }}>
+            Last updated: June 2026
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -1,37 +1,47 @@
-export const metadata = {
-  title: 'Privacy Policy | QuickAid',
-};
+'use client';
+import Sidebar from '@/components/Sidebar';
+import styles from '../seeker/Seeker.module.css';
 
-export default function PrivacyPage() {
+export default function PrivacyPolicy() {
   return (
-    <div style={{ maxWidth: '800px', margin: '40px auto', padding: '0 24px', fontFamily: 'system-ui, sans-serif' }}>
-      <h1 style={{ fontSize: '32px', fontWeight: 'bold', marginBottom: '16px' }}>Privacy Policy</h1>
-      <p style={{ color: '#64748b', marginBottom: '32px' }}>Last updated: May 2026</p>
-      
-      <div style={{ lineHeight: '1.6', color: '#334155' }}>
-        <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginTop: '24px', marginBottom: '12px' }}>1. Information We Collect</h2>
-        <p style={{ marginBottom: '16px' }}>
-          When you register for QuickAid, we collect your name, email address, phone number (optional), and your chosen role (Seeker/Helper/Both). We also collect precise location data when you post tasks using our interactive map feature.
-        </p>
+    <div className={styles.layout}>
+      <Sidebar role="seeker" />
+      <div className={styles.mainContent}>
+        <div style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem' }}>
+          <h1 style={{ marginBottom: '2rem', color: 'var(--text-primary)' }}>Privacy Policy</h1>
+          
+          <section style={{ marginBottom: '2rem' }}>
+            <h2>1. Information We Collect</h2>
+            <p style={{ color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+              We collect information you provide directly to us when you register, including your name, email address, and phone number. We also collect your location data (GPS coordinates) when you actively use the app to find nearby tasks or broadcast your availability.
+            </p>
+          </section>
 
-        <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginTop: '24px', marginBottom: '12px' }}>2. How We Use Your Information</h2>
-        <p style={{ marginBottom: '16px' }}>
-          Your information is used to facilitate the connection between Seekers and Helpers. Your name and Trust Score are visible to other users to maintain platform safety. Location data is strictly used to display tasks on the map to nearby Helpers.
-        </p>
+          <section style={{ marginBottom: '2rem' }}>
+            <h2>2. How We Use Your Information</h2>
+            <p style={{ color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+              We use your information to facilitate connections between Seekers and Helpers, compute distances for nearby tasks, verify your identity, and maintain our Trust Score system. Your precise location is only shared when you accept a task or request help.
+            </p>
+          </section>
 
-        <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginTop: '24px', marginBottom: '12px' }}>3. Data Security</h2>
-        <p style={{ marginBottom: '16px' }}>
-          We implement row-level security (RLS) policies through Supabase to ensure that your private data (such as wallet balances and direct messages) is only accessible to you and authorized parties (e.g., the specific Helper assigned to your task).
-        </p>
+          <section style={{ marginBottom: '2rem' }}>
+            <h2>3. Information Sharing</h2>
+            <p style={{ color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+              We do not sell your personal data. We share your profile information (Name, Trust Score, and completed task count) with other users to build trust. Contact information is only unlocked and shared between parties after a task is mutually accepted.
+            </p>
+          </section>
 
-        <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginTop: '24px', marginBottom: '12px' }}>4. Contact Us</h2>
-        <p style={{ marginBottom: '16px' }}>
-          If you have any questions about this Privacy Policy or wish to request data deletion, please contact our administrative team through the QuickAid platform.
-        </p>
-      </div>
-      
-      <div style={{ marginTop: '48px', paddingTop: '24px', borderTop: '1px solid #e2e8f0', textAlign: 'center' }}>
-        <a href="/" style={{ color: '#22c55e', textDecoration: 'none', fontWeight: 'bold' }}>← Back to Home</a>
+          <section style={{ marginBottom: '2rem' }}>
+            <h2>4. Data Security</h2>
+            <p style={{ color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+              We implement industry-standard security measures to protect your personal information. Chat messages are securely stored in our databases to provide dispute resolution if necessary.
+            </p>
+          </section>
+
+          <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: '3rem' }}>
+            Last updated: June 2026
+          </p>
+        </div>
       </div>
     </div>
   );
