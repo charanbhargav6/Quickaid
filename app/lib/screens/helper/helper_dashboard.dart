@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../services/supabase_service.dart';
 import '../shared/app_drawer.dart';
 import '../shared/chat_screen.dart';
@@ -37,48 +38,53 @@ class _HelperDashboardState extends State<HelperDashboard> {
   Future<void> _loadData() async {
     setState(() => _loading = true);
     try {
-      final user = SupabaseService.currentUser;
-      if (user != null) {
-        final profile = await SupabaseService.getProfile(user.id);
-        if (profile != null) {
-          _currentUser = profile;
-          _isAvailable = profile['is_available'] == true;
-        }
-      }
+      await Future.any([
+        Future(() async {
+          final user = SupabaseService.currentUser;
+          if (user != null) {
+            final profile = await SupabaseService.getProfile(user.id);
+            if (profile != null) {
+              _currentUser = profile;
+              _isAvailable = profile['is_available'] == true;
+            }
+          }
 
-      // Get location for nearby tasks
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      LocationPermission permission = await Geolocator.checkPermission();
-      
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      
-      if (serviceEnabled && (permission == LocationPermission.whileInUse || permission == LocationPermission.always)) {
-        Position position = await Geolocator.getCurrentPosition();
-        _openTasks = await SupabaseService.getNearbyTasks(
-          position.latitude, 
-          position.longitude, 
-          10.0,
-          searchQuery: _searchQuery,
-          category: _category,
-          minPay: _minPay,
-        );
-        // If available, update their current location too
-        if (_isAvailable) {
-          await SupabaseService.toggleAvailability(4, lat: position.latitude, lng: position.longitude);
-        }
-      } else {
-        _openTasks = []; // Fallback to empty if no location
-      }
-      
-      final myTasksRes = await SupabaseService.client
-          .from('tasks')
-          .select('*, seeker:profiles!seeker_id(full_name)')
-          .eq('helper_id', _currentUser['id'])
-          .order('created_at', ascending: false);
-      
-      _myTasks = List<Map<String, dynamic>>.from(myTasksRes);
+          // Get location for nearby tasks
+          bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+          LocationPermission permission = await Geolocator.checkPermission();
+          
+          if (permission == LocationPermission.denied) {
+            permission = await Geolocator.requestPermission();
+          }
+          
+          if (serviceEnabled && (permission == LocationPermission.whileInUse || permission == LocationPermission.always)) {
+            Position position = await Geolocator.getCurrentPosition();
+            _openTasks = await SupabaseService.getNearbyTasks(
+              position.latitude, 
+              position.longitude, 
+              10.0,
+              searchQuery: _searchQuery,
+              category: _category,
+              minPay: _minPay,
+            );
+            // If available, update their current location too
+            if (_isAvailable) {
+              await SupabaseService.toggleAvailability(4, lat: position.latitude, lng: position.longitude);
+            }
+          } else {
+            _openTasks = []; // Fallback to empty if no location
+          }
+          
+          final myTasksRes = await SupabaseService.client
+              .from('tasks')
+              .select('*, seeker:profiles!seeker_id(full_name)')
+              .eq('helper_id', _currentUser['id'])
+              .order('created_at', ascending: false);
+          
+          _myTasks = List<Map<String, dynamic>>.from(myTasksRes);
+        }),
+        Future.delayed(const Duration(seconds: 15), () => throw Exception('Timeout loading data'))
+      ]);
     } catch (e) {
       debugPrint('Error loading helper data: $e');
     } finally {
@@ -119,26 +125,47 @@ class _HelperDashboardState extends State<HelperDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) {
-      return const Scaffold(body: SkeletonListView());
-    }
-
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final tasksDone = _myTasks.where((t) => t['status'] == 'completed').length;
     final totalEarned = double.tryParse(_currentUser['wallet_balance']?.toString() ?? '0') ?? 0.0;
 
-    return Scaffold(
-      drawer: AppDrawer(user: _currentUser),
-      appBar: AppBar(
-        title: const Text('Helper Dashboard'),
-        actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
-        ],
-      ),
-      body: Column(
-        children: [
-          Container(
-            color: Colors.white,
-            child: Row(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldExit = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: Theme.of(context).cardColor,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Text('Exit QuickAid?', style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold)),
+            content: Text('Are you sure you want to close the application?', style: TextStyle(color: isDark ? Colors.white70 : Colors.black87)),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true), 
+                child: const Text('Exit', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))
+              ),
+            ],
+          ),
+        );
+        if (shouldExit == true) {
+          SystemNavigator.pop();
+        }
+      },
+      child: Scaffold(
+        drawer: AppDrawer(user: _currentUser),
+        appBar: AppBar(
+          title: const Text('Helper Dashboard'),
+          actions: [
+            IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
+          ],
+        ),
+        body: _loading ? const SkeletonListView() : Column(
+          children: [
+            Container(
+              color: Theme.of(context).cardColor,
+              child: Row(
               children: [
                 _buildTab('Task Feed', 0),
                 _buildTab('My Jobs', 1),

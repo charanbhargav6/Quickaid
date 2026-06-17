@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../services/supabase_service.dart';
 import '../shared/app_drawer.dart';
 import '../shared/chat_screen.dart';
@@ -42,39 +43,42 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
   Future<void> _loadData() async {
     setState(() => _loading = true);
     try {
-      final user = SupabaseService.currentUser;
-      if (user != null) {
-        final profile = await SupabaseService.getProfile(user.id);
-        if (profile != null) _currentUser = profile;
-      }
-      
-      final tasks = await SupabaseService.client
-          .from('tasks')
-          .select('*, helper:profiles!helper_id(full_name, phone, trust_score)')
-          .eq('seeker_id', _currentUser['id'])
-          .order('created_at', ascending: false);
-      
-      _myTasks = List<Map<String, dynamic>>.from(tasks);
-      
-      // Get location for nearby helpers
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      LocationPermission permission = await Geolocator.checkPermission();
-      
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
-      }
-      
-      if (serviceEnabled && (permission == LocationPermission.whileInUse || permission == LocationPermission.always)) {
-        Position position = await Geolocator.getCurrentPosition();
-        _currentPosition = position;
-        _activeHelpers = await SupabaseService.getNearbyHelpers(position.latitude, position.longitude, 10.0);
-      } else {
-        _activeHelpers = []; // Fallback to empty if no location per user instructions
-        _currentPosition = null;
-      }
+      await Future.any([
+        Future(() async {
+          final user = SupabaseService.currentUser;
+          if (user != null) {
+            final profile = await SupabaseService.getProfile(user.id);
+            if (profile != null) _currentUser = profile;
+          }
+          
+          final tasks = await SupabaseService.client
+              .from('tasks')
+              .select('*, helper:profiles!helper_id(full_name, phone, trust_score)')
+              .eq('seeker_id', _currentUser['id'])
+              .order('created_at', ascending: false);
+          
+          _myTasks = List<Map<String, dynamic>>.from(tasks);
+          
+          bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+          LocationPermission permission = await Geolocator.checkPermission();
+          
+          if (permission == LocationPermission.denied) {
+            permission = await Geolocator.requestPermission();
+          }
+          
+          if (serviceEnabled && (permission == LocationPermission.whileInUse || permission == LocationPermission.always)) {
+            Position position = await Geolocator.getCurrentPosition();
+            _currentPosition = position;
+            _activeHelpers = await SupabaseService.getNearbyHelpers(position.latitude, position.longitude, 10.0);
+          } else {
+            _activeHelpers = [];
+            _currentPosition = null;
+          }
 
-      // Fetch offers
-      _incomingOffers = await SupabaseService.getIncomingOffers();
+          _incomingOffers = await SupabaseService.getIncomingOffers();
+        }),
+        Future.delayed(const Duration(seconds: 15), () => throw Exception('Timeout loading data'))
+      ]);
     } catch (e) {
       debugPrint('Error loading seeker data: $e');
     } finally {
@@ -85,18 +89,43 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
   @override
   Widget build(BuildContext context) {
     final activeCount = _myTasks.where((t) => t['status'] != 'completed' && t['status'] != 'cancelled').length;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      drawer: AppDrawer(user: _currentUser),
-      appBar: AppBar(
-        title: const Text('Seeker Dashboard'),
-        actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
-        ],
-      ),
-      body: _loading
-          ? const SkeletonListView()
-          : ListView(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final shouldExit = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            backgroundColor: Theme.of(context).cardColor,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Text('Exit QuickAid?', style: TextStyle(color: isDark ? Colors.white : Colors.black, fontWeight: FontWeight.bold)),
+            content: Text('Are you sure you want to close the application?', style: TextStyle(color: isDark ? Colors.white70 : Colors.black87)),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true), 
+                child: const Text('Exit', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold))
+              ),
+            ],
+          ),
+        );
+        if (shouldExit == true) {
+          SystemNavigator.pop();
+        }
+      },
+      child: Scaffold(
+        drawer: AppDrawer(user: _currentUser),
+        appBar: AppBar(
+          title: const Text('Seeker Dashboard'),
+          actions: [
+            IconButton(icon: const Icon(Icons.refresh), onPressed: _loadData),
+          ],
+        ),
+        body: _loading
+            ? const SkeletonListView()
+            : ListView(
               padding: const EdgeInsets.all(16),
               children: [
                 // Stats & Wallet
