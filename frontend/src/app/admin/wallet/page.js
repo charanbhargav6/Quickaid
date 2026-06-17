@@ -19,7 +19,6 @@ export default function WalletPage() {
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .gt('wallet_balance', 0)
         .order('wallet_balance', { ascending: false });
 
       if (!error && data) {
@@ -29,6 +28,53 @@ export default function WalletPage() {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleAddFunds(userId, currentBalance) {
+    const amountStr = window.prompt("Enter amount to add to this user's wallet (₹):");
+    if (!amountStr) return;
+    const amount = parseInt(amountStr);
+    if (isNaN(amount) || amount <= 0) {
+      alert("Invalid amount.");
+      return;
+    }
+    
+    const newBalance = (currentBalance || 0) + amount;
+    
+    const { error } = await supabase
+      .from('profiles')
+      .update({ wallet_balance: newBalance })
+      .eq('id', userId);
+      
+    if (error) {
+      alert("Error adding funds: " + error.message);
+    } else {
+      alert(`Successfully added ₹${amount} to wallet.`);
+      fetchUsers();
+    }
+  }
+
+  async function handleProcessPayout(userId, currentBalance) {
+    if (currentBalance <= 0) {
+      alert("User has no balance to payout.");
+      return;
+    }
+    
+    if (!window.confirm(`Are you sure you want to process a payout of ₹${currentBalance} for this user? This will set their balance to 0.`)) {
+      return;
+    }
+    
+    const { error } = await supabase
+      .from('profiles')
+      .update({ wallet_balance: 0 })
+      .eq('id', userId);
+      
+    if (error) {
+      alert("Error processing payout: " + error.message);
+    } else {
+      alert("Payout processed successfully!");
+      fetchUsers();
     }
   }
 
@@ -59,7 +105,7 @@ export default function WalletPage() {
             {loading ? (
               <tr><td colSpan={5}><div className="skeleton skeleton-row"></div><div className="skeleton skeleton-row"></div></td></tr>
             ) : users.length === 0 ? (
-              <tr><td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>No users have a wallet balance.</td></tr>
+              <tr><td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>No users found.</td></tr>
             ) : (
               users.map(user => (
                 <tr key={user.id} style={{ borderBottom: '1px solid var(--border)' }}>
@@ -81,8 +127,22 @@ export default function WalletPage() {
                   <td style={{ padding: '16px', fontSize: '16px', fontWeight: '800', color: 'var(--green-600)' }}>
                     ₹{user.wallet_balance}
                   </td>
-                  <td style={{ padding: '16px' }}>
-                    <button className="btn btn-primary" style={{ padding: '6px 12px', fontSize: '12px' }}>Process Payout</button>
+                  <td style={{ padding: '16px', display: 'flex', gap: '8px' }}>
+                    <button 
+                      onClick={() => handleAddFunds(user.id, user.wallet_balance)}
+                      className="btn btn-outline" 
+                      style={{ padding: '6px 12px', fontSize: '12px' }}
+                    >
+                      + Add Funds
+                    </button>
+                    <button 
+                      onClick={() => handleProcessPayout(user.id, user.wallet_balance)}
+                      className="btn btn-primary" 
+                      style={{ padding: '6px 12px', fontSize: '12px', opacity: user.wallet_balance > 0 ? 1 : 0.5 }}
+                      disabled={!user.wallet_balance || user.wallet_balance <= 0}
+                    >
+                      Process Payout
+                    </button>
                   </td>
                 </tr>
               ))
