@@ -1,12 +1,11 @@
 'use client';
 import Sidebar from '@/components/Sidebar';
-import styles from '../seeker/Seeker.module.css';
 
 export default function SupportFAQ() {
   return (
-    <div className={styles.layout}>
+    <div className="app-container">
       <Sidebar role="seeker" />
-      <div className={styles.mainContent}>
+      <div className="main-content">
         <div style={{ maxWidth: '800px', margin: '0 auto', padding: '2rem' }}>
           <h1 style={{ marginBottom: '2rem', color: 'var(--text-primary)' }}>Support & FAQ</h1>
           
