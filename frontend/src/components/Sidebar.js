@@ -105,8 +105,20 @@ export default function Sidebar() {
     router.push('/login');
   };
 
-  const handleToggleMode = () => {
+  const handleToggleMode = async () => {
     if (currentMode === 'seeker') {
+      if (role === 'seeker') {
+        if (window.confirm('Would you like to upgrade your account to become a Helper as well?')) {
+          const supabase = createClient();
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            await supabase.from('profiles').update({ role: 'both' }).eq('id', user.id);
+            setRole('both');
+            router.push('/helper');
+          }
+        }
+        return;
+      }
       router.push('/helper');
     } else {
       router.push('/seeker');
