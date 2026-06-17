@@ -56,6 +56,7 @@ export default function Sidebar() {
   const { unreadCount } = useNotifications();
   const [role, setRole] = useState('seeker');
   const [profile, setProfile] = useState(null);
+  const [isLegalExpanded, setIsLegalExpanded] = useState(false);
 
   // Determine current mode from URL
   const currentMode = pathname?.startsWith('/helper') ? 'helper' : 'seeker';
@@ -189,10 +190,26 @@ export default function Sidebar() {
       </nav>
 
       {/* ── Legal Links ──────── */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '0 24px', marginBottom: '16px', fontSize: '13px' }}>
-        <Link href="/support" style={{ color: 'var(--text-secondary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}><span style={{fontSize: '16px'}}>❓</span> Support & FAQ</Link>
-        <Link href="/terms" style={{ color: 'var(--text-secondary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}><span style={{fontSize: '16px'}}>📄</span> Terms & Conditions</Link>
-        <Link href="/privacy" style={{ color: 'var(--text-secondary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}><span style={{fontSize: '16px'}}>🔒</span> Privacy Policy</Link>
+      <div style={{ padding: '0 24px', marginBottom: '16px' }}>
+        <button 
+          onClick={() => setIsLegalExpanded(!isLegalExpanded)}
+          style={{ 
+            background: 'none', border: 'none', color: 'var(--text-secondary)', 
+            display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', 
+            width: '100%', padding: '0', fontSize: '14px', fontWeight: 'bold' 
+          }}
+        >
+          <span style={{fontSize: '16px'}}>ℹ️</span> About & Legal
+          <span style={{ marginLeft: 'auto', transform: isLegalExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', fontSize: '10px' }}>▼</span>
+        </button>
+        
+        {isLegalExpanded && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '12px', paddingLeft: '24px', fontSize: '13px' }}>
+            <Link href="/support" style={{ color: 'var(--text-secondary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}><span style={{fontSize: '14px'}}>❓</span> Support & FAQ</Link>
+            <Link href="/terms" style={{ color: 'var(--text-secondary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}><span style={{fontSize: '14px'}}>📄</span> Terms & Conditions</Link>
+            <Link href="/privacy" style={{ color: 'var(--text-secondary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}><span style={{fontSize: '14px'}}>🔒</span> Privacy Policy</Link>
+          </div>
+        )}
       </div>
 
       {/* ── User Profile Card ──────── */}
