@@ -1,21 +1,36 @@
 'use client';
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase';
+import { AnimatePresence } from 'framer-motion';
 import AcceptTaskButton from '@/components/AcceptTaskButton';
+import TaskReviewModal from '@/components/TaskReviewModal';
 
 export default function RealtimeHelperTasks({ initialTasks }) {
   const [tasks, setTasks] = useState(initialTasks);
-
+  const [myAcceptedTasks, setMyAcceptedTasks] = useState([]);
+  const [reviewTask, setReviewTask] = useState(null);
   const currentUserId = React.useRef(null);
 
   useEffect(() => {
     const supabase = createClient();
-    
+
     supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) currentUserId.current = user.id;
+      if (user) {
+        currentUserId.current = user.id;
+        // Fetch tasks I've accepted
+        supabase
+          .from('tasks')
+          .select('*')
+          .eq('helper_id', user.id)
+          .in('status', ['in_progress', 'completed', 'cancelled'])
+          .order('created_at', { ascending: false })
+          .then(({ data }) => {
+            if (data) setMyAcceptedTasks(data);
+          });
+      }
     });
 
-    // Subscribe to new 'open' tasks in the public schema
+    // Subscribe to open tasks
     const channel = supabase
       .channel('public:tasks:open')
       .on('postgres_changes', { 
@@ -24,15 +39,27 @@ export default function RealtimeHelperTasks({ initialTasks }) {
         table: 'tasks',
       }, (payload) => {
         if (payload.eventType === 'INSERT' && payload.new.status === 'open') {
-          // Do not show the task if the user is the one who posted it
           setTasks((prev) => {
             if (currentUserId.current && payload.new.seeker_id === currentUserId.current) return prev;
             return [payload.new, ...prev];
           });
         } else if (payload.eventType === 'UPDATE') {
-          // If a task is no longer open, remove it from the list
           if (payload.new.status !== 'open') {
-             setTasks((prev) => prev.filter(t => t.id !== payload.new.id));
+            setTasks((prev) => prev.filter(t => t.id !== payload.new.id));
+          }
+          // Update my accepted tasks
+          if (payload.new.helper_id === currentUserId.current) {
+            setMyAcceptedTasks((prev) => {
+              const exists = prev.find(t => t.id === payload.new.id);
+              if (exists) {
+                return prev.map(t => t.id === payload.new.id ? payload.new : t);
+              }
+              return [payload.new, ...prev];
+            });
+            // Auto-prompt review when task is marked done by seeker
+            if (payload.new.status === 'completed' || payload.new.status === 'cancelled') {
+              setReviewTask(payload.new);
+            }
           }
         } else if (payload.eventType === 'DELETE') {
           setTasks((prev) => prev.filter(t => t.id !== payload.old.id));
@@ -40,32 +67,90 @@ export default function RealtimeHelperTasks({ initialTasks }) {
       })
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
-  if (tasks.length === 0) {
-    return (
-      <p style={{ color: 'var(--text-muted)' }}>No open tasks right now. Check back later!</p>
-    );
-  }
+  const handleMarkComplete = async (task) => {
+    const supabase = createClient();
+    await supabase.from('tasks').update({ status: 'completed' }).eq('id', task.id);
+    setReviewTask({ ...task, status: 'completed' });
+  };
+
+  const openTasks = tasks.length === 0 ? (
+    <p style={{ color: 'var(--text-muted)' }}>No open tasks right now. Check back later!</p>
+  ) : (
+    tasks.map(task => (
+      <div key={task.id} className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+          <h3 style={{ margin: 0, fontSize: '18px' }}>{task.title}</h3>
+          <span className="badge badge-blue">₹{task.pay?.toFixed(2) ?? task.price?.toFixed(2)}</span>
+        </div>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '14px', margin: 0, flex: 1 }}>{task.description}</p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
+          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{new Date(task.created_at).toLocaleDateString()}</span>
+          <AcceptTaskButton taskId={task.id} />
+        </div>
+      </div>
+    ))
+  );
 
   return (
     <>
-      {tasks.map(task => (
-        <div key={task.id} className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-            <h3 style={{ margin: 0, fontSize: '18px' }}>{task.title}</h3>
-            <span className="badge badge-blue">${task.price?.toFixed(2)}</span>
-          </div>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '14px', margin: 0, flex: 1 }}>{task.description}</p>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{new Date(task.created_at).toLocaleDateString()}</span>
-            <AcceptTaskButton taskId={task.id} />
+      {/* Open tasks grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+        {openTasks}
+      </div>
+
+      {/* My accepted/in-progress tasks */}
+      {myAcceptedTasks.length > 0 && (
+        <div style={{ marginTop: '2rem' }}>
+          <h2 className="section-title" style={{ marginBottom: '1rem' }}>My Active Jobs</h2>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {myAcceptedTasks.map(task => (
+              <div key={task.id} className="card" style={{ padding: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                <div>
+                  <div style={{ fontWeight: 600 }}>{task.title}</div>
+                  <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>{task.description}</div>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <span className={`badge ${task.status === 'completed' ? 'badge-green' : task.status === 'cancelled' ? 'badge-gray' : 'badge-purple'}`}>
+                    {task.status.replace('_', ' ').toUpperCase()}
+                  </span>
+                  {task.status === 'in_progress' && (
+                    <button
+                      className="btn btn-primary"
+                      style={{ fontSize: '13px', padding: '6px 14px' }}
+                      onClick={() => handleMarkComplete(task)}
+                    >
+                      ✅ Mark Complete
+                    </button>
+                  )}
+                  {(task.status === 'completed' || task.status === 'cancelled') && (
+                    <button
+                      className="btn btn-outline"
+                      style={{ fontSize: '12px', padding: '4px 10px' }}
+                      onClick={() => setReviewTask(task)}
+                    >
+                      ⭐ Rate Seeker
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
-      ))}
+      )}
+
+      <AnimatePresence>
+        {reviewTask && (
+          <TaskReviewModal
+            task={reviewTask}
+            reviewerRole="helper"
+            onClose={() => setReviewTask(null)}
+            onSubmitted={() => setReviewTask(null)}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 }

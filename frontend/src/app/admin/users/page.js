@@ -138,17 +138,31 @@ export default function UsersPage() {
                       )}
                     </td>
                     <td style={{ textAlign: 'right' }}>
-                      {currentAdminEmail === 'pro171903@gmail.com' && (
-                        <select 
-                          className="input" 
-                          style={{ width: 'auto', padding: '6px 10px', fontSize: '13px', display: 'inline-block', marginRight: '8px' }}
-                          value={user.role}
-                          onChange={(e) => handleChangeRole(user.id, e.target.value)}
-                        >
-                          <option value="seeker">Demote to User</option>
-                          <option value="admin">Promote to Admin</option>
-                        </select>
-                      )}
+                        {currentAdminEmail === 'pro171903@gmail.com' && (
+                          <select 
+                            className="input" 
+                            style={{ width: 'auto', padding: '6px 10px', fontSize: '13px', display: 'inline-block', marginRight: '8px' }}
+                            value={user.role}
+                            onChange={(e) => handleChangeRole(user.id, e.target.value)}
+                          >
+                            {/* Always show current role as the selected/disabled option */}
+                            <option value={user.role} disabled>
+                              Current: {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                            </option>
+                            {/* Only show promote to admin if not already admin */}
+                            {user.role !== 'admin' && (
+                              <option value="admin">Promote to Admin</option>
+                            )}
+                            {/* Only show demote to user if they have elevated roles */}
+                            {(user.role === 'admin' || user.role === 'helper' || user.role === 'both') && (
+                              <option value="seeker">Demote to User</option>
+                            )}
+                            {/* Only show make helper if they are just a seeker */}
+                            {user.role === 'seeker' && (
+                              <option value="helper">Make Helper</option>
+                            )}
+                          </select>
+                        )}
                       <button 
                         className={`btn ${user.is_suspended ? 'btn-primary' : 'btn-outline'}`}
                         style={{ padding: '6px 12px' }}

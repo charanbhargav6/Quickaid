@@ -1,11 +1,12 @@
 'use client';
 import { usePathname, useRouter } from 'next/navigation';
+import { useState, useEffect, useTransition } from 'react';
 import Link from 'next/link';
 import styles from './Sidebar.module.css';
 import { createClient } from '@/lib/supabase';
 import { useNotifications } from '@/components/NotificationProvider';
 
-import { useState, useEffect } from 'react';
+
 
 const ADMIN_NAV = [
   { icon: '📊', label: 'Dashboard', path: '/admin/dashboard' },
@@ -53,6 +54,7 @@ const HELPER_NAV = [
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const [, startTransition] = useTransition();
   const { unreadCount } = useNotifications();
   const [role, setRole] = useState('seeker');
   const [profile, setProfile] = useState(null);
@@ -106,22 +108,20 @@ export default function Sidebar() {
   };
 
   const handleToggleMode = async () => {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
     if (currentMode === 'seeker') {
       if (role === 'seeker') {
         if (window.confirm('Would you like to upgrade your account to become a Helper as well?')) {
-          const supabase = createClient();
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            await supabase.from('profiles').update({ role: 'both' }).eq('id', user.id);
-            setRole('both');
-            router.push('/helper');
-          }
+          await supabase.from('profiles').update({ role: 'both' }).eq('id', user.id);
+          setRole('both');
+          startTransition(() => router.push('/helper'));
         }
         return;
       }
-      router.push('/helper');
+      startTransition(() => router.push('/helper'));
     } else {
-      router.push('/seeker');
+      startTransition(() => router.push('/seeker'));
     }
   };
 
@@ -206,20 +206,33 @@ export default function Sidebar() {
         <button 
           onClick={() => setIsLegalExpanded(!isLegalExpanded)}
           style={{ 
-            background: 'none', border: 'none', color: 'var(--text-secondary)', 
+            background: 'none', border: 'none', color: 'var(--text-primary)', 
             display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', 
-            width: '100%', padding: '0', fontSize: '14px', fontWeight: 'bold' 
+            width: '100%', padding: '10px 12px', fontSize: '14px', fontWeight: '600',
+            borderRadius: '10px',
+            transition: 'background 0.2s',
           }}
+          onMouseEnter={e => e.currentTarget.style.background = 'var(--nav-hover, rgba(255,255,255,0.08))'}
+          onMouseLeave={e => e.currentTarget.style.background = 'none'}
         >
           <span style={{fontSize: '16px'}}>ℹ️</span> About & Legal
-          <span style={{ marginLeft: 'auto', transform: isLegalExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', fontSize: '10px' }}>▼</span>
+          <span style={{ marginLeft: 'auto', transform: isLegalExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', fontSize: '10px', color: 'var(--text-muted)' }}>▼</span>
         </button>
         
         {isLegalExpanded && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '12px', paddingLeft: '24px', fontSize: '13px' }}>
-            <Link href="/support" style={{ color: 'var(--text-secondary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}><span style={{fontSize: '14px'}}>❓</span> Support & FAQ</Link>
-            <Link href="/terms" style={{ color: 'var(--text-secondary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}><span style={{fontSize: '14px'}}>📄</span> Terms & Conditions</Link>
-            <Link href="/privacy" style={{ color: 'var(--text-secondary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}><span style={{fontSize: '14px'}}>🔒</span> Privacy Policy</Link>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px', paddingLeft: '24px', fontSize: '13px' }}>
+            <Link href="/support" style={{ color: 'var(--text-primary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: '8px', transition: 'background 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--nav-hover, rgba(255,255,255,0.08))'}
+              onMouseLeave={e => e.currentTarget.style.background = 'none'}
+            ><span style={{fontSize: '14px'}}>❓</span> Support &amp; FAQ</Link>
+            <Link href="/terms" style={{ color: 'var(--text-primary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: '8px', transition: 'background 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--nav-hover, rgba(255,255,255,0.08))'}
+              onMouseLeave={e => e.currentTarget.style.background = 'none'}
+            ><span style={{fontSize: '14px'}}>📄</span> Terms &amp; Conditions</Link>
+            <Link href="/privacy" style={{ color: 'var(--text-primary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: '8px', transition: 'background 0.2s' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--nav-hover, rgba(255,255,255,0.08))'}
+              onMouseLeave={e => e.currentTarget.style.background = 'none'}
+            ><span style={{fontSize: '14px'}}>🔒</span> Privacy Policy</Link>
           </div>
         )}
       </div>
