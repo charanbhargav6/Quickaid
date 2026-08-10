@@ -559,6 +559,37 @@ class _HelperDashboardState extends State<HelperDashboard> {
             const SizedBox(height: 4),
             Text(_parseDescription(task['description'] ?? ''), style: const TextStyle(color: Color(0xFF64748B), fontSize: 14)),
             
+            if (task['task_type'] == 'delivery') ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.location_on, size: 16, color: Colors.blue),
+                  Expanded(child: Text(task['location_name'] ?? 'Pickup', style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis)),
+                  const Icon(Icons.arrow_right_alt, size: 16),
+                  const Icon(Icons.location_on, size: 16, color: Colors.red),
+                  Expanded(child: Text(task['destination_name'] ?? 'Dropoff', style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis)),
+                ],
+              ),
+            ] else if (task['task_type'] == 'digital') ...[
+              const SizedBox(height: 8),
+              const Row(
+                children: [
+                  Icon(Icons.computer, size: 16, color: Colors.purple),
+                  SizedBox(width: 4),
+                  Text('Remote / Digital Task', style: TextStyle(fontSize: 13, color: Colors.purple, fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ] else if (task['location_name'] != null) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.location_on, size: 16, color: Colors.red),
+                  const SizedBox(width: 4),
+                  Expanded(child: Text(task['location_name'], style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis)),
+                ],
+              ),
+            ],
+
             if (_extractImageUrl(task['description']) != null) ...[
               const SizedBox(height: 12),
               ClipRRect(
@@ -651,6 +682,37 @@ class _HelperDashboardState extends State<HelperDashboard> {
             Text(task['title'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 4),
             Text('For: ${task['seeker']?['full_name'] ?? 'Unknown'}', style: const TextStyle(color: Color(0xFF64748B), fontSize: 14)),
+            
+            if (task['task_type'] == 'delivery') ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.location_on, size: 16, color: Colors.blue),
+                  Expanded(child: Text(task['location_name'] ?? 'Pickup', style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis)),
+                  const Icon(Icons.arrow_right_alt, size: 16),
+                  const Icon(Icons.location_on, size: 16, color: Colors.red),
+                  Expanded(child: Text(task['destination_name'] ?? 'Dropoff', style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis)),
+                ],
+              ),
+            ] else if (task['task_type'] == 'digital') ...[
+              const SizedBox(height: 8),
+              const Row(
+                children: [
+                  Icon(Icons.computer, size: 16, color: Colors.purple),
+                  SizedBox(width: 4),
+                  Text('Remote / Digital Task', style: TextStyle(fontSize: 13, color: Colors.purple, fontWeight: FontWeight.bold)),
+                ],
+              ),
+            ] else if (task['location_name'] != null) ...[
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.location_on, size: 16, color: Colors.red),
+                  const SizedBox(width: 4),
+                  Expanded(child: Text(task['location_name'], style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis)),
+                ],
+              ),
+            ],
             
             if (_extractImageUrl(task['description']) != null) ...[
               const SizedBox(height: 12),

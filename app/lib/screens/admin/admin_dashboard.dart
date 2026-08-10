@@ -305,6 +305,37 @@ class _AdminDashboardState extends State<AdminDashboard> {
                             Text(t['title'], style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: isDark ? Colors.white : Colors.black87)),
                             const SizedBox(height: 6),
                             Text(t['description'] ?? '', style: TextStyle(color: isDark ? Colors.white60 : const Color(0xFF64748B), fontSize: 14)),
+                            
+                            if (t['task_type'] == 'delivery') ...[
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  const Icon(Icons.location_on, size: 16, color: Colors.blue),
+                                  Expanded(child: Text(t['location_name'] ?? 'Pickup', style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis)),
+                                  const Icon(Icons.arrow_right_alt, size: 16),
+                                  const Icon(Icons.location_on, size: 16, color: Colors.red),
+                                  Expanded(child: Text(t['destination_name'] ?? 'Dropoff', style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis)),
+                                ],
+                              ),
+                            ] else if (t['task_type'] == 'digital') ...[
+                              const SizedBox(height: 8),
+                              const Row(
+                                children: [
+                                  Icon(Icons.computer, size: 16, color: Colors.purple),
+                                  SizedBox(width: 4),
+                                  Text('Remote / Digital Task', style: TextStyle(fontSize: 13, color: Colors.purple, fontWeight: FontWeight.bold)),
+                                ],
+                              ),
+                            ] else if (t['location_name'] != null) ...[
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  const Icon(Icons.location_on, size: 16, color: Colors.red),
+                                  const SizedBox(width: 4),
+                                  Expanded(child: Text(t['location_name'], style: const TextStyle(fontSize: 13), overflow: TextOverflow.ellipsis)),
+                                ],
+                              ),
+                            ],
                             const SizedBox(height: 16),
                             Row(
                               children: [
@@ -337,11 +368,15 @@ class _AdminDashboardState extends State<AdminDashboard> {
     final descCtrl = TextEditingController();
     final payCtrl = TextEditingController();
     final locCtrl = TextEditingController();
+    final destLocCtrl = TextEditingController(); // For Delivery Tasks
     XFile? pickedFile;
     Uint8List? fileBytes;
     bool isUploading = false;
     String errorText = '';
-    LatLng selectedLocation = const LatLng(12.9692, 79.1559); // Default VIT Campus
+    LatLng selectedLocation = const LatLng(12.9692, 79.1559);
+    LatLng selectedDestination = const LatLng(12.9719, 79.1588);
+    String taskType = 'physical'; // 'physical', 'delivery', 'digital'
+    bool placingDestination = false;
 
     showDialog(
       context: context,
@@ -354,53 +389,116 @@ class _AdminDashboardState extends State<AdminDashboard> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                TextField(controller: titleCtrl, decoration: const InputDecoration(labelText: 'Task Title (e.g. Move Luggage)')),
+                // Task Type Selector
+                SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment(value: 'physical', label: Text('Physical', style: TextStyle(fontSize: 12))),
+                    ButtonSegment(value: 'delivery', label: Text('Delivery', style: TextStyle(fontSize: 12))),
+                    ButtonSegment(value: 'digital', label: Text('Digital', style: TextStyle(fontSize: 12))),
+                  ],
+                  selected: {taskType},
+                  onSelectionChanged: (Set<String> newSelection) {
+                    setStateDialog(() {
+                      taskType = newSelection.first;
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
+                
+                TextField(controller: titleCtrl, decoration: const InputDecoration(labelText: 'Task Title')),
                 const SizedBox(height: 12),
                 TextField(controller: descCtrl, decoration: const InputDecoration(labelText: 'Description (Optional)')),
                 const SizedBox(height: 12),
-                TextField(controller: locCtrl, decoration: const InputDecoration(labelText: 'Location Name (e.g. Main Gate)')),
-                const SizedBox(height: 12),
                 TextField(controller: payCtrl, decoration: const InputDecoration(labelText: 'Pay (₹) - Min ₹50'), keyboardType: TextInputType.number),
                 const SizedBox(height: 16),
-                const Text('Task Location Pin', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                const SizedBox(height: 4),
-                SizedBox(
-                  height: 150,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: FlutterMap(
-                      options: MapOptions(
-                        initialCenter: selectedLocation,
-                        initialZoom: 15.0,
-                        onTap: (tapPosition, point) {
-                          setStateDialog(() {
-                            selectedLocation = point;
-                          });
-                        },
-                      ),
+                
+                // Dynamic Location Inputs
+                if (taskType != 'digital') ...[
+                  TextField(controller: locCtrl, decoration: InputDecoration(labelText: taskType == 'delivery' ? 'Pickup Location Name' : 'Location Name')),
+                  const SizedBox(height: 12),
+                  
+                  if (taskType == 'delivery') ...[
+                    TextField(controller: destLocCtrl, decoration: const InputDecoration(labelText: 'Dropoff / Destination Name')),
+                    const SizedBox(height: 16),
+                    Row(
                       children: [
-                        TileLayer(
-                          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                          userAgentPackageName: 'com.example.app',
+                        Expanded(
+                          child: ChoiceChip(
+                            label: const Text('Set Pickup Pin'),
+                            selected: !placingDestination,
+                            onSelected: (val) => setStateDialog(() => placingDestination = false),
+                            selectedColor: Colors.blue.shade100,
+                          ),
                         ),
-                        MarkerLayer(
-                          markers: [
-                            Marker(
-                              point: selectedLocation,
-                              width: 40,
-                              height: 40,
-                              child: const Icon(Icons.location_on, color: Colors.red, size: 40),
-                            ),
-                          ],
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ChoiceChip(
+                            label: const Text('Set Dropoff Pin'),
+                            selected: placingDestination,
+                            onSelected: (val) => setStateDialog(() => placingDestination = true),
+                            selectedColor: Colors.red.shade100,
+                          ),
                         ),
                       ],
                     ),
+                  ],
+                  
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    height: 150,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: FlutterMap(
+                        options: MapOptions(
+                          initialCenter: selectedLocation,
+                          initialZoom: 15.0,
+                          onTap: (tapPosition, point) {
+                            setStateDialog(() {
+                              if (taskType == 'delivery' && placingDestination) {
+                                selectedDestination = point;
+                              } else {
+                                selectedLocation = point;
+                              }
+                            });
+                          },
+                        ),
+                        children: [
+                          TileLayer(
+                            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                            userAgentPackageName: 'com.example.app',
+                          ),
+                          MarkerLayer(
+                            markers: [
+                              Marker(
+                                point: selectedLocation,
+                                width: 40,
+                                height: 40,
+                                child: Icon(Icons.location_on, color: taskType == 'delivery' ? Colors.blue : Colors.red, size: 40),
+                              ),
+                              if (taskType == 'delivery')
+                                Marker(
+                                  point: selectedDestination,
+                                  width: 40,
+                                  height: 40,
+                                  child: const Icon(Icons.location_on, color: Colors.red, size: 40),
+                                ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
-                const Padding(
-                  padding: EdgeInsets.only(top: 4, bottom: 16),
-                  child: Text('Tap map to drop pin', style: TextStyle(fontSize: 10, color: Colors.grey), textAlign: TextAlign.center),
-                ),
+                  const Padding(
+                    padding: EdgeInsets.only(top: 4, bottom: 16),
+                    child: Text('Tap map to drop pin', style: TextStyle(fontSize: 10, color: Colors.grey), textAlign: TextAlign.center),
+                  ),
+                ] else ...[
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Text('🌍 This is a remote/digital task. No location needed.', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+                  ),
+                ],
+
                 OutlinedButton.icon(
                   icon: const Icon(Icons.camera_alt),
                   label: Text(pickedFile == null ? 'Attach Photo (Optional)' : 'Photo Selected'),
@@ -438,32 +536,40 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   setStateDialog(() => errorText = 'Minimum pay is ₹50');
                   return;
                 }
-                // Removing wallet balance check for Admin to ensure they can create tasks freely.
                 
                 setStateDialog(() { isUploading = true; errorText = ''; });
-                
                 String finalDesc = descCtrl.text.isEmpty ? 'Task created by admin' : descCtrl.text;
                 
                 try {
                   if (fileBytes != null) {
                     final fileName = '${DateTime.now().millisecondsSinceEpoch}_${pickedFile!.name}';
-                    await Supabase.instance.client.storage
-                        .from('task_images')
-                        .uploadBinary(fileName, fileBytes!);
+                    await Supabase.instance.client.storage.from('task_images').uploadBinary(fileName, fileBytes!);
                     final imageUrl = Supabase.instance.client.storage.from('task_images').getPublicUrl(fileName);
                     finalDesc += '\n\n[IMAGE:$imageUrl]';
                   }
 
-                  await SupabaseService.createTask({
+                  Map<String, dynamic> taskData = {
                     'title': titleCtrl.text,
                     'description': finalDesc,
                     'pay': payAmount,
-                    'category': 'other',
-                    'location_name': locCtrl.text.trim().isEmpty ? 'Campus' : locCtrl.text.trim(),
-                    'latitude': selectedLocation.latitude,
-                    'longitude': selectedLocation.longitude,
+                    'category': taskType,
+                    'task_type': taskType,
                     'seeker_id': _currentUser['id'],
-                  });
+                  };
+
+                  if (taskType != 'digital') {
+                    taskData['location_name'] = locCtrl.text.trim().isEmpty ? 'Campus' : locCtrl.text.trim();
+                    taskData['latitude'] = selectedLocation.latitude;
+                    taskData['longitude'] = selectedLocation.longitude;
+                  }
+
+                  if (taskType == 'delivery') {
+                    taskData['destination_name'] = destLocCtrl.text.trim().isEmpty ? 'Destination' : destLocCtrl.text.trim();
+                    taskData['destination_lat'] = selectedDestination.latitude;
+                    taskData['destination_lng'] = selectedDestination.longitude;
+                  }
+
+                  await SupabaseService.createTask(taskData);
                   
                   if (context.mounted) Navigator.pop(ctx);
                   _loadData();
