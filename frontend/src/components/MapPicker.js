@@ -77,7 +77,7 @@ export default function MapPicker({
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <FlyToLocation location={initialLocation} />
+        <FlyToLocation location={placingDestination ? destination : position} />
         <LocationMarkers 
           position={position} setPosition={setPosition}
           destination={destination} setDestination={setDestination}

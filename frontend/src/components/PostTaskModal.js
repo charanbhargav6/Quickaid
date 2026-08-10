@@ -71,6 +71,10 @@ function PostTaskModalContent() {
   const [calculatedPrice, setCalculatedPrice] = useState(0);
 
   // Locations
+  const [taskPrice, setTaskPrice] = useState('');
+  const [calculatedPrice, setCalculatedPrice] = useState(0);
+  const [vehicleType, setVehicleType] = useState('bike');
+  
   const [taskLocationName, setTaskLocationName] = useState('');
   const [taskLocation, setTaskLocation] = useState(null);
   
@@ -142,15 +146,59 @@ function PostTaskModalContent() {
   useEffect(() => {
     if (requiresTwoLocations && taskLocation && destinationLocation) {
       const dist = calculateDistance(taskLocation.lat, taskLocation.lng, destinationLocation.lat, destinationLocation.lng);
-      // Base Fare ₹25 + ₹12/km
-      const fare = Math.round(25 + (dist * 12));
-      setCalculatedPrice(Math.max(30, fare)); // Minimum 30
-      setTaskPrice(Math.max(30, fare).toString());
+      
+      let baseFare = 25;
+      let perKm = 12;
+
+      switch(vehicleType) {
+        case 'auto': baseFare = 40; perKm = 15; break;
+        case 'mini_car': baseFare = 70; perKm = 18; break;
+        case 'suv': baseFare = 100; perKm = 22; break;
+        case 'mini_truck': baseFare = 250; perKm = 35; break;
+        case 'bike': default: baseFare = 25; perKm = 10; break;
+      }
+
+      // Intercity / Long Distance Logic (If > 30km)
+      let isOutstation = false;
+      if (dist > 30) {
+        isOutstation = true;
+        baseFare += 200; // Outstation base fee
+        perKm += 5; // Extra per km for return trip/outstation
+      }
+
+      const fare = Math.round(baseFare + (dist * perKm));
+      setCalculatedPrice(Math.max(baseFare, fare));
+      setTaskPrice(Math.max(baseFare, fare).toString());
     } else if (requiresTwoLocations) {
       setCalculatedPrice(0);
       setTaskPrice('');
     }
-  }, [taskLocation, destinationLocation, requiresTwoLocations]);
+  }, [taskLocation, destinationLocation, requiresTwoLocations, vehicleType]);
+
+  const searchLocation = async (query, isDestination) => {
+    if (!query) return;
+    setIsLocating(true);
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
+      const data = await res.json();
+      if (data && data.length > 0) {
+        const coords = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+        if (isDestination) {
+          setDestinationLocation(coords);
+          setPlacingDestination(true);
+        } else {
+          setTaskLocation(coords);
+          setPlacingDestination(false);
+        }
+      } else {
+        alert("Location not found. Please try a different search term or drop the pin manually.");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Error searching for location.");
+    }
+    setIsLocating(false);
+  };
 
   const handleClose = () => {
     setShowModal(false);
@@ -188,9 +236,13 @@ function PostTaskModalContent() {
     setIsPending(true);
     setErrorMsg(null);
 
+    const finalDescription = requiresTwoLocations 
+      ? `[Vehicle Required: ${vehicleType.replace('_', ' ').toUpperCase()}]\n\n${taskDesc}`
+      : taskDesc;
+
     const formData = {
       title: titleToUse,
-      description: taskDesc,
+      description: finalDescription,
       price: finalPrice,
       task_type: taskType,
       category,
@@ -279,18 +331,37 @@ function PostTaskModalContent() {
                 <textarea className="input" rows="3" value={taskDesc} onChange={e => setTaskDesc(e.target.value)} required disabled={isPending} />
               </div>
 
+              {requiresTwoLocations && (
+                <div>
+                  <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '6px' }}>Vehicle Type Required</label>
+                  <select className="input" value={vehicleType} onChange={(e) => setVehicleType(e.target.value)} disabled={isPending}>
+                    <option value="bike">🛵 2-Wheeler (Bike / Scooter)</option>
+                    <option value="auto">🛺 3-Wheeler (Auto)</option>
+                    <option value="mini_car">🚗 Mini Car (4 Seater)</option>
+                    <option value="suv">🚙 SUV (6-7 Seater / Large)</option>
+                    <option value="mini_truck">🛻 Mini Truck (Tata Ace / Heavy)</option>
+                  </select>
+                </div>
+              )}
+
               {/* Map & Locations (Only if NOT digital) */}
               {taskType !== 'digital' && (
                 <>
                   <div style={{ display: 'flex', gap: '1rem' }}>
                     <div style={{ flex: 1 }}>
                       <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '6px' }}>{requiresTwoLocations ? 'Pickup Location' : 'Location Name'}</label>
-                      <input type="text" className="input" value={taskLocationName} onChange={e => setTaskLocationName(e.target.value)} disabled={isPending} />
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <input type="text" className="input" value={taskLocationName} onChange={e => setTaskLocationName(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), searchLocation(taskLocationName, false))} disabled={isPending} />
+                        <button type="button" className="btn btn-outline" style={{ padding: '0 12px' }} onClick={() => searchLocation(taskLocationName, false)} disabled={isLocating}>🔍</button>
+                      </div>
                     </div>
                     {requiresTwoLocations && (
                       <div style={{ flex: 1 }}>
                         <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '6px' }}>Dropoff Location</label>
-                        <input type="text" className="input" value={destinationName} onChange={e => setDestinationName(e.target.value)} disabled={isPending} />
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <input type="text" className="input" value={destinationName} onChange={e => setDestinationName(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), searchLocation(destinationName, true))} disabled={isPending} />
+                          <button type="button" className="btn btn-outline" style={{ padding: '0 12px' }} onClick={() => searchLocation(destinationName, true)} disabled={isLocating}>🔍</button>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -324,7 +395,7 @@ function PostTaskModalContent() {
                     {calculatedPrice > 0 ? (
                       <>
                         <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#10B981' }}>₹{calculatedPrice}</div>
-                        <div style={{ fontSize: '12px', color: '#64748B' }}>Auto-calculated based on distance (Base ₹25 + ₹12/km).</div>
+                        <div style={{ fontSize: '12px', color: '#64748B' }}>Auto-calculated based on distance and vehicle type (Includes intercity fee if &gt;30km).</div>
                       </>
                     ) : (
                       <div style={{ fontSize: '14px', color: '#64748B' }}>Drop both pins to calculate price automatically.</div>
