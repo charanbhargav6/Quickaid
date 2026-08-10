@@ -22,7 +22,9 @@ const ADMIN_NAV = [
   { icon: '🔔', label: 'Notifications', path: '/admin/notifications' },
   { icon: '📱', label: 'Get the App', path: '/download' },
   { divider: true },
-  { icon: '❓', label: 'Help & Support', path: '/admin/help' },
+  { icon: '❓', label: 'Help & Support', path: '/support' },
+  { icon: '📄', label: 'Terms & Conditions', path: '/terms' },
+  { icon: '🔒', label: 'Privacy Policy', path: '/privacy' },
   { icon: '⚙️', label: 'Settings', path: '/admin/settings' },
 ];
 
@@ -34,7 +36,9 @@ const SEEKER_NAV = [
   { icon: '🔔', label: 'Notifications', path: '/seeker/notifications' },
   { icon: '📱', label: 'Get the App', path: '/download' },
   { divider: true },
-  { icon: '❓', label: 'Help & Support', path: '/seeker/help' },
+  { icon: '❓', label: 'Help & Support', path: '/support' },
+  { icon: '📄', label: 'Terms & Conditions', path: '/terms' },
+  { icon: '🔒', label: 'Privacy Policy', path: '/privacy' },
   { icon: '⚙️', label: 'Settings', path: '/seeker/settings' },
 ];
 
@@ -47,7 +51,9 @@ const HELPER_NAV = [
   { icon: '🔔', label: 'Notifications', path: '/helper/notifications' },
   { icon: '📱', label: 'Get the App', path: '/download' },
   { divider: true },
-  { icon: '❓', label: 'Help & Support', path: '/helper/help' },
+  { icon: '❓', label: 'Help & Support', path: '/support' },
+  { icon: '📄', label: 'Terms & Conditions', path: '/terms' },
+  { icon: '🔒', label: 'Privacy Policy', path: '/privacy' },
   { icon: '⚙️', label: 'Settings', path: '/helper/settings' },
 ];
 
@@ -58,7 +64,6 @@ export default function Sidebar() {
   const { unreadCount } = useNotifications();
   const [role, setRole] = useState('seeker');
   const [profile, setProfile] = useState(null);
-  const [isLegalExpanded, setIsLegalExpanded] = useState(false);
 
   // Determine current mode from URL
   const currentMode = pathname?.startsWith('/helper') ? 'helper' : 'seeker';
@@ -200,42 +205,6 @@ export default function Sidebar() {
           <span className={styles.navLabel}>Logout</span>
         </button>
       </nav>
-
-      {/* ── Legal Links ──────── */}
-      <div style={{ padding: '0 24px', marginBottom: '16px' }}>
-        <button 
-          onClick={() => setIsLegalExpanded(!isLegalExpanded)}
-          style={{ 
-            background: 'none', border: 'none', color: 'var(--text-primary)', 
-            display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', 
-            width: '100%', padding: '10px 12px', fontSize: '14px', fontWeight: '600',
-            borderRadius: '10px',
-            transition: 'background 0.2s',
-          }}
-          onMouseEnter={e => e.currentTarget.style.background = 'var(--nav-hover, rgba(255,255,255,0.08))'}
-          onMouseLeave={e => e.currentTarget.style.background = 'none'}
-        >
-          <span style={{fontSize: '16px'}}>ℹ️</span> About & Legal
-          <span style={{ marginLeft: 'auto', transform: isLegalExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', fontSize: '10px', color: 'var(--text-muted)' }}>▼</span>
-        </button>
-        
-        {isLegalExpanded && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px', paddingLeft: '24px', fontSize: '13px' }}>
-            <Link href="/support" style={{ color: 'var(--text-primary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: '8px', transition: 'background 0.2s' }}
-              onMouseEnter={e => e.currentTarget.style.background = 'var(--nav-hover, rgba(255,255,255,0.08))'}
-              onMouseLeave={e => e.currentTarget.style.background = 'none'}
-            ><span style={{fontSize: '14px'}}>❓</span> Support &amp; FAQ</Link>
-            <Link href="/terms" style={{ color: 'var(--text-primary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: '8px', transition: 'background 0.2s' }}
-              onMouseEnter={e => e.currentTarget.style.background = 'var(--nav-hover, rgba(255,255,255,0.08))'}
-              onMouseLeave={e => e.currentTarget.style.background = 'none'}
-            ><span style={{fontSize: '14px'}}>📄</span> Terms &amp; Conditions</Link>
-            <Link href="/privacy" style={{ color: 'var(--text-primary)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: '8px', transition: 'background 0.2s' }}
-              onMouseEnter={e => e.currentTarget.style.background = 'var(--nav-hover, rgba(255,255,255,0.08))'}
-              onMouseLeave={e => e.currentTarget.style.background = 'none'}
-            ><span style={{fontSize: '14px'}}>🔒</span> Privacy Policy</Link>
-          </div>
-        )}
-      </div>
 
       {/* ── User Profile Card ──────── */}
       <div className={styles.userCard}>

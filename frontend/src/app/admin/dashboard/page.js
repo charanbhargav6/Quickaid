@@ -2,14 +2,19 @@
 import { useEffect, useState } from 'react';
 import styles from './Dashboard.module.css';
 import { createClient } from '@/lib/supabase';
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
+  BarChart, Bar, Legend
+} from 'recharts';
 
 export default function DashboardPage() {
   const [stats, setStats] = useState({ 
-    totalTasks: 0, totalTasksChange: 0, 
-    completed: 0, completedChange: 0, 
-    earnings: 0, earningsChange: 0, 
-    helpers: 0, helpersChange: 0, 
-    users: 0, usersChange: 0 
+    totalTasks: 0, 
+    completed: 0, 
+    totalPayouts: 0, 
+    platformRevenue: 0,
+    helpers: 0, 
+    users: 0,
   });
   const [tasks, setTasks] = useState([]);
   const [profiles, setProfiles] = useState([]);
@@ -47,50 +52,23 @@ export default function DashboardPage() {
       const allTasks = tasksRes.data || [];
       const allProfiles = profilesRes.data || [];
 
-      const now = new Date();
-      const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
-
-      // Helper to calculate percentage change
-      const calcChange = (current, previous) => {
-        if (previous === 0) return current > 0 ? 100 : 0;
-        return Math.round(((current - previous) / previous) * 100);
-      };
-
       // 1. Total Tasks
-      const tasksThisWeek = allTasks.filter(t => new Date(t.created_at) >= oneWeekAgo).length;
-      const tasksLastWeek = allTasks.filter(t => new Date(t.created_at) >= twoWeeksAgo && new Date(t.created_at) < oneWeekAgo).length;
-      
-      // 2. Completed Tasks
       const completedTasks = allTasks.filter(t => t.status === 'completed');
-      const compThisWeek = completedTasks.filter(t => new Date(t.created_at) >= oneWeekAgo).length;
-      const compLastWeek = completedTasks.filter(t => new Date(t.created_at) >= twoWeeksAgo && new Date(t.created_at) < oneWeekAgo).length;
 
-      // 3. Earnings
-      const totalEarnings = completedTasks.reduce((sum, t) => sum + (parseFloat(t.pay) || 0), 0);
-      const earnThisWeek = completedTasks.filter(t => new Date(t.created_at) >= oneWeekAgo).reduce((sum, t) => sum + (parseFloat(t.pay) || 0), 0);
-      const earnLastWeek = completedTasks.filter(t => new Date(t.created_at) >= twoWeeksAgo && new Date(t.created_at) < oneWeekAgo).reduce((sum, t) => sum + (parseFloat(t.pay) || 0), 0);
+      // 2. Earnings & Platform Revenue
+      const totalPayouts = completedTasks.reduce((sum, t) => sum + (parseFloat(t.pay) || 0), 0);
+      const platformRevenue = totalPayouts * 0.05; // 5% Platform Fee
 
-      // 4. Active Helpers
+      // 3. Active Helpers
       const helpers = allProfiles.filter(p => p.role === 'helper' || p.role === 'both');
-      const helpersThisWeek = helpers.filter(p => new Date(p.created_at) >= oneWeekAgo).length;
-      const helpersLastWeek = helpers.filter(p => new Date(p.created_at) >= twoWeeksAgo && new Date(p.created_at) < oneWeekAgo).length;
-
-      // 5. Total Users
-      const usersThisWeek = allProfiles.filter(p => new Date(p.created_at) >= oneWeekAgo).length;
-      const usersLastWeek = allProfiles.filter(p => new Date(p.created_at) >= twoWeeksAgo && new Date(p.created_at) < oneWeekAgo).length;
 
       setStats({
         totalTasks: allTasks.length,
-        totalTasksChange: calcChange(tasksThisWeek, tasksLastWeek),
         completed: completedTasks.length,
-        completedChange: calcChange(compThisWeek, compLastWeek),
-        earnings: totalEarnings,
-        earningsChange: calcChange(earnThisWeek, earnLastWeek),
+        totalPayouts: totalPayouts,
+        platformRevenue: platformRevenue,
         helpers: helpers.length,
-        helpersChange: calcChange(helpersThisWeek, helpersLastWeek),
         users: allProfiles.length,
-        usersChange: calcChange(usersThisWeek, usersLastWeek),
       });
       setTasks(allTasks);
       setProfiles(allProfiles);
@@ -101,18 +79,44 @@ export default function DashboardPage() {
     }
   }
 
-  // Compute category breakdown
-  const categories = {};
-  tasks.forEach(t => {
-    const cat = t.category || 'Others';
-    categories[cat] = (categories[cat] || 0) + 1;
-  });
-  const categoryList = Object.entries(categories).sort((a,b) => b[1] - a[1]);
-  const categoryColors = ['#22c55e', '#3b82f6', '#f97316', '#a855f7', '#ec4899', '#64748b'];
+  // --- Compute Chart Data ---
+  // Last 7 Days Revenue Data
+  const revenueData = [];
+  const funnelData = [];
+  
+  if (isMounted) {
+    const now = new Date();
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(now.getDate() - i);
+      const dayStr = d.toLocaleDateString('en-US', { weekday: 'short' });
+      
+      const dayStart = new Date(d.setHours(0,0,0,0));
+      const dayEnd = new Date(d.setHours(23,59,59,999));
+      
+      // Filter tasks completed on this day
+      const dayTasks = tasks.filter(t => {
+        const tDate = new Date(t.created_at);
+        return tDate >= dayStart && tDate <= dayEnd;
+      });
 
-  // Compute status breakdown
-  const statusMap = { open: 0, accepted: 0, completed: 0, cancelled: 0 };
-  tasks.forEach(t => { if (statusMap[t.status] !== undefined) statusMap[t.status]++; });
+      const dayCompleted = dayTasks.filter(t => t.status === 'completed');
+      const dayPayouts = dayCompleted.reduce((sum, t) => sum + (parseFloat(t.pay) || 0), 0);
+      const dayRev = dayPayouts * 0.05;
+
+      revenueData.push({
+        name: dayStr,
+        Revenue: Math.round(dayRev),
+        Volume: Math.round(dayPayouts)
+      });
+
+      funnelData.push({
+        name: dayStr,
+        Posted: dayTasks.length,
+        Completed: dayCompleted.length
+      });
+    }
+  }
 
   // Top helpers - must have completed at least 1 task
   const topHelpers = profiles
@@ -120,14 +124,13 @@ export default function DashboardPage() {
     .sort((a,b) => (b.tasks_completed || 0) - (a.tasks_completed || 0))
     .slice(0, 5);
 
-  // Recent activity from tasks
   const recentTasks = tasks.slice(0, 5);
 
-  if (loading) {
+  if (loading || !isMounted) {
     return (
       <div style={{padding: '24px'}}>
         <div className="skeleton skeleton-box"></div>
-        <div className="skeleton skeleton-box"></div>
+        <div className="skeleton skeleton-box" style={{marginTop: '20px'}}></div>
       </div>
     );
   }
@@ -136,162 +139,86 @@ export default function DashboardPage() {
     <div className={styles.page}>
       <header className={styles.header}>
         <div>
-          <h1 className={styles.pageTitle}>QuickAid Platform Dashboard Overview</h1>
-          <p className={styles.pageSubtitle}>Monitor your platform performance and activity</p>
+          <h1 className={styles.pageTitle}>Platform Analytics & Revenue</h1>
+          <p className={styles.pageSubtitle}>Real-time breakdown of QuickAid's economic engine (5% Fee Model)</p>
         </div>
       </header>
 
-      {/* ── Stats Row ────────────────────────── */}
+      {/* ── High Impact Revenue Cards ────────────────────────── */}
       <div className={styles.statsRow}>
-        <StatCard icon="📋" iconBg="#dbeafe" label="TOTAL TASKS" value={stats.totalTasks} change={`${stats.totalTasksChange >= 0 ? '+' : ''}${stats.totalTasksChange}% from last week`} isPositive={stats.totalTasksChange >= 0} />
-        <StatCard icon="✅" iconBg="#dcfce7" label="COMPLETED TASKS" value={stats.completed} change={`${stats.completedChange >= 0 ? '+' : ''}${stats.completedChange}% from last week`} isPositive={stats.completedChange >= 0} />
-        <StatCard icon="⭐" iconBg="#fef3c7" label="TOTAL EARNINGS" value={`₹${stats.earnings.toLocaleString()}`} change={`${stats.earningsChange >= 0 ? '+' : ''}${stats.earningsChange}% from last week`} isPositive={stats.earningsChange >= 0} />
-        <StatCard icon="🧑‍🔧" iconBg="#e0e7ff" label="ACTIVE HELPERS" value={stats.helpers} change={`${stats.helpersChange >= 0 ? '+' : ''}${stats.helpersChange}% from last week`} isPositive={stats.helpersChange >= 0} />
-        <StatCard icon="🛡️" iconBg="#fce7f3" label="TRUSTED USERS" value={stats.users} change={`${stats.usersChange >= 0 ? '+' : ''}${stats.usersChange}% from last week`} isPositive={stats.usersChange >= 0} />
+        <div className="stat-card fade-in" style={{ background: 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)', color: 'white' }}>
+          <div className="stat-info">
+            <p className="stat-label" style={{ color: 'rgba(255,255,255,0.8)', fontWeight: 'bold' }}>PLATFORM REVENUE (5%)</p>
+            <p className="stat-value" style={{ color: 'white', fontSize: '32px' }}>₹{Math.round(stats.platformRevenue).toLocaleString()}</p>
+          </div>
+          <div className="icon-wrap" style={{ background: 'rgba(255,255,255,0.2)' }}>💰</div>
+        </div>
+        
+        <div className="stat-card fade-in" style={{ background: 'white' }}>
+          <div className="stat-info">
+            <p className="stat-label">TOTAL TRANSACTION VOLUME</p>
+            <p className="stat-value">₹{Math.round(stats.totalPayouts).toLocaleString()}</p>
+          </div>
+          <div className="icon-wrap" style={{ background: '#fef3c7' }}>💳</div>
+        </div>
+
+        <StatCard icon="📋" iconBg="#dbeafe" label="TOTAL TASKS" value={stats.totalTasks} />
+        <StatCard icon="✅" iconBg="#dcfce7" label="COMPLETED" value={stats.completed} />
+        <StatCard icon="🛡️" iconBg="#fce7f3" label="TOTAL USERS" value={stats.users} />
       </div>
 
-      {/* ── Charts Row ───────────────────────── */}
+      {/* ── Interactive Charts Row ───────────────────────── */}
       <div className={styles.chartsRow}>
-        {/* Task Categories Donut */}
-        <div className={`card ${styles.chartCard}`}>
-          <h3 className={styles.cardTitle}>Task Categories Overview</h3>
-          <div className={styles.donutWrap}>
-            <div className={styles.donutChart}>
-              <svg viewBox="0 0 120 120" className={styles.donutSvg}>
-                {renderDonut(categoryList, categoryColors, stats.totalTasks)}
-              </svg>
-              <div className={styles.donutCenter}>
-                <span className={styles.donutValue}>{stats.totalTasks}</span>
-                <span className={styles.donutLabel}>Total Tasks</span>
-              </div>
-            </div>
-            <div className={styles.legendList}>
-              {categoryList.map(([cat, count], i) => (
-                <div key={cat} className={styles.legendItem}>
-                  <span className={styles.legendDot} style={{ background: categoryColors[i % categoryColors.length] }} />
-                  <span className={styles.legendText}>{cat}</span>
-                  <span className={styles.legendCount}>{count} ({stats.totalTasks ? ((count/stats.totalTasks)*100).toFixed(1) : 0}%)</span>
-                </div>
-              ))}
-            </div>
+        {/* Revenue Area Chart */}
+        <div className={`card ${styles.chartCardWide}`} style={{ height: '400px' }}>
+          <h3 className={styles.cardTitle}>Platform Revenue Over Time (Last 7 Days)</h3>
+          <div style={{ width: '100%', height: '100%', paddingBottom: '30px' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={revenueData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#22c55e" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} tickFormatter={(val) => `₹${val}`} />
+                <RechartsTooltip 
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
+                  formatter={(value) => [`₹${value}`, 'Revenue']}
+                />
+                <Area type="monotone" dataKey="Revenue" stroke="#22c55e" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
+              </AreaChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Task Status Donut */}
-        <div className={`card ${styles.chartCard}`}>
-          <h3 className={styles.cardTitle}>Task Status</h3>
-          <div className={styles.donutWrap}>
-            <div className={styles.donutChart}>
-              <svg viewBox="0 0 120 120" className={styles.donutSvg}>
-                {renderDonut(
-                  Object.entries(statusMap).filter(([,v]) => v > 0),
-                  ['#22c55e', '#3b82f6', '#64748b', '#ef4444'],
-                  stats.totalTasks
-                )}
-              </svg>
-              <div className={styles.donutCenter}>
-                <span className={styles.donutValue}>{stats.completed}</span>
-                <span className={styles.donutLabel}>Completed</span>
-              </div>
-            </div>
-            <div className={styles.legendList}>
-              {[
-                { label: 'Completed', count: statusMap.completed, color: '#22c55e' },
-                { label: 'In Progress', count: statusMap.accepted, color: '#3b82f6' },
-                { label: 'Open', count: statusMap.open, color: '#64748b' },
-                { label: 'Cancelled', count: statusMap.cancelled, color: '#ef4444' },
-              ].map(s => (
-                <div key={s.label} className={styles.legendItem}>
-                  <span className={styles.legendDot} style={{ background: s.color }} />
-                  <span className={styles.legendText}>{s.label}</span>
-                  <span className={styles.legendCount}>{s.count} ({stats.totalTasks ? ((s.count/stats.totalTasks)*100).toFixed(1) : 0}%)</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Recent Activity */}
-        <div className={`card ${styles.activityCard}`}>
-          <div className="section-header">
-            <h3 className="section-title">Recent Activity</h3>
-            <span className="section-action">View All</span>
-          </div>
-          <div className={styles.activityList}>
-            {recentTasks.length === 0 ? (
-              <p className={styles.emptyText}>No recent activity</p>
-            ) : (
-              recentTasks.map((task, i) => (
-                <div key={task.id} className="activity-item fade-in" style={{ animationDelay: `${i * 0.08}s` }}>
-                  <div className="activity-icon" style={{ background: task.status === 'completed' ? '#dcfce7' : task.status === 'accepted' ? '#dbeafe' : '#f1f5f9' }}>
-                    {task.status === 'completed' ? '✅' : task.status === 'accepted' ? '🤝' : '📌'}
-                  </div>
-                  <div className="activity-info">
-                    <p className="activity-title">{task.status === 'completed' ? 'Task completed' : task.status === 'accepted' ? 'Task accepted' : 'New task posted'}</p>
-                    <p className="activity-desc">{task.title}</p>
-                  </div>
-                  <span className="activity-time">{isMounted ? timeAgo(task.created_at) : ''}</span>
-                </div>
-              ))
-            )}
+        {/* Task Conversion Bar Chart */}
+        <div className={`card ${styles.chartCard}`} style={{ height: '400px' }}>
+          <h3 className={styles.cardTitle}>Task Conversion Funnel</h3>
+          <div style={{ width: '100%', height: '100%', paddingBottom: '30px' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={funnelData} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} dy={10} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b' }} />
+                <RechartsTooltip cursor={{fill: 'transparent'}} contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
+                <Legend iconType="circle" wrapperStyle={{ paddingTop: '10px' }} />
+                <Bar dataKey="Posted" fill="#94a3b8" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="Completed" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
       </div>
 
       {/* ── Bottom Row ───────────────────────── */}
       <div className={styles.bottomRow}>
-        {/* Tasks Over Time Bar Chart */}
-        <div className={`card ${styles.chartCardWide}`}>
-          <h3 className={styles.cardTitle}>Tasks Over Time (This Week)</h3>
-          <div className={styles.barChart}>
-            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, i) => {
-              // Real calculation based on 'tasks' array for the current week
-              const now = new Date();
-              const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + 1)); // Monday
-              startOfWeek.setHours(0, 0, 0, 0);
-              
-              const dayStart = new Date(startOfWeek);
-              dayStart.setDate(startOfWeek.getDate() + i);
-              const dayEnd = new Date(dayStart);
-              dayEnd.setDate(dayStart.getDate() + 1);
-
-              const dayTasks = tasks.filter(t => {
-                const d = new Date(t.created_at);
-                return d >= dayStart && d < dayEnd;
-              });
-
-              const posted = dayTasks.length;
-              const completed = dayTasks.filter(t => t.status === 'completed').length;
-              const maxH = 120;
-              const globalMax = Math.max(10, ...['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((_, idx) => {
-                const s = new Date(startOfWeek); s.setDate(startOfWeek.getDate() + idx);
-                const e = new Date(s); e.setDate(s.getDate() + 1);
-                return tasks.filter(t => { const d = new Date(t.created_at); return d >= s && d < e; }).length;
-              }));
-
-              return (
-                <div key={day} className={styles.barGroup}>
-                  <div className={styles.barWrapper} style={{ background: 'var(--slate-100)' }}>
-                    <div className={styles.barMain} style={{ height: `${(posted / globalMax) * maxH}px` }}>
-                      <div className={styles.barSub} style={{ height: posted > 0 ? `${(completed / posted) * 100}%` : '0%' }} />
-                    </div>
-                  </div>
-                  <span className={styles.barLabel}>{day}</span>
-                </div>
-              );
-            })}
-          </div>
-          <div className={styles.barLegend}>
-            <span><span className={styles.barLegendDot} style={{ background: '#22c55e' }} /> Posted Tasks</span>
-            <span><span className={styles.barLegendDot} style={{ background: '#166534' }} /> Completed Tasks</span>
-          </div>
-        </div>
-
         {/* Top Helpers */}
-        <div className={`card ${styles.chartCard}`}>
+        <div className={`card ${styles.chartCardWide}`}>
           <div className="section-header">
-            <h3 className="section-title">Top Helpers</h3>
-            <span className="section-action">View All</span>
+            <h3 className="section-title">Top Earning Helpers</h3>
           </div>
           <table className="data-table">
             <thead>
@@ -299,8 +226,8 @@ export default function DashboardPage() {
                 <th>#</th>
                 <th>Name</th>
                 <th>Rating</th>
-                <th>Tasks</th>
-                <th>Earned</th>
+                <th>Tasks Completed</th>
+                <th>Net Earned (After 5% Fee)</th>
               </tr>
             </thead>
             <tbody>
@@ -317,7 +244,7 @@ export default function DashboardPage() {
                       </div>
                     </td>
                     <td>⭐ {(h.trust_score / 20).toFixed(1)}</td>
-                    <td>{h.tasks_completed || 0} Tasks</td>
+                    <td>{h.tasks_completed || 0}</td>
                     <td style={{ fontWeight: 600 }}>₹{(h.total_earnings || 0).toLocaleString()}</td>
                   </tr>
                 ))
@@ -326,58 +253,47 @@ export default function DashboardPage() {
           </table>
         </div>
 
-        {/* Ratings Overview */}
-        <div className={`card ${styles.ratingsCard}`}>
+        {/* Recent Activity */}
+        <div className={`card ${styles.chartCard}`}>
           <div className="section-header">
-            <h3 className="section-title">User Ratings Overview</h3>
-            <span className="section-action">View All</span>
+            <h3 className="section-title">Live Transaction Feed</h3>
           </div>
-          <div className={styles.ratingsCenter}>
-            <span className={styles.ratingsBig}>0.0</span>
-            <div className={styles.ratingsStars}>☆☆☆☆☆</div>
-            <p className={styles.ratingsCount}>Based on 0 Reviews</p>
-          </div>
-          <div className={styles.ratingsBars}>
-            {[
-              { stars: 5, pct: 0, color: '#22c55e' },
-              { stars: 4, pct: 0, color: '#22c55e' },
-              { stars: 3, pct: 0, color: '#f97316' },
-              { stars: 2, pct: 0, color: '#ef4444' },
-              { stars: 1, pct: 0, color: '#ef4444' },
-            ].map(r => (
-              <div key={r.stars} className={styles.ratingRow}>
-                <span className={styles.ratingLabel}>{r.stars} ★</span>
-                <div className={styles.ratingBarBg}>
-                  <div className={styles.ratingBarFill} style={{ width: `${r.pct}%`, background: r.color }} />
+          <div className={styles.activityList}>
+            {recentTasks.length === 0 ? (
+              <p className={styles.emptyText}>No recent activity</p>
+            ) : (
+              recentTasks.map((task, i) => (
+                <div key={task.id} className="activity-item fade-in" style={{ animationDelay: `${i * 0.08}s` }}>
+                  <div className="activity-icon" style={{ background: task.status === 'completed' ? '#dcfce7' : task.status === 'accepted' ? '#dbeafe' : '#f1f5f9' }}>
+                    {task.status === 'completed' ? '💰' : task.status === 'accepted' ? '🤝' : '📌'}
+                  </div>
+                  <div className="activity-info">
+                    <p className="activity-title">
+                      {task.status === 'completed' 
+                        ? `Platform earned ₹${(task.pay * 0.05).toFixed(1)}` 
+                        : task.status === 'accepted' ? 'Task in progress' : 'New task posted'}
+                    </p>
+                    <p className="activity-desc">{task.title}</p>
+                  </div>
+                  <span className="activity-time">{isMounted ? timeAgo(task.created_at) : ''}</span>
                 </div>
-                <span className={styles.ratingPct}>{r.pct}%</span>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </div>
-      </div>
-
-      {/* ── Footer ───────────────────────────── */}
-      <div className="footer-banner">
-        <span>✅</span>
-        <span>QuickAid ensures safe, reliable and trusted help for everyone in your community.</span>
       </div>
     </div>
   );
 }
 
 /* ── Helpers ──────────────────────────── */
-function StatCard({ icon, iconBg, label, value, change, isPositive }) {
-  const changeColor = change.startsWith('0%') ? 'var(--text-muted)' : isPositive ? '#16a34a' : '#dc2626';
+function StatCard({ icon, iconBg, label, value }) {
   return (
     <div className="stat-card fade-in">
-      <div className="icon-wrap" style={{ background: iconBg }}>
-        {icon}
-      </div>
+      <div className="icon-wrap" style={{ background: iconBg }}>{icon}</div>
       <div className="stat-info">
         <p className="stat-label">{label}</p>
         <p className="stat-value">{value}</p>
-        <p className="stat-change" style={{ color: changeColor, fontWeight: '600' }}>{change}</p>
       </div>
     </div>
   );
@@ -392,30 +308,4 @@ function timeAgo(dateStr) {
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h ago`;
   return `${Math.floor(hrs / 24)}d ago`;
-}
-
-function renderDonut(entries, colors, total) {
-  if (!total || entries.length === 0) return null;
-  const cx = 60, cy = 60, r = 48;
-  const circumference = 2 * Math.PI * r;
-  let offset = 0;
-  return entries.map(([label, count], i) => {
-    const pct = count / total;
-    const dash = pct * circumference;
-    const gap = circumference - dash;
-    const el = (
-      <circle
-        key={label}
-        cx={cx} cy={cy} r={r}
-        fill="none"
-        stroke={colors[i % colors.length]}
-        strokeWidth="18"
-        strokeDasharray={`${dash} ${gap}`}
-        strokeDashoffset={-offset}
-        style={{ transition: 'all 0.6s ease' }}
-      />
-    );
-    offset += dash;
-    return el;
-  });
 }
