@@ -81,7 +81,7 @@ export default function RealtimeTaskList({ initialTasks, userId }) {
                   {task.status.replace('_', ' ').toUpperCase()}
                 </span>
               </td>
-              <td>₹{task.pay?.toFixed(2) ?? task.price?.toFixed(2) ?? '0.00'}</td>
+              <td>₹{task.pay ? Number(task.pay).toFixed(2) : (task.price ? Number(task.price).toFixed(2) : '0.00')}</td>
               <td>{new Date(task.created_at).toLocaleDateString()}</td>
               <td>
                 {(task.status === 'completed' || task.status === 'cancelled') ? (

@@ -54,6 +54,15 @@ export default function DashboardPage() {
 
       // 1. Total Tasks
       const completedTasks = allTasks.filter(t => t.status === 'completed');
+      
+      // Calculate Status and Category counts
+      const taskStatusCounts = {};
+      const taskCategoryCounts = {};
+      allTasks.forEach(t => {
+        taskStatusCounts[t.status] = (taskStatusCounts[t.status] || 0) + 1;
+        const cat = t.category || 'Other';
+        taskCategoryCounts[cat] = (taskCategoryCounts[cat] || 0) + 1;
+      });
 
       // 2. Earnings & Platform Revenue
       const totalPayouts = completedTasks.reduce((sum, t) => sum + (parseFloat(t.pay) || 0), 0);
@@ -69,6 +78,8 @@ export default function DashboardPage() {
         platformRevenue: platformRevenue,
         helpers: helpers.length,
         users: allProfiles.length,
+        taskStatusCounts,
+        taskCategoryCounts,
       });
       setTasks(allTasks);
       setProfiles(allProfiles);
@@ -100,17 +111,8 @@ export default function DashboardPage() {
         return tDate >= dayStart && tDate <= dayEnd;
       });
 
-      // Add fake baseline data for PDD demo purposes if real data is sparse
-      const fakePostedBase = [4, 6, 5, 8, 12, 9, 15];
-      const fakeCompletedBase = [2, 4, 3, 6, 9, 7, 12];
-      const fakeVolumeBase = [300, 500, 450, 800, 1200, 950, 1600];
-
-      const baseP = tasks.length < 20 ? fakePostedBase[6 - i] : 0;
-      const baseC = tasks.length < 20 ? fakeCompletedBase[6 - i] : 0;
-      const baseV = tasks.length < 20 ? fakeVolumeBase[6 - i] : 0;
-
       const dayCompleted = dayTasks.filter(t => t.status === 'completed');
-      const dayPayouts = dayCompleted.reduce((sum, t) => sum + (parseFloat(t.pay) || 0), 0) + baseV;
+      const dayPayouts = dayCompleted.reduce((sum, t) => sum + (parseFloat(t.pay) || 0), 0);
       const dayRev = dayPayouts * 0.05;
 
       revenueData.push({
@@ -121,8 +123,8 @@ export default function DashboardPage() {
 
       funnelData.push({
         name: dayStr,
-        Posted: dayTasks.length + baseP,
-        Completed: dayCompleted.length + baseC
+        Posted: dayTasks.length,
+        Completed: dayCompleted.length
       });
     }
   }
@@ -178,6 +180,64 @@ export default function DashboardPage() {
 
       {/* ── Interactive Charts Row ───────────────────────── */}
       <div className={styles.chartsRow}>
+        {/* Task Categories Overview */}
+        <div className={`card ${styles.chartCard}`}>
+          <h3 className={styles.cardTitle}>Task Categories Overview</h3>
+          <div className={styles.donutWrap}>
+            <div className={styles.donutChart}>
+              <svg className={styles.donutSvg} viewBox="0 0 120 120">
+                {renderDonut(
+                  Object.entries(stats.taskCategoryCounts || {}).sort((a,b)=>b[1]-a[1]),
+                  ['#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6', '#f59e0b'],
+                  stats.totalTasks
+                )}
+              </svg>
+              <div className={styles.donutCenter}>
+                <span className={styles.donutValue}>{stats.totalTasks}</span>
+                <span className={styles.donutLabel}>Tasks</span>
+              </div>
+            </div>
+            <div className={styles.legendList}>
+              {Object.entries(stats.taskCategoryCounts || {}).sort((a,b)=>b[1]-a[1]).map(([label, count], i) => (
+                <div key={label} className={styles.legendItem}>
+                  <span className={styles.legendDot} style={{ background: ['#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6', '#f59e0b'][i % 5] }} />
+                  <span className={styles.legendText}>{label}</span>
+                  <span className={styles.legendCount}>{count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Task Status */}
+        <div className={`card ${styles.chartCard}`}>
+          <h3 className={styles.cardTitle}>Task Status</h3>
+          <div className={styles.donutWrap}>
+            <div className={styles.donutChart}>
+              <svg className={styles.donutSvg} viewBox="0 0 120 120">
+                {renderDonut(
+                  Object.entries(stats.taskStatusCounts || {}).sort((a,b)=>b[1]-a[1]),
+                  ['#22c55e', '#f59e0b', '#3b82f6', '#64748b'],
+                  stats.totalTasks
+                )}
+              </svg>
+              <div className={styles.donutCenter}>
+                <span className={styles.donutValue}>{stats.completed}</span>
+                <span className={styles.donutLabel}>Done</span>
+              </div>
+            </div>
+            <div className={styles.legendList}>
+              {Object.entries(stats.taskStatusCounts || {}).sort((a,b)=>b[1]-a[1]).map(([label, count], i) => (
+                <div key={label} className={styles.legendItem}>
+                  <span className={styles.legendDot} style={{ background: ['#22c55e', '#f59e0b', '#3b82f6', '#64748b'][i % 4] }} />
+                  <span className={styles.legendText} style={{textTransform:'capitalize'}}>{label.replace('_', ' ')}</span>
+                  <span className={styles.legendCount}>{count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
         {/* Revenue Area Chart */}
         <div className={`card ${styles.chartCardWide}`} style={{ height: '400px' }}>
           <h3 className={styles.cardTitle}>Platform Revenue Over Time (Last 7 Days)</h3>
@@ -317,4 +377,30 @@ function timeAgo(dateStr) {
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h ago`;
   return `${Math.floor(hrs / 24)}d ago`;
+}
+
+function renderDonut(entries, colors, total) {
+  if (!total || entries.length === 0) return null;
+  const cx = 60, cy = 60, r = 48;
+  const circumference = 2 * Math.PI * r;
+  let offset = 0;
+  return entries.map(([label, count], i) => {
+    const pct = count / total;
+    const dash = pct * circumference;
+    const gap = circumference - dash;
+    const el = (
+      <circle
+        key={label}
+        cx={cx} cy={cy} r={r}
+        fill="none"
+        stroke={colors[i % colors.length]}
+        strokeWidth="18"
+        strokeDasharray={`${dash} ${gap}`}
+        strokeDashoffset={-offset}
+        style={{ transition: 'all 0.6s ease' }}
+      />
+    );
+    offset += dash;
+    return el;
+  });
 }
