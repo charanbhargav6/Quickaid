@@ -327,6 +327,7 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
                   ..._myTasks.map((t) => _buildTaskCard(t)),
               ],
             ),
+          ),
     );
   }
 

@@ -199,6 +199,7 @@ class _HelperDashboardState extends State<HelperDashboard> {
           ),
         ],
       ),
+    ),
     );
   }
 
