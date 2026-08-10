@@ -80,6 +80,8 @@ function PostTaskModalContent() {
   const [placingDestination, setPlacingDestination] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
 
+  const requiresTwoLocations = taskType === 'delivery' || category === 'moving';
+
   useEffect(() => {
     if (action === 'create') setShowModal(true);
   }, [action]);
@@ -136,19 +138,19 @@ function PostTaskModalContent() {
     }
   }, [destinationLocation]);
 
-  // Auto-calculate Delivery Price
+  // Auto-calculate Distance-based Price
   useEffect(() => {
-    if (taskType === 'delivery' && taskLocation && destinationLocation) {
+    if (requiresTwoLocations && taskLocation && destinationLocation) {
       const dist = calculateDistance(taskLocation.lat, taskLocation.lng, destinationLocation.lat, destinationLocation.lng);
       // Base Fare ₹25 + ₹12/km
       const fare = Math.round(25 + (dist * 12));
       setCalculatedPrice(Math.max(30, fare)); // Minimum 30
       setTaskPrice(Math.max(30, fare).toString());
-    } else if (taskType === 'delivery') {
+    } else if (requiresTwoLocations) {
       setCalculatedPrice(0);
       setTaskPrice('');
     }
-  }, [taskLocation, destinationLocation, taskType]);
+  }, [taskLocation, destinationLocation, requiresTwoLocations]);
 
   const handleClose = () => {
     setShowModal(false);
@@ -177,7 +179,7 @@ function PostTaskModalContent() {
     
     if (taskType !== 'digital') {
       if (!taskLocation) return setErrorMsg('Please drop a pin on the map for the location.');
-      if (taskType === 'delivery' && !destinationLocation) return setErrorMsg('Please drop a destination pin for delivery.');
+      if (requiresTwoLocations && !destinationLocation) return setErrorMsg('Please drop a destination pin.');
     }
 
     const finalPrice = parseFloat(taskPrice);
@@ -195,9 +197,9 @@ function PostTaskModalContent() {
       lat: taskLocation?.lat,
       lng: taskLocation?.lng,
       location_name: taskType === 'digital' ? null : taskLocationName.trim(),
-      destination_lat: destinationLocation?.lat,
-      destination_lng: destinationLocation?.lng,
-      destination_name: taskType === 'delivery' ? destinationName.trim() : null,
+      destination_lat: requiresTwoLocations ? destinationLocation?.lat : null,
+      destination_lng: requiresTwoLocations ? destinationLocation?.lng : null,
+      destination_name: requiresTwoLocations ? destinationName.trim() : null,
     };
 
     const res = await postTask(formData);
@@ -282,10 +284,10 @@ function PostTaskModalContent() {
                 <>
                   <div style={{ display: 'flex', gap: '1rem' }}>
                     <div style={{ flex: 1 }}>
-                      <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '6px' }}>{taskType === 'delivery' ? 'Pickup Location' : 'Location Name'}</label>
+                      <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '6px' }}>{requiresTwoLocations ? 'Pickup Location' : 'Location Name'}</label>
                       <input type="text" className="input" value={taskLocationName} onChange={e => setTaskLocationName(e.target.value)} disabled={isPending} />
                     </div>
-                    {taskType === 'delivery' && (
+                    {requiresTwoLocations && (
                       <div style={{ flex: 1 }}>
                         <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '6px' }}>Dropoff Location</label>
                         <input type="text" className="input" value={destinationName} onChange={e => setDestinationName(e.target.value)} disabled={isPending} />
@@ -296,7 +298,7 @@ function PostTaskModalContent() {
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <label style={{ fontSize: '14px', fontWeight: 600 }}>Pin Location on Map</label>
-                      {taskType === 'delivery' && (
+                      {requiresTwoLocations && (
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <button type="button" onClick={() => setPlacingDestination(false)} style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '4px', border: '1px solid #3B82F6', background: !placingDestination ? '#DBEAFE' : 'transparent' }}>Set Pickup</button>
                           <button type="button" onClick={() => setPlacingDestination(true)} style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '4px', border: '1px solid #EF4444', background: placingDestination ? '#FEE2E2' : 'transparent' }}>Set Dropoff</button>
@@ -304,7 +306,7 @@ function PostTaskModalContent() {
                       )}
                     </div>
                     <MapPicker 
-                      taskType={taskType}
+                      requiresTwoLocations={requiresTwoLocations}
                       position={taskLocation} setPosition={setTaskLocation}
                       destination={destinationLocation} setDestination={setDestinationLocation}
                       placingDestination={placingDestination}
@@ -317,7 +319,7 @@ function PostTaskModalContent() {
               {/* Price */}
               <div>
                 <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '6px' }}>Price (₹)</label>
-                {taskType === 'delivery' ? (
+                {requiresTwoLocations ? (
                   <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '12px', borderRadius: '8px' }}>
                     {calculatedPrice > 0 ? (
                       <>
@@ -340,7 +342,7 @@ function PostTaskModalContent() {
 
               <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
                 <button type="button" className="btn btn-outline" style={{ flex: 1 }} onClick={handleClose} disabled={isPending}>Cancel</button>
-                <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={isPending || (taskType === 'delivery' && calculatedPrice === 0)}>
+                <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={isPending || (requiresTwoLocations && calculatedPrice === 0)}>
                   {isPending ? 'Posting…' : 'Post Task'}
                 </button>
               </div>

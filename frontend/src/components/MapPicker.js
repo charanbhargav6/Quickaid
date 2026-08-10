@@ -34,11 +34,11 @@ function FlyToLocation({ location }) {
 function LocationMarkers({ 
   position, setPosition, 
   destination, setDestination, 
-  placingDestination, taskType 
+  placingDestination, requiresTwoLocations 
 }) {
   useMapEvents({
     click(e) {
-      if (taskType === 'delivery' && placingDestination) {
+      if (requiresTwoLocations && placingDestination) {
         setDestination(e.latlng);
       } else {
         setPosition(e.latlng);
@@ -48,14 +48,14 @@ function LocationMarkers({
 
   return (
     <>
-      {position && <Marker position={position} icon={taskType === 'delivery' ? customIcon : redIcon} />}
-      {taskType === 'delivery' && destination && <Marker position={destination} icon={redIcon} />}
+      {position && <Marker position={position} icon={requiresTwoLocations ? customIcon : redIcon} />}
+      {requiresTwoLocations && destination && <Marker position={destination} icon={redIcon} />}
     </>
   );
 }
 
 export default function MapPicker({ 
-  taskType,
+  requiresTwoLocations,
   position, setPosition,
   destination, setDestination,
   placingDestination,
@@ -82,7 +82,7 @@ export default function MapPicker({
           position={position} setPosition={setPosition}
           destination={destination} setDestination={setDestination}
           placingDestination={placingDestination}
-          taskType={taskType}
+          requiresTwoLocations={requiresTwoLocations}
         />
       </MapContainer>
     </div>
