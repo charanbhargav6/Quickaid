@@ -69,10 +69,6 @@ function PostTaskModalContent() {
   // Pricing
   const [taskPrice, setTaskPrice] = useState('');
   const [calculatedPrice, setCalculatedPrice] = useState(0);
-
-  // Locations
-  const [taskPrice, setTaskPrice] = useState('');
-  const [calculatedPrice, setCalculatedPrice] = useState(0);
   const [vehicleType, setVehicleType] = useState('bike');
   
   const [taskLocationName, setTaskLocationName] = useState('');
