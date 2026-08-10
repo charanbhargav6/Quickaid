@@ -42,10 +42,10 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
   const R = 6371; // km
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-            Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
 
@@ -65,18 +65,18 @@ function PostTaskModalContent() {
   const [category, setCategory] = useState('');
   const [customTitle, setCustomTitle] = useState('');
   const [taskDesc, setTaskDesc] = useState('');
-  
+
   // Pricing
   const [taskPrice, setTaskPrice] = useState('');
   const [calculatedPrice, setCalculatedPrice] = useState(0);
   const [vehicleType, setVehicleType] = useState('bike');
-  
+
   const [taskLocationName, setTaskLocationName] = useState('');
   const [taskLocation, setTaskLocation] = useState(null);
-  
+
   const [destinationName, setDestinationName] = useState('');
   const [destinationLocation, setDestinationLocation] = useState(null);
-  
+
   const [placingDestination, setPlacingDestination] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
 
@@ -142,9 +142,9 @@ function PostTaskModalContent() {
   useEffect(() => {
     if (requiresTwoLocations && taskLocation && destinationLocation) {
       const dist = calculateDistance(taskLocation.lat, taskLocation.lng, destinationLocation.lat, destinationLocation.lng);
-      
-      // Max service area limit (500 km)
-      if (dist > 500) {
+
+      // Max service area limit (150 km)
+      if (dist > 150) {
         setCalculatedPrice(-1);
         setTaskPrice('');
         return;
@@ -153,7 +153,7 @@ function PostTaskModalContent() {
       let baseFare = 25;
       let perKm = 12;
 
-      switch(vehicleType) {
+      switch (vehicleType) {
         case 'auto': baseFare = 40; perKm = 15; break;
         case 'mini_car': baseFare = 70; perKm = 18; break;
         case 'suv': baseFare = 100; perKm = 22; break;
@@ -227,7 +227,7 @@ function PostTaskModalContent() {
     if (!category) return setErrorMsg('Please select a job category.');
     if (isOther && !customTitle.trim()) return setErrorMsg('Please describe the job type.');
     if (isOther && containsBlockedWord(customTitle)) return setErrorMsg('⚠️ Your job title contains inappropriate content.');
-    
+
     if (taskType !== 'digital') {
       if (!taskLocation) return setErrorMsg('Please drop a pin on the map for the location.');
       if (requiresTwoLocations && !destinationLocation) return setErrorMsg('Please drop a destination pin.');
@@ -239,7 +239,7 @@ function PostTaskModalContent() {
     setIsPending(true);
     setErrorMsg(null);
 
-    const finalDescription = requiresTwoLocations 
+    const finalDescription = requiresTwoLocations
       ? `[Vehicle Required: ${vehicleType.replace('_', ' ').toUpperCase()}]\n\n${taskDesc}`
       : taskDesc;
 
@@ -290,7 +290,7 @@ function PostTaskModalContent() {
             )}
 
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              
+
               {/* Task Type Selector */}
               <div style={{ display: 'flex', background: '#F1F5F9', borderRadius: '8px', padding: '4px' }}>
                 {['physical', 'delivery', 'digital'].map(type => (
@@ -379,12 +379,12 @@ function PostTaskModalContent() {
                         </div>
                       )}
                     </div>
-                    <MapPicker 
+                    <MapPicker
                       requiresTwoLocations={requiresTwoLocations}
                       position={taskLocation} setPosition={setTaskLocation}
                       destination={destinationLocation} setDestination={setDestinationLocation}
                       placingDestination={placingDestination}
-                      initialLocation={taskLocation} 
+                      initialLocation={taskLocation}
                     />
                   </div>
                 </>
