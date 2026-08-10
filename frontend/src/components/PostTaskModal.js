@@ -249,11 +249,11 @@ function PostTaskModalContent() {
       price: finalPrice,
       task_type: taskType,
       category,
-      lat: taskLocation?.lat,
-      lng: taskLocation?.lng,
+      lat: taskLocation?.lat ?? null,
+      lng: taskLocation?.lng ?? null,
       location_name: taskType === 'digital' ? null : taskLocationName.trim(),
-      destination_lat: requiresTwoLocations ? destinationLocation?.lat : null,
-      destination_lng: requiresTwoLocations ? destinationLocation?.lng : null,
+      destination_lat: requiresTwoLocations ? (destinationLocation?.lat ?? null) : null,
+      destination_lng: requiresTwoLocations ? (destinationLocation?.lng ?? null) : null,
       destination_name: requiresTwoLocations ? destinationName.trim() : null,
     };
 

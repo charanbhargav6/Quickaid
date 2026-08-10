@@ -9,13 +9,13 @@ const postTaskSchema = z.object({
   description: z.string().min(5, "Description must be at least 5 characters"),
   price: z.number().positive("Price must be positive"),
   task_type: z.enum(['physical', 'delivery', 'digital']).default('physical'),
-  category: z.string().optional(),
-  location_name: z.string().optional(),
-  lat: z.number().optional(),
-  lng: z.number().optional(),
-  destination_name: z.string().optional(),
-  destination_lat: z.number().optional(),
-  destination_lng: z.number().optional(),
+  category: z.string().nullable().optional(),
+  location_name: z.string().nullable().optional(),
+  lat: z.number().nullable().optional(),
+  lng: z.number().nullable().optional(),
+  destination_name: z.string().nullable().optional(),
+  destination_lat: z.number().nullable().optional(),
+  destination_lng: z.number().nullable().optional(),
 })
 
 export async function postTask(formData) {
