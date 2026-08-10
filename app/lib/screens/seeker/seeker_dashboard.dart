@@ -754,8 +754,24 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
                 const SizedBox(height: 12),
                 TextField(controller: descCtrl, decoration: const InputDecoration(labelText: 'Description (Optional)')),
                 const SizedBox(height: 12),
-                TextField(controller: payCtrl, decoration: const InputDecoration(labelText: 'Pay (₹) - Min ₹50'), keyboardType: TextInputType.number),
-                const SizedBox(height: 16),
+                TextField(controller: payCtrl, decoration: InputDecoration(labelText: taskType == 'delivery' ? 'Auto-Calculated Pay (₹)' : 'Pay (₹) - Min ₹50', hintText: taskType == 'delivery' ? 'Set pins to calculate' : 'e.g. 150'), keyboardType: TextInputType.number, readOnly: taskType == 'delivery'),
+                ValueListenableBuilder<TextEditingValue>(
+                  valueListenable: payCtrl,
+                  builder: (context, value, child) {
+                    final pay = double.tryParse(value.text) ?? 0.0;
+                    if (pay > 0) {
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 4.0),
+                        child: Text(
+                          '✓ Helper receives ₹${(pay * 0.95).round()} (5% Platform Fee deducted from payout)',
+                          style: const TextStyle(fontSize: 10, color: Colors.green),
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
+                const SizedBox(height: 12),
                 
                 // Dynamic Location Inputs
                 if (taskType != 'digital') ...[
@@ -803,6 +819,13 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
                                 selectedDestination = point;
                               } else {
                                 selectedLocation = point;
+                              }
+                              
+                              if (taskType == 'delivery') {
+                                final distMeters = const Distance().distance(selectedLocation, selectedDestination);
+                                final distKm = distMeters / 1000.0;
+                                final fare = 25 + (distKm * 12);
+                                payCtrl.text = (fare < 30 ? 30 : fare).round().toString();
                               }
                             });
                           },

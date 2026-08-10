@@ -8,8 +8,14 @@ const postTaskSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters").max(100),
   description: z.string().min(5, "Description must be at least 5 characters"),
   price: z.number().positive("Price must be positive"),
+  task_type: z.enum(['physical', 'delivery', 'digital']).default('physical'),
+  category: z.string().optional(),
+  location_name: z.string().optional(),
   lat: z.number().optional(),
   lng: z.number().optional(),
+  destination_name: z.string().optional(),
+  destination_lat: z.number().optional(),
+  destination_lng: z.number().optional(),
 })
 
 export async function postTask(formData) {
@@ -26,15 +32,13 @@ export async function postTask(formData) {
   if (authError || !user) {
     return { success: false, error: 'Unauthorized' }
   }
-  
-  if (user.app_metadata?.role !== 'seeker' && user.app_metadata?.role !== 'both') {
-    // Allow both roles if they have both
-  }
 
   // 1. Fetch wallet balance
   const { data: profile } = await supabase.from('profiles').select('wallet_balance').eq('id', user.id).single();
   const balance = Number(profile?.wallet_balance || 0);
 
+  // Note: Platform fee is now deducted from the helper during payout. 
+  // The Seeker simply pays the exact listed price.
   if (balance < parsed.data.price) {
     return { success: false, error: 'Insufficient funds. Please add funds to your wallet first.' };
   }
@@ -50,14 +54,19 @@ export async function postTask(formData) {
     title: parsed.data.title,
     description: parsed.data.description,
     pay: parsed.data.price,
+    task_type: parsed.data.task_type,
+    category: parsed.data.category,
+    location_name: parsed.data.location_name,
     lat: parsed.data.lat,
     lng: parsed.data.lng,
+    destination_name: parsed.data.destination_name,
+    destination_lat: parsed.data.destination_lat,
+    destination_lng: parsed.data.destination_lng,
     status: 'open'
   }).select().single()
 
   if (taskError) {
-    // Rollback is omitted for dummy MVP
-    return { success: false, error: 'Failed to post task to database.' }
+    return { success: false, error: 'Failed to post task to database. ' + taskError.message }
   }
 
   // 4. Create Escrow Transaction
@@ -104,10 +113,7 @@ export async function acceptOffer(rawInput) {
     if (balance < priceDifference) {
       return { success: false, error: `You need ₹${priceDifference} more in your wallet to accept this offer.` }
     }
-    // Deduct difference
     await supabase.from('profiles').update({ wallet_balance: balance - priceDifference }).eq('id', user.id)
-    
-    // Add escrow record for the difference
     await supabase.from('transactions').insert({
       task_id: offer.task_id,
       user_id: user.id,
@@ -116,7 +122,6 @@ export async function acceptOffer(rawInput) {
       status: 'completed'
     })
   } else if (priceDifference < 0) {
-    // Refund difference
     const refund = Math.abs(priceDifference)
     const { data: profile } = await supabase.from('profiles').select('wallet_balance').eq('id', user.id).single()
     const balance = Number(profile?.wallet_balance || 0)
@@ -133,7 +138,7 @@ export async function acceptOffer(rawInput) {
 
   if (taskUpdateError) return { success: false, error: 'Failed to assign task' }
 
-  // 4. Update offers (accept this one, reject all others)
+  // 4. Update offers
   await supabase.from('task_offers').update({ status: 'accepted' }).eq('id', offerId)
   await supabase.from('task_offers').update({ status: 'rejected' }).eq('task_id', offer.task_id).eq('status', 'pending')
 
@@ -145,8 +150,6 @@ export async function acceptOffer(rawInput) {
     data: { type: 'offer_accepted', route: `/chat/${offer.task_id}` }
   })
 
-  // (Push notification will be sent from client or we can import push.js here but to avoid circular deps we just send it if push.js is accessible)
-  // Let's assume we send push notification as well
   const { sendPushNotification } = await import('@/utils/push')
   const { data: helperProfile } = await supabase.from('profiles').select('fcm_token').eq('id', offer.helper_id).single()
   if (helperProfile?.fcm_token) {
