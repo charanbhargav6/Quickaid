@@ -143,6 +143,13 @@ function PostTaskModalContent() {
     if (requiresTwoLocations && taskLocation && destinationLocation) {
       const dist = calculateDistance(taskLocation.lat, taskLocation.lng, destinationLocation.lat, destinationLocation.lng);
       
+      // Max service area limit (500 km)
+      if (dist > 500) {
+        setCalculatedPrice(-1);
+        setTaskPrice('');
+        return;
+      }
+
       let baseFare = 25;
       let perKm = 12;
 
@@ -388,7 +395,9 @@ function PostTaskModalContent() {
                 <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '6px' }}>Price (₹)</label>
                 {requiresTwoLocations ? (
                   <div style={{ background: '#F8FAFC', border: '1px solid #E2E8F0', padding: '12px', borderRadius: '8px' }}>
-                    {calculatedPrice > 0 ? (
+                    {calculatedPrice === -1 ? (
+                      <div style={{ fontSize: '14px', color: '#EF4444', fontWeight: '600' }}>Oops! We currently don't service the selected locations.</div>
+                    ) : calculatedPrice > 0 ? (
                       <>
                         <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#10B981' }}>₹{calculatedPrice}</div>
                         <div style={{ fontSize: '12px', color: '#64748B' }}>Auto-calculated based on distance and vehicle type (Includes intercity fee if &gt;30km).</div>
@@ -409,7 +418,7 @@ function PostTaskModalContent() {
 
               <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
                 <button type="button" className="btn btn-outline" style={{ flex: 1 }} onClick={handleClose} disabled={isPending}>Cancel</button>
-                <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={isPending || (requiresTwoLocations && calculatedPrice === 0)}>
+                <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={isPending || (requiresTwoLocations && calculatedPrice <= 0)}>
                   {isPending ? 'Posting…' : 'Post Task'}
                 </button>
               </div>
