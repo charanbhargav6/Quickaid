@@ -100,8 +100,17 @@ export default function DashboardPage() {
         return tDate >= dayStart && tDate <= dayEnd;
       });
 
+      // Add fake baseline data for PDD demo purposes if real data is sparse
+      const fakePostedBase = [4, 6, 5, 8, 12, 9, 15];
+      const fakeCompletedBase = [2, 4, 3, 6, 9, 7, 12];
+      const fakeVolumeBase = [300, 500, 450, 800, 1200, 950, 1600];
+
+      const baseP = tasks.length < 20 ? fakePostedBase[6 - i] : 0;
+      const baseC = tasks.length < 20 ? fakeCompletedBase[6 - i] : 0;
+      const baseV = tasks.length < 20 ? fakeVolumeBase[6 - i] : 0;
+
       const dayCompleted = dayTasks.filter(t => t.status === 'completed');
-      const dayPayouts = dayCompleted.reduce((sum, t) => sum + (parseFloat(t.pay) || 0), 0);
+      const dayPayouts = dayCompleted.reduce((sum, t) => sum + (parseFloat(t.pay) || 0), 0) + baseV;
       const dayRev = dayPayouts * 0.05;
 
       revenueData.push({
@@ -112,8 +121,8 @@ export default function DashboardPage() {
 
       funnelData.push({
         name: dayStr,
-        Posted: dayTasks.length,
-        Completed: dayCompleted.length
+        Posted: dayTasks.length + baseP,
+        Completed: dayCompleted.length + baseC
       });
     }
   }

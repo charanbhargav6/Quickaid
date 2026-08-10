@@ -30,7 +30,7 @@
 /* ── Charts Row ─────────────────────── */
 .chartsRow {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
   gap: 20px;
   margin-bottom: 20px;
 }
@@ -130,7 +130,7 @@
 /* ── Bottom Row ─────────────────────── */
 .bottomRow {
   display: grid;
-  grid-template-columns: 2fr 2fr 1.5fr;
+  grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
   gap: 20px;
   margin-bottom: 24px;
 }
