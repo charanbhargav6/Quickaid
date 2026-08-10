@@ -424,4 +424,20 @@ class SupabaseService {
       'details': 'SOS triggered at: $location',
     });
   }
+
+  static Future<void> disputeTask(String taskId, String reason) async {
+    await client.rpc('dispute_task', params: {
+      'p_task_id': taskId,
+      'p_reason': reason,
+    });
+  }
+
+  static Future<void> updateLocation(double lat, double lng) async {
+    final user = currentUser;
+    if (user == null) return;
+    await client.from('profiles').update({
+      'current_lat': lat,
+      'current_lng': lng,
+    }).eq('id', user.id);
+  }
 }

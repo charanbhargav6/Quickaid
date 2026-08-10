@@ -12,6 +12,7 @@ import 'dart:typed_data';
 import '../../widgets/skeleton_loader.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'dart:async';
 
 class SeekerDashboard extends StatefulWidget {
   final bool openPostTask;
@@ -28,16 +29,48 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
   List<Map<String, dynamic>> _incomingOffers = [];
   Map<String, dynamic> _currentUser = {};
   Position? _currentPosition;
+  RealtimeChannel? _realtimeChannel;
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    _setupRealtime();
     if (widget.openPostTask) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _showCreateTaskDialog();
       });
     }
+  }
+
+  void _setupRealtime() {
+    _realtimeChannel = SupabaseService.client.channel('public:profiles').onPostgresChanges(
+      event: PostgresChangeEvent.update,
+      schema: 'public',
+      table: 'profiles',
+      callback: (payload) {
+        final newRecord = payload.newRecord;
+        final updatedId = newRecord['id'];
+        
+        final assignedTasks = _myTasks.where((t) => t['status'] == 'accepted' && t['helper_id'] == updatedId);
+        if (assignedTasks.isNotEmpty) {
+          setState(() {
+            for (var task in _myTasks) {
+              if (task['helper_id'] == updatedId && task['helper'] != null) {
+                task['helper']['current_lat'] = newRecord['current_lat'];
+                task['helper']['current_lng'] = newRecord['current_lng'];
+              }
+            }
+          });
+        }
+      }
+    ).subscribe();
+  }
+
+  @override
+  void dispose() {
+    _realtimeChannel?.unsubscribe();
+    super.dispose();
   }
 
   Future<void> _loadData() async {
@@ -53,7 +86,7 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
           
           final tasks = await SupabaseService.client
               .from('tasks')
-              .select('*, helper:profiles!helper_id(full_name, phone, trust_score)')
+              .select('*, helper:profiles!helper_id(full_name, phone, trust_score, current_lat, current_lng)')
               .eq('seeker_id', _currentUser['id'])
               .order('created_at', ascending: false);
           
@@ -241,6 +274,24 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
                                             )
                                         ],
                                       ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
+                            ..._myTasks.where((t) => t['status'] == 'accepted' && t['helper']?['current_lat'] != null).map((t) {
+                              final h = t['helper'];
+                              return Marker(
+                                point: LatLng(h['current_lat'].toDouble(), h['current_lng'].toDouble()),
+                                width: 60,
+                                height: 60,
+                                child: Column(
+                                  children: [
+                                    const Icon(Icons.directions_car, color: Colors.green, size: 36),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4), border: Border.all(color: Colors.green, width: 2)),
+                                      child: Text('En Route: ${h['full_name']?.toString().split(' ')[0] ?? ''}', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.green)),
                                     ),
                                   ],
                                 ),

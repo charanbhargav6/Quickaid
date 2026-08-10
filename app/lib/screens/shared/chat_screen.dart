@@ -72,11 +72,40 @@ class _ChatScreenState extends State<ChatScreen> {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Task cancelled. Penalty applied.')));
                   Navigator.pop(context);
                 }
+              } else if (value == 'dispute') {
+                final reasonCtrl = TextEditingController();
+                showDialog(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Dispute Task', style: TextStyle(color: Colors.red)),
+                    content: TextField(
+                      controller: reasonCtrl,
+                      decoration: const InputDecoration(hintText: 'Enter reason for dispute...'),
+                      maxLines: 3,
+                    ),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                        onPressed: () async {
+                          if (reasonCtrl.text.trim().isEmpty) return;
+                          await SupabaseService.disputeTask(widget.taskId, reasonCtrl.text.trim());
+                          if (mounted) {
+                            Navigator.pop(ctx);
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Task disputed. Admin will review soon.')));
+                          }
+                        },
+                        child: const Text('Submit Dispute', style: TextStyle(color: Colors.white)),
+                      ),
+                    ],
+                  ),
+                );
               }
             },
             itemBuilder: (context) => [
               const PopupMenuItem(value: 'report', child: Text('Report User')),
               const PopupMenuItem(value: 'cancel', child: Text('Cancel Task (Penalty)')),
+              const PopupMenuItem(value: 'dispute', child: Text('Dispute Task', style: TextStyle(color: Colors.red))),
             ],
           ),
         ],

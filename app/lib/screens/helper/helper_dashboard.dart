@@ -8,6 +8,7 @@ import 'package:latlong2/latlong.dart';
 import '../../widgets/skeleton_loader.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'dart:async';
 
 class HelperDashboard extends StatefulWidget {
   const HelperDashboard({super.key});
@@ -28,11 +29,30 @@ class _HelperDashboardState extends State<HelperDashboard> {
   String _searchQuery = '';
   String _category = '';
   double? _minPay;
+  Timer? _locationTimer;
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    _locationTimer = Timer.periodic(const Duration(seconds: 15), (_) => _streamLocation());
+  }
+
+  @override
+  void dispose() {
+    _locationTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _streamLocation() async {
+    final hasAcceptedTasks = _myTasks.any((t) => t['status'] == 'accepted');
+    if (!hasAcceptedTasks) return;
+    try {
+      Position pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+      await SupabaseService.updateLocation(pos.latitude, pos.longitude);
+    } catch (e) {
+      debugPrint('Location stream error: $e');
+    }
   }
 
   Future<void> _loadData() async {
