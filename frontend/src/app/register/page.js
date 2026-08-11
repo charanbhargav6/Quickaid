@@ -33,7 +33,6 @@ export default function Register() {
     if (strength === 3) return '#10B981'; // Green
     return '#E2E8F0'; // Gray
   };
-  const router = useRouter();
 
   const handleRegister = async (e) => {
     e.preventDefault();
