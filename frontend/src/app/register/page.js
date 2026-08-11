@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import styles from '../login/Login.module.css';
@@ -33,6 +33,26 @@ export default function Register() {
     if (strength === 3) return '#10B981'; // Green
     return '#E2E8F0'; // Gray
   };
+
+  // Redirect if already logged in (e.g., after Google OAuth callback)
+  useEffect(() => {
+    const supabase = createClient();
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        router.push('/seeker');
+      }
+    };
+    checkSession();
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        router.push('/seeker');
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [router]);
 
   const handleRegister = async (e) => {
     e.preventDefault();
