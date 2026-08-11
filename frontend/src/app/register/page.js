@@ -33,7 +33,12 @@ export default function Register() {
     });
     
     if (authError) {
-      setError(authError.message);
+      // Clean up Supabase's ugly password complexity error message
+      let errorMessage = authError.message;
+      if (errorMessage.includes("Password should contain at least one character of each")) {
+        errorMessage = "Password must contain at least 8 characters, including a lowercase letter (a-z), an uppercase letter (A-Z), a number (0-9), and a special character.";
+      }
+      setError(errorMessage);
       setLoading(false);
       return;
     }
@@ -108,7 +113,7 @@ export default function Register() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              minLength={6}
+              minLength={8}
             />
           </div>
 
