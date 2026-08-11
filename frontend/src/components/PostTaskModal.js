@@ -278,7 +278,7 @@ function PostTaskModalContent() {
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100,
           overflowY: 'auto', padding: '1rem',
         }}>
-          <div className="card fade-in" style={{ width: '100%', maxWidth: '500px', padding: '2rem', background: 'var(--card-bg)', borderRadius: '20px' }}>
+          <div className="card fade-in" style={{ width: '100%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto', padding: '2rem', background: 'var(--card-bg)', borderRadius: '20px' }}>
             <h2 style={{ marginBottom: '0.5rem', marginTop: 0, fontSize: '22px', fontWeight: 800 }}>Post New Task</h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: 0, marginBottom: '1.5rem' }}>
               Describe what you need help with and set your pricing.
