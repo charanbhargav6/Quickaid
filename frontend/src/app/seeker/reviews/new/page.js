@@ -61,7 +61,7 @@ function ReviewForm() {
       const { error: reviewError } = await supabase.from('reviews').insert({
         task_id: task.id,
         reviewer_id: user.id,
-        reviewed_user_id: task.helper_id,
+        reviewee_id: task.helper_id,
         rating: rating,
         comment: comment
       });

@@ -30,10 +30,9 @@ export default function TaskReviewModal({ task, reviewerRole, onClose, onSubmitt
       const { error: reviewError } = await supabase.from('reviews').insert({
         task_id: task.id,
         reviewer_id: user.id,
-        reviewed_id: reviewedId,
+        reviewee_id: reviewedId,
         rating,
         comment: comment.trim(),
-        reviewer_role: reviewerRole,
       });
       if (reviewError) throw reviewError;
 

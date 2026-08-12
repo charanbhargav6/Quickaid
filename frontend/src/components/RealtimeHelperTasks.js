@@ -118,7 +118,11 @@ export default function RealtimeHelperTasks({ initialTasks }) {
               <div key={task.id} className="card" style={{ padding: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                 <div>
                   <div style={{ fontWeight: 600 }}>{task.title}</div>
-                  <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>{task.description}</div>
+                  <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px', marginBottom: '8px' }}>{task.description}</div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    {task.location_name && <div>📍 <strong>Pickup:</strong> {task.location_name}</div>}
+                    {task.destination_name && <div style={{ marginTop: '2px' }}>🏁 <strong>Dropoff:</strong> {task.destination_name}</div>}
+                  </div>
                 </div>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <span className={`badge ${task.status === 'completed' ? 'badge-green' : task.status === 'cancelled' ? 'badge-gray' : 'badge-purple'}`}>
