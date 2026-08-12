@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -34,6 +36,32 @@ class _ChatScreenState extends State<ChatScreen> {
         .order('created_at', ascending: true);
   }
 
+  Future<void> _notifyRecipient(String title, String body) async {
+    try {
+      final taskRes = await SupabaseService.client.from('tasks').select('seeker_id, helper_id').eq('id', widget.taskId).maybeSingle();
+      if (taskRes == null) return;
+      final recipientId = taskRes['seeker_id'] == _currentUserId ? taskRes['helper_id'] : taskRes['seeker_id'];
+      if (recipientId == null) return;
+      
+      final res = await SupabaseService.client.from('profiles').select('fcm_token').eq('id', recipientId).maybeSingle();
+      if (res != null && res['fcm_token'] != null) {
+        final url = Uri.parse('http://10.0.2.2:3000/api/notify');
+        await http.post(
+          url,
+          headers: {'Content-Type': 'application/json'},
+          body: jsonEncode({
+            'token': res['fcm_token'],
+            'title': title,
+            'body': body,
+            'data': {'type': 'chat', 'route': '/chat/${widget.taskId}'}
+          }),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error notifying recipient: $e');
+    }
+  }
+
   Future<void> _sendMessage() async {
     final text = _messageCtrl.text.trim();
     if (text.isEmpty) return;
@@ -45,10 +73,12 @@ class _ChatScreenState extends State<ChatScreen> {
         'sender_id': _currentUserId,
         'content': text,
       });
+      await _notifyRecipient('New message from ${SupabaseService.currentUser?.userMetadata?['full_name'] ?? 'someone'}', text);
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to send: $e')));
     }
   }
+
   Future<void> _sendImage() async {
     final picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
@@ -68,6 +98,7 @@ class _ChatScreenState extends State<ChatScreen> {
         'sender_id': _currentUserId,
         'content': '[IMAGE]$publicUrl',
       });
+      await _notifyRecipient('New image from ${SupabaseService.currentUser?.userMetadata?['full_name'] ?? 'someone'}', '📷 Sent an image');
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to send image: $e'), backgroundColor: Colors.red));
     }
