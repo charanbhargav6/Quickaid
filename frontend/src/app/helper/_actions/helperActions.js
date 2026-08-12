@@ -46,7 +46,8 @@ export async function acceptTask(rawInput) {
       .single()
 
     if (error || !data) {
-      return { success: false, error: 'Task is no longer available or does not exist.' }
+      console.error("Admin Update Error:", error);
+      return { success: false, error: `Task update failed: ${error?.message || 'No data returned. Make sure the task is still open.'}` }
     }
 
     // Notify seeker
