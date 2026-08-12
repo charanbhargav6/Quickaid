@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../../services/supabase_service.dart';
 import '../shared/app_drawer.dart';
 import '../shared/chat_screen.dart';
+import '../shared/task_tracking_screen.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../widgets/skeleton_loader.dart';
@@ -834,7 +835,7 @@ class _HelperDashboardState extends State<HelperDashboard> {
                       child: const Text('Mark as Done', style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: OutlinedButton.icon(
                       style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
@@ -855,6 +856,30 @@ class _HelperDashboardState extends State<HelperDashboard> {
                     ),
                   ),
                 ],
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                  icon: const Icon(Icons.map, size: 18),
+                  label: const Text('Track Task / Start Route', style: TextStyle(fontWeight: FontWeight.bold)),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (ctx) => TaskTrackingScreen(
+                          taskId: task['id'],
+                          helperId: SupabaseService.currentUser!.id,
+                          seekerId: task['seeker_id'],
+                          taskLat: task['latitude'] != null ? (task['latitude'] as num).toDouble() : 0.0,
+                          taskLng: task['longitude'] != null ? (task['longitude'] as num).toDouble() : 0.0,
+                          taskTitle: task['title'],
+                        ),
+                      ),
+                    );
+                  },
+                ),
               ),
             ] else ...[
               const SizedBox(height: 16),

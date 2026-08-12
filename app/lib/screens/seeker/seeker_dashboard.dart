@@ -4,6 +4,7 @@ import '../../services/supabase_service.dart';
 import '../shared/app_drawer.dart';
 import '../shared/chat_screen.dart';
 import '../shared/helper_profile_screen.dart';
+import '../shared/task_tracking_screen.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -567,22 +568,47 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
                         child: const Text('Rate Helper'),
                       )
                     else if (status == 'accepted')
-                      ElevatedButton.icon(
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                        icon: const Icon(Icons.chat, size: 16),
-                        label: const Text('Chat'),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (ctx) => ChatScreen(
-                                taskId: task['id'],
-                                otherUserName: task['helper']['full_name'] ?? 'Helper',
-                                taskTitle: task['title'],
-                              ),
-                            ),
-                          );
-                        },
+                      Column(
+                        children: [
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), padding: const EdgeInsets.symmetric(horizontal: 12)),
+                            icon: const Icon(Icons.map, size: 16),
+                            label: const Text('Track Helper', style: TextStyle(fontSize: 12)),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (ctx) => TaskTrackingScreen(
+                                    taskId: task['id'],
+                                    helperId: task['helper_id'],
+                                    seekerId: SupabaseService.currentUser!.id,
+                                    taskLat: task['latitude'] != null ? (task['latitude'] as num).toDouble() : 0.0,
+                                    taskLng: task['longitude'] != null ? (task['longitude'] as num).toDouble() : 0.0,
+                                    taskTitle: task['title'],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          const SizedBox(height: 4),
+                          OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), padding: const EdgeInsets.symmetric(horizontal: 12)),
+                            icon: const Icon(Icons.chat, size: 16),
+                            label: const Text('Chat', style: TextStyle(fontSize: 12)),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (ctx) => ChatScreen(
+                                    taskId: task['id'],
+                                    otherUserName: task['helper']['full_name'] ?? 'Helper',
+                                    taskTitle: task['title'],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ],
                       ),
                   ],
                 ),
