@@ -2,7 +2,7 @@
 import { useTransition } from 'react';
 import { acceptTask } from '@/app/helper/_actions/helperActions';
 
-export default function AcceptTaskButton({ taskId }) {
+export default function AcceptTaskButton({ taskId, onSuccess }) {
   const [isPending, startTransition] = useTransition();
 
   const handleAccept = () => {
@@ -10,6 +10,8 @@ export default function AcceptTaskButton({ taskId }) {
       const res = await acceptTask({ taskId });
       if (!res.success) {
         alert(res.error);
+      } else if (onSuccess) {
+        onSuccess();
       }
     });
   };

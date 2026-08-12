@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/utils/supabase/server'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { sendPushNotification } from '@/utils/push'
@@ -25,8 +26,14 @@ export async function acceptTask(rawInput) {
     return { success: false, error: 'You cannot accept your own task.' };
   }
 
+  // Use Admin Client for updates because RLS prevents helpers from updating tasks or inserting notifications for seekers
+  const supabaseAdmin = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY
+  );
+
   // Atomic Update to prevent race conditions
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('tasks')
     .update({ status: 'accepted', helper_id: user.id, accepted_at: new Date().toISOString() })
     .match({ id: taskId, status: 'open' })
@@ -38,7 +45,7 @@ export async function acceptTask(rawInput) {
   }
 
   // Notify seeker
-  await supabase.from('notifications').insert({
+  await supabaseAdmin.from('notifications').insert({
     user_id: data.seeker_id,
     title: 'Task Accepted! 🤝',
     body: `A helper has accepted your task: "${data.title}"`,
