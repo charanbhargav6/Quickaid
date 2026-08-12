@@ -3,6 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../services/supabase_service.dart';
 import '../../widgets/gradient_button.dart';
 import '../../widgets/auth_text_field.dart';
+import '../../widgets/alert_modal.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -40,9 +41,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
       Navigator.pushReplacementNamed(context, '/login');
     } on AuthException catch (e) {
-      setState(() { _error = e.message; _loading = false; });
+      setState(() => _loading = false);
+      AlertModal.show(context, title: 'Registration Error', message: e.message, type: AlertType.error);
     } catch (e) {
-      setState(() { _error = 'Registration failed. Please try again.'; _loading = false; });
+      setState(() => _loading = false);
+      AlertModal.show(context, title: 'Error', message: 'Registration failed. Please try again.', type: AlertType.error);
+    }
+  }
+
+  Future<void> _googleSignIn() async {
+    setState(() { _loading = true; _error = null; });
+    try {
+      await SupabaseService.signInWithGoogle();
+    } on AuthException catch (e) {
+      setState(() => _loading = false);
+      AlertModal.show(context, title: 'Sign-In Error', message: e.message, type: AlertType.error);
+    } catch (e) {
+      setState(() => _loading = false);
+      AlertModal.show(context, title: 'Error', message: 'Google Sign-in failed.', type: AlertType.error);
     }
   }
 
@@ -153,26 +169,34 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     validator: (v) => v == _passCtrl.text ? null : 'Passwords do not match',
                   ),
                   const SizedBox(height: 24),
-                  
-                  if (_error != null) ...[
-                    const SizedBox(height: 14),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.red.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
-                      ),
-                      child: Row(children: [
-                        const Icon(Icons.error_outline, color: Colors.red, size: 18),
-                        const SizedBox(width: 8),
-                        Expanded(child: Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 13))),
-                      ]),
-                    ),
-                  ],
-
                   const SizedBox(height: 24),
                   GradientButton(label: 'Create Account', loading: _loading, onPressed: _register),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(child: Divider(color: isDark ? Colors.white24 : Colors.black26)),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text('OR', style: TextStyle(color: isDark ? Colors.white54 : Colors.black54, fontSize: 12)),
+                      ),
+                      Expanded(child: Divider(color: isDark ? Colors.white24 : Colors.black26)),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: OutlinedButton.icon(
+                      icon: const Icon(Icons.g_mobiledata, size: 32, color: Colors.blue),
+                      label: const Text('Sign up with Google', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.blue)),
+                      style: OutlinedButton.styleFrom(
+                        backgroundColor: isDark ? const Color(0xFF131D30) : Colors.white,
+                        side: BorderSide(color: Colors.blue.withValues(alpha: 0.5), width: 1),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: _loading ? null : _googleSignIn,
+                    ),
+                  ),
                   const SizedBox(height: 20),
                   Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                     Text('Already have an account? ', style: Theme.of(context).textTheme.bodyMedium),

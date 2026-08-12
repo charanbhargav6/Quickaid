@@ -4,6 +4,8 @@ import ToggleOnlineStatus from '@/components/ToggleOnlineStatus';
 import RealtimeHelperTasks from '@/components/RealtimeHelperTasks';
 import { Suspense } from 'react';
 
+export const dynamic = 'force-dynamic';
+
 export default async function HelperDashboard() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

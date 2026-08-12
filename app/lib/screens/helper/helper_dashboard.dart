@@ -7,6 +7,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../widgets/skeleton_loader.dart';
 import 'package:geolocator/geolocator.dart';
+import 'dart:ui';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:async';
 
@@ -271,63 +272,56 @@ class _HelperDashboardState extends State<HelperDashboard> {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Column(
             children: [
-              TextField(
-                decoration: InputDecoration(
-                  hintText: 'Search tasks...',
-                  prefixIcon: const Icon(Icons.search),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 0),
+              // Search Bar
+              Container(
+                decoration: BoxDecoration(
+                  color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.grey[100],
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: Theme.of(context).brightness == Brightness.dark ? Colors.white12 : Colors.grey[200]!),
                 ),
-                onChanged: (val) {
-                  _searchQuery = val;
-                  // Optional: use debounce here instead of reloading on every keystroke
-                },
-                onSubmitted: (val) => _loadData(),
+                child: TextField(
+                  decoration: InputDecoration(
+                    hintText: 'Search tasks...',
+                    hintStyle: const TextStyle(color: Colors.grey),
+                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    suffixIcon: _searchQuery.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, size: 20),
+                            onPressed: () {
+                              setState(() {
+                                _searchQuery = '';
+                                _loadData();
+                              });
+                            },
+                          )
+                        : null,
+                  ),
+                  onChanged: (val) => _searchQuery = val,
+                  onSubmitted: (val) => _loadData(),
+                ),
               ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: DropdownButtonFormField<String>(
-                      decoration: InputDecoration(border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0)),
-                      value: _category.isEmpty ? null : _category,
-                      hint: const Text('Category'),
-                      items: const [
-                        DropdownMenuItem(value: '', child: Text('All')),
-                        DropdownMenuItem(value: 'Cleaning', child: Text('Cleaning')),
-                        DropdownMenuItem(value: 'Delivery', child: Text('Delivery')),
-                        DropdownMenuItem(value: 'Tech Support', child: Text('Tech Support')),
-                        DropdownMenuItem(value: 'Handyman', child: Text('Handyman')),
-                        DropdownMenuItem(value: 'Other', child: Text('Other')),
-                      ],
-                      onChanged: (val) {
-                        setState(() => _category = val ?? '');
-                        _loadData();
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    flex: 1,
-                    child: TextField(
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(hintText: 'Min ₹', border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0)),
-                      onChanged: (val) {
-                        _minPay = double.tryParse(val);
-                      },
-                      onSubmitted: (val) => _loadData(),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    icon: const Icon(Icons.check_circle, color: Colors.green, size: 32),
-                    onPressed: _loadData,
-                  )
-                ],
+              const SizedBox(height: 12),
+              
+              // Filter Chips
+              SizedBox(
+                height: 40,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  children: [
+                    _buildFilterChip('All', ''),
+                    const SizedBox(width: 8),
+                    _buildFilterChip('Physical', 'physical'),
+                    const SizedBox(width: 8),
+                    _buildFilterChip('Delivery', 'delivery'),
+                    const SizedBox(width: 8),
+                    _buildFilterChip('Digital', 'digital'),
+                  ],
+                ),
               ),
             ],
           ),
@@ -412,6 +406,35 @@ class _HelperDashboardState extends State<HelperDashboard> {
     );
   }
 
+  Widget _buildFilterChip(String label, String value) {
+    final isSelected = _category == value;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return GestureDetector(
+      onTap: () {
+        setState(() => _category = value);
+        _loadData();
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF10B981) : (isDark ? Colors.white12 : Colors.grey[200]),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: isSelected ? [BoxShadow(color: const Color(0xFF10B981).withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 2))] : [],
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? Colors.white : (isDark ? Colors.white70 : Colors.black87),
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildMyJobsTab() {
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -471,45 +494,86 @@ class _HelperDashboardState extends State<HelperDashboard> {
     final payCtrl = TextEditingController();
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Counter Offer'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Task: $title', style: const TextStyle(fontWeight: FontWeight.bold)),
-            Text('Original Pay: ₹$originalPay'),
-            const SizedBox(height: 16),
-            TextField(
-              controller: payCtrl,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Your Proposed Pay (₹)', border: OutlineInputBorder()),
+      barrierColor: Colors.black.withValues(alpha: 0.5),
+      builder: (ctx) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(20),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 30, offset: const Offset(0, 10))],
             ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E)),
-            onPressed: () async {
-              final proposedPay = double.tryParse(payCtrl.text);
-              if (proposedPay == null || proposedPay <= 0) {
-                if (context.mounted) ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('Enter a valid amount')));
-                return;
-              }
-              try {
-                await SupabaseService.submitOffer(taskId, proposedPay);
-                if (context.mounted) {
-                  Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Offer submitted!')));
-                }
-              } catch (e) {
-                if (context.mounted) ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('Error: $e')));
-              }
-            },
-            child: const Text('Submit', style: TextStyle(color: Colors.white)),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(color: const Color(0xFF3B82F6).withValues(alpha: 0.1), shape: BoxShape.circle),
+                  child: const Icon(Icons.handshake, color: Color(0xFF3B82F6), size: 40),
+                ),
+                const SizedBox(height: 16),
+                const Text('Make an Offer', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Text('Task: $title', style: TextStyle(fontSize: 14, color: Colors.grey[600]), textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 4),
+                Text('Original Pay: ₹$originalPay', style: const TextStyle(fontSize: 14, color: Colors.green, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 24),
+                TextField(
+                  controller: payCtrl,
+                  keyboardType: TextInputType.number,
+                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF3B82F6)),
+                  textAlign: TextAlign.center,
+                  decoration: InputDecoration(
+                    prefixText: '₹ ',
+                    prefixStyle: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF3B82F6)),
+                    hintText: '0',
+                    filled: true,
+                    fillColor: Theme.of(context).brightness == Brightness.dark ? Colors.black12 : Colors.grey[100],
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(child: TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: Colors.grey, fontSize: 16)))),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF3B82F6),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: () async {
+                          final proposedPay = double.tryParse(payCtrl.text);
+                          if (proposedPay == null || proposedPay <= 0) {
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter a valid amount')));
+                            return;
+                          }
+                          try {
+                            await SupabaseService.submitOffer(taskId, proposedPay);
+                            if (context.mounted) {
+                              Navigator.pop(ctx);
+                              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Offer submitted successfully!', style: TextStyle(color: Colors.white)), backgroundColor: Colors.green));
+                            }
+                          } catch (e) {
+                            if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+                          }
+                        },
+                        child: const Text('Submit Offer', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -518,10 +582,20 @@ class _HelperDashboardState extends State<HelperDashboard> {
     final seeker = task['profiles'] ?? task['seeker'];
     final trustScore = seeker != null ? seeker['trust_score'] : null;
     
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isDark ? Colors.white12 : Colors.grey[200]!),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -531,34 +605,43 @@ class _HelperDashboardState extends State<HelperDashboard> {
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(color: const Color(0xFFFFF7ED), borderRadius: BorderRadius.circular(4)),
-                      child: Text(task['category'] ?? 'General', style: const TextStyle(color: Color(0xFFEA580C), fontSize: 12, fontWeight: FontWeight.bold)),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(color: const Color(0xFFF97316).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.category, size: 12, color: Color(0xFFF97316)),
+                          const SizedBox(width: 4),
+                          Text(task['category'] ?? 'General', style: const TextStyle(color: Color(0xFFF97316), fontSize: 11, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
                     ),
                     if (task['distance_km'] != null) ...[
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(color: const Color(0xFFEFF6FF), borderRadius: BorderRadius.circular(4)),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
                         child: Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.location_on, size: 12, color: Color(0xFF3B82F6)),
+                            const Icon(Icons.location_on, size: 12, color: Colors.blue),
                             const SizedBox(width: 4),
-                            Text('${task['distance_km'].toStringAsFixed(1)} km', style: const TextStyle(color: Color(0xFF3B82F6), fontSize: 12, fontWeight: FontWeight.bold)),
+                            Text('${task['distance_km'].toStringAsFixed(1)} km', style: const TextStyle(color: Colors.blue, fontSize: 11, fontWeight: FontWeight.bold)),
                           ],
                         ),
                       ),
                     ],
                   ],
                 ),
-                Text('₹${task['pay']}', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF22C55E), fontSize: 16)),
+                Text('₹${task['pay']}', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF10B981), fontSize: 18)),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(task['title'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 4),
-            Text(_parseDescription(task['description'] ?? ''), style: const TextStyle(color: Color(0xFF64748B), fontSize: 14)),
+            const SizedBox(height: 16),
+            Text(task['title'], style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: isDark ? Colors.white : const Color(0xFF0F172A))),
+            const SizedBox(height: 6),
+            Text(_parseDescription(task['description'] ?? ''), style: TextStyle(color: isDark ? Colors.white70 : const Color(0xFF475569), fontSize: 14, height: 1.4)),
             
+            const SizedBox(height: 16),
             if (task['task_type'] == 'delivery') ...[
               const SizedBox(height: 8),
               Row(
@@ -599,29 +682,31 @@ class _HelperDashboardState extends State<HelperDashboard> {
             ],
             
             if (seeker != null) ...[
+              const SizedBox(height: 16),
+              const Divider(),
               const SizedBox(height: 12),
               Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0xFFE2E8F0))),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(12)),
                 child: Row(
                   children: [
                     CircleAvatar(
-                      radius: 14,
-                      backgroundColor: const Color(0xFFDCFCE7),
-                      child: Text((seeker['full_name'] ?? 'U')[0], style: const TextStyle(color: Color(0xFF15803D), fontSize: 12, fontWeight: FontWeight.bold)),
+                      radius: 20,
+                      backgroundColor: const Color(0xFF10B981).withValues(alpha: 0.2),
+                      child: Text((seeker['full_name'] ?? 'U')[0], style: const TextStyle(color: Color(0xFF10B981), fontSize: 16, fontWeight: FontWeight.bold)),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Posted by ${seeker['full_name'] ?? 'Unknown'}', style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                          Text('Posted by ${seeker['full_name'] ?? 'Unknown'}', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: isDark ? Colors.white : const Color(0xFF0F172A))),
                           if (trustScore != null)
                             Row(
                               children: [
-                                const Icon(Icons.verified, size: 12, color: Colors.blue),
+                                const Icon(Icons.verified, size: 14, color: Colors.blue),
                                 const SizedBox(width: 4),
-                                Text('Trust Score: $trustScore', style: const TextStyle(fontSize: 11, color: Color(0xFF64748B))),
+                                Text('Trust Score: $trustScore', style: TextStyle(fontSize: 12, color: isDark ? Colors.white54 : const Color(0xFF64748B))),
                               ],
                             ),
                         ],
@@ -637,17 +722,17 @@ class _HelperDashboardState extends State<HelperDashboard> {
               children: [
                 Expanded(
                   child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E), minimumSize: const Size.fromHeight(40)),
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                     onPressed: () => _acceptTask(task['id']),
-                    child: const Text('Accept Job', style: TextStyle(color: Colors.white)),
+                    child: const Text('Accept Job', style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 12),
                 Expanded(
                   child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(40)),
+                    style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                     onPressed: () => _showCounterOfferDialog(task['id'], task['title'], double.tryParse(task['pay'].toString()) ?? 0.0),
-                    child: const Text('Counter Offer'),
+                    child: const Text('Counter Offer', style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ),
               ],
@@ -660,10 +745,20 @@ class _HelperDashboardState extends State<HelperDashboard> {
 
   Widget _buildMyJobCard(Map<String, dynamic> task) {
     final isCompleted = task['status'] == 'completed';
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: !isCompleted ? Colors.blue.withValues(alpha: 0.3) : (isDark ? Colors.white12 : Colors.grey[200]!)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -671,17 +766,24 @@ class _HelperDashboardState extends State<HelperDashboard> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(color: isCompleted ? const Color(0xFFDCFCE7) : const Color(0xFFDBEAFE), borderRadius: BorderRadius.circular(4)),
-                  child: Text(isCompleted ? 'Completed' : 'In Progress', style: TextStyle(color: isCompleted ? const Color(0xFF16A34A) : const Color(0xFF2563EB), fontSize: 12, fontWeight: FontWeight.bold)),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(color: isCompleted ? Colors.green.withValues(alpha: 0.1) : Colors.blue.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(width: 8, height: 8, decoration: BoxDecoration(color: isCompleted ? Colors.green : Colors.blue, shape: BoxShape.circle)),
+                      const SizedBox(width: 6),
+                      Text(isCompleted ? 'Completed' : 'In Progress', style: TextStyle(color: isCompleted ? Colors.green : Colors.blue, fontSize: 12, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
                 ),
-                Text('₹${task['pay']}', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF22C55E), fontSize: 16)),
+                Text('₹${task['pay']}', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF10B981), fontSize: 18)),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(task['title'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 4),
-            Text('For: ${task['seeker']?['full_name'] ?? 'Unknown'}', style: const TextStyle(color: Color(0xFF64748B), fontSize: 14)),
+            const SizedBox(height: 16),
+            Text(task['title'], style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: isDark ? Colors.white : const Color(0xFF0F172A))),
+            const SizedBox(height: 6),
+            Text('For: ${task['seeker']?['full_name'] ?? 'Unknown'}', style: TextStyle(color: isDark ? Colors.white70 : const Color(0xFF475569), fontSize: 14)),
             
             if (task['task_type'] == 'delivery') ...[
               const SizedBox(height: 8),
@@ -721,24 +823,23 @@ class _HelperDashboardState extends State<HelperDashboard> {
                 child: Image.network(_extractImageUrl(task['description'])!, height: 150, width: double.infinity, fit: BoxFit.cover),
               ),
             ],
-
             if (!isCompleted) ...[
               const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(
-                    child: OutlinedButton(
-                      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(40)),
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                       onPressed: () => _completeTask(task['id']),
-                      child: const Text('Mark as Done'),
+                      child: const Text('Mark as Done', style: TextStyle(fontWeight: FontWeight.bold)),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(40)),
+                      style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                       icon: const Icon(Icons.chat, size: 16),
-                      label: const Text('Chat'),
+                      label: const Text('Chat', style: TextStyle(fontWeight: FontWeight.bold)),
                       onPressed: () {
                         Navigator.push(
                           context,
@@ -758,11 +859,11 @@ class _HelperDashboardState extends State<HelperDashboard> {
             ] else ...[
               const SizedBox(height: 16),
               OutlinedButton(
-                style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(40)),
+                style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                 onPressed: () => _showReviewDialog(task['id'], task['seeker_id'], task['seeker']?['full_name']),
-                child: const Text('Rate Seeker'),
+                child: const Text('Rate Seeker', style: TextStyle(fontWeight: FontWeight.bold)),
               ),
-            ]
+            ],
           ],
         ),
       ),
@@ -775,56 +876,112 @@ class _HelperDashboardState extends State<HelperDashboard> {
     
     showDialog(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setStateDialog) => AlertDialog(
-          title: Text('Rate $name'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('How was your experience working with this Seeker?', style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(5, (index) {
-                  return IconButton(
-                    icon: Icon(
-                      index < rating ? Icons.star : Icons.star_border,
-                      color: Colors.amber,
-                      size: 36,
+      barrierColor: Colors.black.withOpacity(0.5),
+      builder: (ctx) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: StatefulBuilder(
+          builder: (context, setStateDialog) {
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Container(
+                padding: const EdgeInsets.all(28),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  borderRadius: BorderRadius.circular(28),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withOpacity(isDark ? 0.4 : 0.1), blurRadius: 24, offset: const Offset(0, 10))
+                  ],
+                  border: Border.all(color: isDark ? Colors.white12 : Colors.grey[200]!, width: 1.5),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 64, height: 64,
+                      decoration: BoxDecoration(
+                        color: Colors.amber.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Center(child: Text('⭐', style: TextStyle(fontSize: 32))),
                     ),
-                    onPressed: () => setStateDialog(() => rating = index + 1),
-                  );
-                }),
+                    const SizedBox(height: 20),
+                    Text('Rate $name', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
+                    const SizedBox(height: 8),
+                    Text('How was your experience working with this Seeker?', textAlign: TextAlign.center, style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600], fontSize: 14)),
+                    const SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(5, (index) {
+                        return GestureDetector(
+                          onTap: () => setStateDialog(() => rating = index + 1),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            child: AnimatedScale(
+                              scale: index < rating ? 1.1 : 1.0,
+                              duration: const Duration(milliseconds: 150),
+                              child: Icon(
+                                index < rating ? Icons.star : Icons.star_border,
+                                color: index < rating ? Colors.amber : Colors.grey[400],
+                                size: 40,
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+                    ),
+                    const SizedBox(height: 24),
+                    TextField(
+                      controller: commentCtrl,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        hintText: 'Tell others what you thought...',
+                        hintStyle: TextStyle(color: isDark ? Colors.grey[500] : Colors.grey[400], fontSize: 14),
+                        filled: true,
+                        fillColor: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextButton(
+                            style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16))),
+                            onPressed: () => Navigator.pop(ctx),
+                            child: Text('Skip for now', style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600], fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF2563EB), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)), elevation: 0),
+                            onPressed: () async {
+                              try {
+                                await SupabaseService.submitReview(
+                                  taskId: taskId,
+                                  revieweeId: revieweeId,
+                                  rating: rating,
+                                  comment: commentCtrl.text,
+                                );
+                                if (context.mounted) Navigator.pop(ctx);
+                                if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Review submitted successfully!')));
+                              } catch (e) {
+                                if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+                              }
+                            },
+                            child: const Text('Submit Review', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                      ],
+                    )
+                  ],
+                ),
               ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: commentCtrl,
-                decoration: const InputDecoration(labelText: 'Comment (Optional)', border: OutlineInputBorder()),
-                maxLines: 2,
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E)),
-              onPressed: () async {
-                try {
-                  await SupabaseService.submitReview(
-                    taskId: taskId,
-                    revieweeId: revieweeId,
-                    rating: rating,
-                    comment: commentCtrl.text,
-                  );
-                  if (context.mounted) Navigator.pop(ctx);
-                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Review submitted!')));
-                } catch (e) {
-                  if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-                }
-              },
-              child: const Text('Submit', style: TextStyle(color: Colors.white)),
-            ),
-          ],
+            );
+          },
         ),
       ),
     );

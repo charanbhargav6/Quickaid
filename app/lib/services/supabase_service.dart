@@ -42,6 +42,13 @@ class SupabaseService {
     return deviceId;
   }
 
+  static Future<void> signInWithGoogle() async {
+    await auth.signInWithOAuth(
+      OAuthProvider.google,
+      redirectTo: 'io.supabase.quickaid://login-callback/',
+    );
+  }
+
   static Future<AuthResponse> signIn({
     required String email,
     required String password,

@@ -299,6 +299,7 @@ function PostTaskModalContent() {
         });
       }
     } else {
+      setIsPending(false);
       handleClose();
     }
   };

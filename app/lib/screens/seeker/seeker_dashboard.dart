@@ -4,12 +4,13 @@ import '../../services/supabase_service.dart';
 import '../shared/app_drawer.dart';
 import '../shared/chat_screen.dart';
 import '../shared/helper_profile_screen.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'dart:typed_data';
+import 'dart:ui';
 import '../../widgets/skeleton_loader.dart';
+import '../../widgets/alert_modal.dart';
+import '../../widgets/post_task_modal.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:async';
@@ -430,10 +431,20 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
       default: statusColor = Colors.orange; statusText = 'Open'; break;
     }
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: status == 'accepted' ? Colors.blue.withValues(alpha: 0.3) : (isDark ? Colors.white12 : Colors.grey[200]!)),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -441,31 +452,42 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(color: statusColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
-                  child: Text(statusText, style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.bold)),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(color: statusColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(width: 8, height: 8, decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle)),
+                      const SizedBox(width: 6),
+                      Text(statusText, style: TextStyle(color: statusColor, fontSize: 12, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
                 ),
                 Row(
                   children: [
-                    Text('₹${task['pay']}', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF22C55E), fontSize: 16)),
+                    Text('₹${task['pay']}', style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF10B981), fontSize: 18)),
                     if (status == 'open') ...[
                       const SizedBox(width: 8),
-                      IconButton(
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
-                        onPressed: () => _deleteTaskConfirm(task['id']),
+                      InkWell(
+                        onTap: () => _deleteTaskConfirm(task['id']),
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(color: Colors.red.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                          child: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                        ),
                       ),
                     ],
                   ],
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(task['title'], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-            const SizedBox(height: 4),
-            Text(_parseDescription(task['description'] ?? ''), style: const TextStyle(color: Color(0xFF64748B), fontSize: 14)),
+            const SizedBox(height: 16),
+            Text(task['title'], style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18, color: isDark ? Colors.white : const Color(0xFF0F172A))),
+            const SizedBox(height: 6),
+            Text(_parseDescription(task['description'] ?? ''), style: TextStyle(color: isDark ? Colors.white70 : const Color(0xFF475569), fontSize: 14, height: 1.4)),
             
+            const SizedBox(height: 16),
             if (task['task_type'] == 'delivery') ...[
               const SizedBox(height: 8),
               Row(
@@ -505,26 +527,28 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
               ),
             ],
             if (task['helper'] != null) ...[
+              const SizedBox(height: 16),
+              const Divider(),
               const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(8)),
+                decoration: BoxDecoration(color: isDark ? Colors.white.withValues(alpha: 0.05) : const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(12)),
                 child: Row(
                   children: [
-                    const CircleAvatar(radius: 16, child: Icon(Icons.engineering, size: 16)),
+                    const CircleAvatar(radius: 20, backgroundColor: Colors.blue, child: Icon(Icons.engineering, size: 20, color: Colors.white)),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Helper', style: TextStyle(fontSize: 10, color: Color(0xFF64748B))),
+                          Text('Helper Assigned', style: TextStyle(fontSize: 11, color: isDark ? Colors.white54 : const Color(0xFF64748B))),
                           GestureDetector(
                             onTap: () {
                               Navigator.push(context, MaterialPageRoute(builder: (ctx) => HelperProfileScreen(helperId: task['helper_id'])));
                             },
                             child: Row(
                               children: [
-                                Text(task['helper']['full_name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue, decoration: TextDecoration.underline)),
+                                Text(task['helper']['full_name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.blue)),
                                 if (task['helper']['trust_score'] != null && task['helper']['trust_score'] >= 30 && task['helper']['trust_score'] <= 50)
                                   const Padding(
                                     padding: EdgeInsets.only(left: 4.0),
@@ -537,12 +561,14 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
                       ),
                     ),
                     if (status == 'completed')
-                      OutlinedButton(
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF59E0B), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
                         onPressed: () => _showReviewDialog(task['id'], task['helper_id'], task['helper']['full_name']),
                         child: const Text('Rate Helper'),
                       )
                     else if (status == 'accepted')
-                      OutlinedButton.icon(
+                      ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
                         icon: const Icon(Icons.chat, size: 16),
                         label: const Text('Chat'),
                         onPressed: () {
@@ -669,297 +695,102 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
   }
 
   void _showAddFundsDialog() {
-    final amountCtrl = TextEditingController(text: '500');
+    final amountCtrl = TextEditingController();
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Add Funds (Demo)'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Enter amount to add to your wallet (Max ₹500 per transaction):'),
-            const SizedBox(height: 12),
-            TextField(
-              controller: amountCtrl,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Amount (₹)', border: OutlineInputBorder()),
+      barrierColor: Colors.black.withValues(alpha: 0.5),
+      builder: (ctx) => BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.all(20),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : Colors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 30, offset: const Offset(0, 10))],
             ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E)),
-            onPressed: () async {
-              final amount = double.tryParse(amountCtrl.text) ?? 0.0;
-              if (amount <= 0 || amount > 500) {
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please enter a valid amount up to ₹500')));
-                return;
-              }
-              Navigator.pop(ctx);
-              await SupabaseService.addDemoFunds(amount);
-              _loadData();
-              if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('₹$amount added to wallet!')));
-            },
-            child: const Text('Add Funds', style: TextStyle(color: Colors.white)),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(color: const Color(0xFF10B981).withValues(alpha: 0.1), shape: BoxShape.circle),
+                  child: const Icon(Icons.account_balance_wallet, color: Color(0xFF10B981), size: 40),
+                ),
+                const SizedBox(height: 16),
+                const Text('Add Funds to Wallet', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Text('Max ₹500 per demo transaction', style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+                const SizedBox(height: 24),
+                TextField(
+                  controller: amountCtrl,
+                  keyboardType: TextInputType.number,
+                  style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
+                  textAlign: TextAlign.center,
+                  decoration: InputDecoration(
+                    prefixText: '₹ ',
+                    prefixStyle: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
+                    hintText: '0',
+                    filled: true,
+                    fillColor: Theme.of(context).brightness == Brightness.dark ? Colors.black12 : Colors.grey[100],
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(child: TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: Colors.grey, fontSize: 16)))),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      flex: 2,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF10B981),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        onPressed: () async {
+                          final amount = double.tryParse(amountCtrl.text) ?? 0.0;
+                          if (amount <= 0 || amount > 500) {
+                            AlertModal.show(context, title: 'Invalid Amount', message: 'Please enter a valid amount up to ₹500', type: AlertType.warning);
+                            return;
+                          }
+                          Navigator.pop(ctx);
+                          await SupabaseService.addDemoFunds(amount);
+                          _loadData();
+                          if (mounted) AlertModal.show(context, title: 'Success', message: '₹$amount added to wallet!', type: AlertType.success);
+                        },
+                        child: const Text('Top Up', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ],
+        ),
       ),
     );
   }
 
   void _showCreateTaskDialog() {
-    final titleCtrl = TextEditingController();
-    final descCtrl = TextEditingController();
-    final payCtrl = TextEditingController();
-    final locCtrl = TextEditingController();
-    final destLocCtrl = TextEditingController(); // For Delivery Tasks
-    XFile? pickedFile;
-    Uint8List? fileBytes;
-    bool isUploading = false;
-    String errorText = '';
-    LatLng selectedLocation = const LatLng(12.9692, 79.1559);
-    LatLng selectedDestination = const LatLng(12.9719, 79.1588);
-    String taskType = 'physical'; // 'physical', 'delivery', 'digital'
-    bool placingDestination = false;
-
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setStateDialog) => AlertDialog(
-          title: const Text('Post New Task', style: TextStyle(fontWeight: FontWeight.bold)),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Task Type Selector
-                SegmentedButton<String>(
-                  segments: const [
-                    ButtonSegment(value: 'physical', label: Text('Physical', style: TextStyle(fontSize: 12))),
-                    ButtonSegment(value: 'delivery', label: Text('Delivery', style: TextStyle(fontSize: 12))),
-                    ButtonSegment(value: 'digital', label: Text('Digital', style: TextStyle(fontSize: 12))),
-                  ],
-                  selected: {taskType},
-                  onSelectionChanged: (Set<String> newSelection) {
-                    setStateDialog(() {
-                      taskType = newSelection.first;
-                    });
-                  },
-                ),
-                const SizedBox(height: 16),
-                
-                TextField(controller: titleCtrl, decoration: const InputDecoration(labelText: 'Task Title')),
-                const SizedBox(height: 12),
-                TextField(controller: descCtrl, decoration: const InputDecoration(labelText: 'Description (Optional)')),
-                const SizedBox(height: 12),
-                TextField(controller: payCtrl, decoration: InputDecoration(labelText: taskType == 'delivery' ? 'Auto-Calculated Pay (₹)' : 'Pay (₹) - Min ₹50', hintText: taskType == 'delivery' ? 'Set pins to calculate' : 'e.g. 150'), keyboardType: TextInputType.number, readOnly: taskType == 'delivery'),
-                ValueListenableBuilder<TextEditingValue>(
-                  valueListenable: payCtrl,
-                  builder: (context, value, child) {
-                    final pay = double.tryParse(value.text) ?? 0.0;
-                    if (pay > 0) {
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 4.0),
-                        child: Text(
-                          '✓ Helper receives ₹${(pay * 0.95).round()} (5% Platform Fee deducted from payout)',
-                          style: const TextStyle(fontSize: 10, color: Colors.green),
-                        ),
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  },
-                ),
-                const SizedBox(height: 12),
-                
-                // Dynamic Location Inputs
-                if (taskType != 'digital') ...[
-                  TextField(controller: locCtrl, decoration: InputDecoration(labelText: taskType == 'delivery' ? 'Pickup Location Name' : 'Location Name')),
-                  const SizedBox(height: 12),
-                  
-                  if (taskType == 'delivery') ...[
-                    TextField(controller: destLocCtrl, decoration: const InputDecoration(labelText: 'Dropoff / Destination Name')),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: ChoiceChip(
-                            label: const Text('Set Pickup Pin'),
-                            selected: !placingDestination,
-                            onSelected: (val) => setStateDialog(() => placingDestination = false),
-                            selectedColor: Colors.blue.shade100,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: ChoiceChip(
-                            label: const Text('Set Dropoff Pin'),
-                            selected: placingDestination,
-                            onSelected: (val) => setStateDialog(() => placingDestination = true),
-                            selectedColor: Colors.red.shade100,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                  
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    height: 150,
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: FlutterMap(
-                        options: MapOptions(
-                          initialCenter: selectedLocation,
-                          initialZoom: 15.0,
-                          onTap: (tapPosition, point) {
-                            setStateDialog(() {
-                              if (taskType == 'delivery' && placingDestination) {
-                                selectedDestination = point;
-                              } else {
-                                selectedLocation = point;
-                              }
-                              
-                              if (taskType == 'delivery') {
-                                final distMeters = const Distance().distance(selectedLocation, selectedDestination);
-                                final distKm = distMeters / 1000.0;
-                                final fare = 25 + (distKm * 12);
-                                payCtrl.text = (fare < 30 ? 30 : fare).round().toString();
-                              }
-                            });
-                          },
-                        ),
-                        children: [
-                          TileLayer(
-                            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                            userAgentPackageName: 'com.example.app',
-                          ),
-                          MarkerLayer(
-                            markers: [
-                              Marker(
-                                point: selectedLocation,
-                                width: 40,
-                                height: 40,
-                                child: Icon(Icons.location_on, color: taskType == 'delivery' ? Colors.blue : Colors.red, size: 40),
-                              ),
-                              if (taskType == 'delivery')
-                                Marker(
-                                  point: selectedDestination,
-                                  width: 40,
-                                  height: 40,
-                                  child: const Icon(Icons.location_on, color: Colors.red, size: 40),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.only(top: 4, bottom: 16),
-                    child: Text('Tap map to drop pin', style: TextStyle(fontSize: 10, color: Colors.grey), textAlign: TextAlign.center),
-                  ),
-                ] else ...[
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    child: Text('🌍 This is a remote/digital task. No location needed.', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
-                  ),
-                ],
-
-                OutlinedButton.icon(
-                  icon: const Icon(Icons.camera_alt),
-                  label: Text(pickedFile == null ? 'Attach Photo (Optional)' : 'Photo Selected'),
-                  onPressed: () async {
-                    final picker = ImagePicker();
-                    final xfile = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
-                    if (xfile != null) {
-                      final bytes = await xfile.readAsBytes();
-                      setStateDialog(() {
-                        pickedFile = xfile;
-                        fileBytes = bytes;
-                      });
-                    }
-                  },
-                ),
-                
-                if (errorText.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  Text(errorText, style: const TextStyle(color: Colors.red, fontSize: 12)),
-                ],
-              ],
-            ),
-          ),
-          actions: [
-            if (!isUploading) TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: Colors.grey))),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E)),
-              onPressed: isUploading ? null : () async {
-                if (titleCtrl.text.trim().isEmpty) {
-                  setStateDialog(() => errorText = 'Task Title is required');
-                  return;
-                }
-                final payAmount = double.tryParse(payCtrl.text) ?? 0.0;
-                if (payAmount < 50) {
-                  setStateDialog(() => errorText = 'Minimum pay is ₹50');
-                  return;
-                }
-                final currentBalance = double.tryParse(_currentUser['wallet_balance']?.toString() ?? '0') ?? 0.0;
-                if (currentBalance < payAmount) {
-                  setStateDialog(() => errorText = 'Insufficient wallet balance. Please add funds.');
-                  return;
-                }
-                
-                setStateDialog(() { isUploading = true; errorText = ''; });
-                String finalDesc = descCtrl.text.isEmpty ? 'Needs help ASAP' : descCtrl.text;
-                
-                try {
-                  if (fileBytes != null) {
-                    final fileName = '${DateTime.now().millisecondsSinceEpoch}_${pickedFile!.name}';
-                    await Supabase.instance.client.storage.from('task_images').uploadBinary(fileName, fileBytes!);
-                    final imageUrl = Supabase.instance.client.storage.from('task_images').getPublicUrl(fileName);
-                    finalDesc += '\n\n[IMAGE:$imageUrl]';
-                  }
-
-                  Map<String, dynamic> taskData = {
-                    'title': titleCtrl.text,
-                    'description': finalDesc,
-                    'pay': payAmount,
-                    'category': taskType,
-                    'task_type': taskType,
-                    'seeker_id': _currentUser['id'],
-                  };
-
-                  if (taskType != 'digital') {
-                    taskData['location_name'] = locCtrl.text.trim().isEmpty ? 'Campus' : locCtrl.text.trim();
-                    taskData['latitude'] = selectedLocation.latitude;
-                    taskData['longitude'] = selectedLocation.longitude;
-                  }
-
-                  if (taskType == 'delivery') {
-                    taskData['destination_name'] = destLocCtrl.text.trim().isEmpty ? 'Destination' : destLocCtrl.text.trim();
-                    taskData['destination_lat'] = selectedDestination.latitude;
-                    taskData['destination_lng'] = selectedDestination.longitude;
-                  }
-
-                  await SupabaseService.createTask(taskData);
-                  
-                  if (context.mounted) Navigator.pop(ctx);
-                  _loadData();
-                } catch (e) {
-                  setStateDialog(() {
-                    isUploading = false;
-                    errorText = 'Failed to post task: $e';
-                  });
-                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to post task: $e'), backgroundColor: Colors.red));
-                }
-              },
-              child: isUploading 
-                ? const SkeletonLoader(width: 16, height: 16)
-                : const Text('Post Task', style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        ),
+      barrierColor: Colors.black.withValues(alpha: 0.5),
+      builder: (ctx) => PostTaskModal(
+        currentUser: _currentUser,
+        onTaskPosted: () {
+          _loadData();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Task posted successfully!', style: TextStyle(color: Colors.white)), backgroundColor: Colors.green),
+            );
+          }
+        },
+        onAddFunds: _showAddFundsDialog,
       ),
     );
   }

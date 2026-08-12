@@ -50,25 +50,31 @@ export default function ReviewModal() {
   return (
     <div style={{
       position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-      background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
+      background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)',
+      display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
     }}>
-      <div className="card" style={{ padding: '2rem', width: '100%', maxWidth: '400px', position: 'relative' }}>
+      <div className="card fade-in" style={{ padding: '2.5rem', width: '100%', maxWidth: '450px', position: 'relative', background: 'var(--card-bg)', borderRadius: '24px', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
         <button 
           onClick={() => setIsOpen(false)}
-          style={{ position: 'absolute', top: '1rem', right: '1rem', background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer' }}
+          style={{ position: 'absolute', top: '1.25rem', right: '1.25rem', background: 'rgba(0,0,0,0.05)', border: 'none', fontSize: '1.25rem', cursor: 'pointer', width: '32px', height: '32px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         >
-          ×
+          ✕
         </button>
-        <h2 style={{ marginTop: 0, marginBottom: '0.5rem' }}>Rate Helper</h2>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '14px' }}>
-          Leave a review for task "{task.title}"
-        </p>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '2rem' }}>
+          <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(251, 191, 36, 0.1)', color: '#fbbf24', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', marginBottom: '1rem' }}>
+            ⭐
+          </div>
+          <h2 style={{ marginTop: 0, marginBottom: '0.5rem', fontSize: '24px', fontWeight: 800 }}>Rate Helper</h2>
+          <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '15px' }}>
+            How was your experience for "{task.title}"?
+          </p>
+        </div>
 
-        {error && <div style={{ color: 'red', marginBottom: '1rem', fontSize: '14px', background: '#fee2e2', padding: '10px', borderRadius: '8px' }}>{error}</div>}
+        {error && <div style={{ color: '#ef4444', marginBottom: '1.5rem', fontSize: '14px', background: '#fee2e2', padding: '12px', borderRadius: '12px', textAlign: 'center', fontWeight: 500 }}>{error}</div>}
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Rating</label>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
@@ -78,30 +84,32 @@ export default function ReviewModal() {
                   style={{
                     background: 'none',
                     border: 'none',
-                    fontSize: '2rem',
+                    fontSize: '2.5rem',
                     cursor: 'pointer',
                     color: star <= rating ? '#fbbf24' : '#e5e7eb',
-                    padding: 0
+                    padding: 0,
+                    transition: 'color 0.2s ease, transform 0.2s ease',
+                    transform: star <= rating ? 'scale(1.1)' : 'scale(1)'
                   }}
                 >
                   ★
                 </button>
               ))}
             </div>
-            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+            <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '8px', fontWeight: 500 }}>
               {rating <= 2 ? 'This will negatively impact their trust score.' : 'Great job!'}
             </div>
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600 }}>Comment (Optional)</label>
+            <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 600, fontSize: '14px' }}>Comment (Optional)</label>
             <textarea
               className="input"
               rows={3}
-              placeholder="How did they do?"
+              placeholder="Tell others what you thought..."
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              style={{ resize: 'vertical' }}
+              style={{ resize: 'none', borderRadius: '12px', padding: '1rem', background: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
             />
           </div>
 
@@ -109,7 +117,7 @@ export default function ReviewModal() {
             type="submit" 
             className="btn btn-primary" 
             disabled={submitting}
-            style={{ marginTop: '1rem' }}
+            style={{ marginTop: '0.5rem', padding: '1rem', borderRadius: '12px', fontSize: '16px', fontWeight: 'bold' }}
           >
             {submitting ? 'Submitting...' : 'Submit Review'}
           </button>

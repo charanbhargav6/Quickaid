@@ -3,6 +3,8 @@ import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
 import ReviewModal from '@/components/ReviewModal';
 
+export const dynamic = 'force-dynamic';
+
 export default async function SeekerLayout({ children }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

@@ -6,6 +6,8 @@ import { Suspense } from 'react';
 import NearbyHelpers from '@/components/NearbyHelpers';
 import IncomingOffers from '@/components/IncomingOffers';
 
+export const dynamic = 'force-dynamic';
+
 export default async function SeekerDashboard() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
