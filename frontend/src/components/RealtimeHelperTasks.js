@@ -22,7 +22,7 @@ export default function RealtimeHelperTasks({ initialTasks }) {
           .from('tasks')
           .select('*')
           .eq('helper_id', user.id)
-          .in('status', ['in_progress', 'completed', 'cancelled'])
+          .in('status', ['accepted', 'completed', 'cancelled', 'disputed'])
           .order('created_at', { ascending: false })
           .then(({ data }) => {
             if (data) setMyAcceptedTasks(data);

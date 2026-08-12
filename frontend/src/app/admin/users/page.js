@@ -1,8 +1,10 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase';
+import { useRouter } from 'next/navigation';
 
 export default function UsersPage() {
+  const router = useRouter();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -52,6 +54,7 @@ export default function UsersPage() {
     const supabase = createClient();
     await supabase.from('profiles').update({ role: newRole }).eq('id', userId);
     fetchUsers();
+    router.refresh();
   }
 
   const filteredUsers = users.filter(u => {

@@ -451,7 +451,9 @@ function PostTaskModalContent() {
               </div>
 
               <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem' }}>
-                <button type="button" className="btn btn-outline" style={{ flex: 1 }} onClick={handleClose} disabled={isPending}>Cancel</button>
+                <button type="button" className="btn btn-outline" style={{ flex: 1 }} onClick={handleClose} disabled={isPending}>
+                  {isPending ? 'Processing...' : 'Cancel'}
+                </button>
                 <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={isPending || (requiresTwoLocations && calculatedPrice <= 0)}>
                   {isPending ? 'Posting…' : 'Post Task'}
                 </button>
