@@ -3,6 +3,7 @@ import { useState, useEffect, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { postTask } from '@/app/seeker/_actions/taskActions';
+import AlertModal from './AlertModal';
 
 const MapPicker = dynamic(() => import('./MapPicker'), { ssr: false });
 
@@ -58,7 +59,7 @@ function PostTaskModalContent() {
 
   const [showModal, setShowModal] = useState(false);
   const [isPending, setIsPending] = useState(false);
-  const [errorMsg, setErrorMsg] = useState(null);
+  const [alertModal, setAlertModal] = useState({ isOpen: false });
 
   // Form states
   const [taskType, setTaskType] = useState('physical'); // physical, delivery, digital
@@ -125,18 +126,15 @@ function PostTaskModalContent() {
     }
   };
 
-  // Reverse geocode when map pins change manually
-  useEffect(() => {
-    if (taskLocation) {
-      reverseGeocode(taskLocation.lat, taskLocation.lng).then(name => setTaskLocationName(name));
-    }
-  }, [taskLocation]);
+  const handleMapSetTaskLocation = (coords) => {
+    setTaskLocation(coords);
+    reverseGeocode(coords.lat, coords.lng).then(name => setTaskLocationName(name));
+  };
 
-  useEffect(() => {
-    if (destinationLocation) {
-      reverseGeocode(destinationLocation.lat, destinationLocation.lng).then(name => setDestinationName(name));
-    }
-  }, [destinationLocation]);
+  const handleMapSetDestinationLocation = (coords) => {
+    setDestinationLocation(coords);
+    reverseGeocode(coords.lat, coords.lng).then(name => setDestinationName(name));
+  };
 
   // Auto-calculate Distance-based Price
   useEffect(() => {
@@ -214,7 +212,7 @@ function PostTaskModalContent() {
     setTaskLocation(null);
     setDestinationName('');
     setDestinationLocation(null);
-    setErrorMsg(null);
+    setAlertModal({ isOpen: false });
     if (action === 'create') router.replace(pathname);
   };
 
@@ -224,20 +222,37 @@ function PostTaskModalContent() {
     const isOther = category.startsWith('other');
     const titleToUse = isOther ? customTitle.trim() : (JOB_CATEGORIES[taskType].find(c => c.value === category)?.label.replace(/^.{2}/, '').trim() ?? category);
 
-    if (!category) return setErrorMsg('Please select a job category.');
-    if (isOther && !customTitle.trim()) return setErrorMsg('Please describe the job type.');
-    if (isOther && containsBlockedWord(customTitle)) return setErrorMsg('⚠️ Your job title contains inappropriate content.');
+    if (!category) {
+      setAlertModal({ isOpen: true, title: 'Category Required', message: 'Please select a job category.', type: 'warning', primaryActionText: 'Ok', onPrimaryAction: () => setAlertModal({ isOpen: false }) });
+      return;
+    }
+    if (isOther && !customTitle.trim()) {
+      setAlertModal({ isOpen: true, title: 'Title Required', message: 'Please describe the job type.', type: 'warning', primaryActionText: 'Ok', onPrimaryAction: () => setAlertModal({ isOpen: false }) });
+      return;
+    }
+    if (isOther && containsBlockedWord(customTitle)) {
+      setAlertModal({ isOpen: true, title: 'Invalid Content', message: 'Your job title contains inappropriate content.', type: 'danger', primaryActionText: 'Ok', onPrimaryAction: () => setAlertModal({ isOpen: false }) });
+      return;
+    }
 
     if (taskType !== 'digital') {
-      if (!taskLocation) return setErrorMsg('Please drop a pin on the map for the location.');
-      if (requiresTwoLocations && !destinationLocation) return setErrorMsg('Please drop a destination pin.');
+      if (!taskLocation) {
+        setAlertModal({ isOpen: true, title: 'Location Required', message: 'Please drop a pin on the map for the location.', type: 'warning', primaryActionText: 'Ok', onPrimaryAction: () => setAlertModal({ isOpen: false }) });
+        return;
+      }
+      if (requiresTwoLocations && !destinationLocation) {
+        setAlertModal({ isOpen: true, title: 'Destination Required', message: 'Please drop a destination pin.', type: 'warning', primaryActionText: 'Ok', onPrimaryAction: () => setAlertModal({ isOpen: false }) });
+        return;
+      }
     }
 
     const finalPrice = parseFloat(taskPrice);
-    if (isNaN(finalPrice) || finalPrice <= 0) return setErrorMsg('Please enter a valid price.');
+    if (isNaN(finalPrice) || finalPrice <= 0) {
+      setAlertModal({ isOpen: true, title: 'Invalid Price', message: 'Please enter a valid price.', type: 'warning', primaryActionText: 'Ok', onPrimaryAction: () => setAlertModal({ isOpen: false }) });
+      return;
+    }
 
     setIsPending(true);
-    setErrorMsg(null);
 
     const finalDescription = requiresTwoLocations
       ? `[Vehicle Required: ${vehicleType.replace('_', ' ').toUpperCase()}]\n\n${taskDesc}`
@@ -260,8 +275,29 @@ function PostTaskModalContent() {
     const res = await postTask(formData);
 
     if (!res.success) {
-      setErrorMsg(res.error);
       setIsPending(false);
+      if (res.error && res.error.includes('Insufficient funds')) {
+        setAlertModal({
+          isOpen: true,
+          title: 'Insufficient Balance',
+          message: 'You need to add funds to your wallet to cover the cost of this task before posting.',
+          type: 'danger',
+          primaryActionText: 'Add Funds',
+          primaryActionHref: '/seeker/wallet',
+          secondaryActionText: 'Cancel',
+          onSecondaryAction: () => setAlertModal({ isOpen: false }),
+          onPrimaryAction: () => setAlertModal({ isOpen: false })
+        });
+      } else {
+        setAlertModal({
+          isOpen: true,
+          title: 'Error',
+          message: res.error || 'An unexpected error occurred.',
+          type: 'danger',
+          primaryActionText: 'Ok',
+          onPrimaryAction: () => setAlertModal({ isOpen: false })
+        });
+      }
     } else {
       handleClose();
     }
@@ -283,11 +319,6 @@ function PostTaskModalContent() {
             <p style={{ color: 'var(--text-muted)', fontSize: '14px', marginTop: 0, marginBottom: '1.5rem' }}>
               Describe what you need help with and set your pricing.
             </p>
-            {errorMsg && (
-              <div style={{ color: '#EF4444', marginBottom: '1rem', fontSize: '14px', background: 'rgba(239,68,68,0.08)', padding: '10px 14px', borderRadius: '8px' }}>
-                {errorMsg}
-              </div>
-            )}
 
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
 
@@ -379,10 +410,12 @@ function PostTaskModalContent() {
                         </div>
                       )}
                     </div>
-                    <MapPicker
+                    <MapPicker 
                       requiresTwoLocations={requiresTwoLocations}
-                      position={taskLocation} setPosition={setTaskLocation}
-                      destination={destinationLocation} setDestination={setDestinationLocation}
+                      position={taskLocation} 
+                      setPosition={handleMapSetTaskLocation}
+                      destination={destinationLocation}
+                      setDestination={handleMapSetDestinationLocation}
                       placingDestination={placingDestination}
                       initialLocation={taskLocation}
                     />
@@ -426,6 +459,8 @@ function PostTaskModalContent() {
           </div>
         </div>
       )}
+      
+      <AlertModal {...alertModal} />
     </>
   );
 }

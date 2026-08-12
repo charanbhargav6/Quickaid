@@ -4,12 +4,13 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
 import styles from './Login.module.css';
 import Link from 'next/link';
+import AlertModal from '@/components/AlertModal';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState(null);
+  const [alertModal, setAlertModal] = useState({ isOpen: false });
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -36,7 +37,7 @@ export default function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError(null);
+    setAlertModal({ isOpen: false });
     
     const supabase = createClient();
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -45,7 +46,14 @@ export default function Login() {
     });
     
     if (error) {
-      setError(error.message);
+      setAlertModal({
+        isOpen: true,
+        title: 'Login Failed',
+        message: error.message,
+        type: 'danger',
+        primaryActionText: 'Ok',
+        onPrimaryAction: () => setAlertModal({ isOpen: false })
+      });
       setLoading(false);
     } else {
       // Fetch user role FIRST to prevent overwriting admins
@@ -73,7 +81,14 @@ export default function Login() {
       }
 
       if (profileError) {
-        setError('Failed to fetch user profile.');
+        setAlertModal({
+          isOpen: true,
+          title: 'Profile Error',
+          message: 'Failed to fetch user profile.',
+          type: 'danger',
+          primaryActionText: 'Ok',
+          onPrimaryAction: () => setAlertModal({ isOpen: false })
+        });
         setLoading(false);
       } else {
         const role = profileData?.role;
@@ -90,7 +105,14 @@ export default function Login() {
 
   const handleForgotPassword = async () => {
     if (!email) {
-      setError("Please enter your email address first.");
+      setAlertModal({
+        isOpen: true,
+        title: 'Email Required',
+        message: 'Please enter your email address first.',
+        type: 'warning',
+        primaryActionText: 'Ok',
+        onPrimaryAction: () => setAlertModal({ isOpen: false })
+      });
       return;
     }
     setLoading(true);
@@ -99,9 +121,23 @@ export default function Login() {
       redirectTo: `${window.location.origin}/reset-password`,
     });
     if (error) {
-      setError(error.message);
+      setAlertModal({
+        isOpen: true,
+        title: 'Reset Failed',
+        message: error.message,
+        type: 'danger',
+        primaryActionText: 'Ok',
+        onPrimaryAction: () => setAlertModal({ isOpen: false })
+      });
     } else {
-      setError("Password reset link sent to your email.");
+      setAlertModal({
+        isOpen: true,
+        title: 'Email Sent',
+        message: 'Check your email for the password reset link.',
+        type: 'success',
+        primaryActionText: 'Ok',
+        onPrimaryAction: () => setAlertModal({ isOpen: false })
+      });
     }
     setLoading(false);
   };
@@ -116,7 +152,14 @@ export default function Login() {
       }
     });
     if (error) {
-      setError(error.message);
+      setAlertModal({
+        isOpen: true,
+        title: 'Login Failed',
+        message: error.message,
+        type: 'danger',
+        primaryActionText: 'Ok',
+        onPrimaryAction: () => setAlertModal({ isOpen: false })
+      });
       setLoading(false);
     }
   };
@@ -129,7 +172,7 @@ export default function Login() {
           <h1 className={styles.logoText}>Quick<span className={styles.primaryText}>Aid</span></h1>
         </div>
         
-        {error && <div className={styles.errorMessage} style={{ color: error.includes('sent') ? 'green' : 'red', marginBottom: '1rem', textAlign: 'center' }}>{error}</div>}
+        <h2 style={{ textAlign: 'center', marginBottom: '1.5rem', color: '#1e293b' }}>Welcome Back</h2>
         
         <form onSubmit={handleLogin} className={styles.form}>
           <div className={styles.inputGroup}>
@@ -223,6 +266,8 @@ export default function Login() {
           </Link>
         </div>
       </div>
+      
+      <AlertModal {...alertModal} />
     </div>
   );
 }
