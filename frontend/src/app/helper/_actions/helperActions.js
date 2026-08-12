@@ -40,7 +40,7 @@ export async function acceptTask(rawInput) {
     // Atomic Update to prevent race conditions
     const { data, error } = await supabaseAdmin
       .from('tasks')
-      .update({ status: 'accepted', helper_id: user.id, accepted_at: new Date().toISOString() })
+      .update({ status: 'accepted', helper_id: user.id })
       .match({ id: taskId, status: 'open' })
       .select()
       .single()
