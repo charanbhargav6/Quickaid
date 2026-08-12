@@ -21,10 +21,15 @@ export async function acceptTask(rawInput) {
   if (authError || !user) return { success: false, error: 'Unauthorized' }
   
   try {
-    // Prevent accepting own task
+    // Prevent accepting own task and block admins
     const { data: checkTask } = await supabase.from('tasks').select('seeker_id').eq('id', taskId).single();
     if (checkTask && checkTask.seeker_id === user.id) {
       return { success: false, error: 'You cannot accept your own task.' };
+    }
+
+    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+    if (profile?.role === 'admin') {
+      return { success: false, error: 'Admins are not allowed to accept tasks.' };
     }
 
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {

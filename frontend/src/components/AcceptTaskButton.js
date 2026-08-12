@@ -1,19 +1,26 @@
 'use client';
-import { useTransition } from 'react';
+import { useState } from 'react';
 import { acceptTask } from '@/app/helper/_actions/helperActions';
+import toast from 'react-hot-toast';
 
 export default function AcceptTaskButton({ taskId, onSuccess }) {
-  const [isPending, startTransition] = useTransition();
+  const [loading, setLoading] = useState(false);
 
-  const handleAccept = () => {
-    startTransition(async () => {
+  const handleAccept = async () => {
+    setLoading(true);
+    try {
       const res = await acceptTask({ taskId });
       if (!res.success) {
-        alert(res.error);
-      } else if (onSuccess) {
-        onSuccess();
+        toast.error(res.error);
+      } else {
+        toast.success('Task accepted successfully!');
+        if (onSuccess) onSuccess();
       }
-    });
+    } catch (error) {
+      toast.error('An unexpected error occurred');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -21,9 +28,9 @@ export default function AcceptTaskButton({ taskId, onSuccess }) {
       className="btn btn-primary" 
       style={{ padding: '6px 12px', fontSize: '12px' }} 
       onClick={handleAccept}
-      disabled={isPending}
+      disabled={loading}
     >
-      {isPending ? 'Accepting...' : 'Accept Task'}
+      {loading ? 'Accepting...' : 'Accept Task'}
     </button>
   );
 }

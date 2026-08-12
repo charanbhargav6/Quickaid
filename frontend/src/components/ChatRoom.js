@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase';
+import toast from 'react-hot-toast';
 
 export default function ChatRoom({ initialMessages, taskId, userId, taskStatus }) {
   const [messages, setMessages] = useState(initialMessages || []);
@@ -122,7 +123,7 @@ export default function ChatRoom({ initialMessages, taskId, userId, taskStatus }
         content: `[IMAGE]${publicUrl}`,
       });
     } catch (err) {
-      alert('Failed to upload image: ' + err.message);
+      toast.error('Failed to upload image: ' + err.message);
     } finally {
       setLoading(false);
     }

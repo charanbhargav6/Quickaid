@@ -181,12 +181,29 @@ class SupabaseService {
   }
 
   static Future<Map<String, dynamic>> createTask(Map<String, dynamic> data) async {
+    final user = client.auth.currentUser;
+    if (user != null) {
+      final profile = await client.from('profiles').select('role').eq('id', user.id).maybeSingle();
+      if (profile != null && profile['role'] == 'admin') {
+        throw Exception('Admins are not allowed to post tasks.');
+      }
+    }
+    
+    if (data['pay'] != null && (data['pay'] as num) < 50) {
+      throw Exception('Minimum task price is ₹50');
+    }
+
     final res = await client.from('tasks').insert(data).select().single();
     return res;
   }
 
   static Future<void> acceptTask(String taskId, String helperId) async {
-    // Check if the user is the seeker
+    // Check if the user is the seeker or admin
+    final profile = await client.from('profiles').select('role').eq('id', helperId).maybeSingle();
+    if (profile != null && profile['role'] == 'admin') {
+      throw Exception('Admins are not allowed to accept tasks.');
+    }
+
     final task = await client.from('tasks').select('seeker_id').eq('id', taskId).maybeSingle();
     if (task != null && task['seeker_id'] == helperId) {
       throw Exception('You cannot accept your own task.');

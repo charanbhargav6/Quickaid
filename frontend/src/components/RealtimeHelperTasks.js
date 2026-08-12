@@ -47,6 +47,15 @@ export default function RealtimeHelperTasks({ initialTasks }) {
         } else if (payload.eventType === 'UPDATE') {
           if (payload.new.status !== 'open') {
             setTasks((prev) => prev.filter(t => t.id !== payload.new.id));
+            // If the current helper just accepted this task, add it to their active jobs immediately
+            if (currentUserId.current && payload.new.helper_id === currentUserId.current && ['accepted', 'completed'].includes(payload.new.status)) {
+              setMyAcceptedTasks((prev) => {
+                if (prev.some(t => t.id === payload.new.id)) {
+                  return prev.map(t => t.id === payload.new.id ? payload.new : t);
+                }
+                return [payload.new, ...prev];
+              });
+            }
           }
           // Update my accepted tasks
           if (payload.new.helper_id === currentUserId.current) {

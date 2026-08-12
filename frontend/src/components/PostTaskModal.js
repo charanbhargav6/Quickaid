@@ -3,6 +3,7 @@ import { useState, useEffect, Suspense } from 'react';
 import dynamic from 'next/dynamic';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { postTask } from '@/app/seeker/_actions/taskActions';
+import toast from 'react-hot-toast';
 import AlertModal from './AlertModal';
 
 const MapPicker = dynamic(() => import('./MapPicker'), { ssr: false });
@@ -192,11 +193,11 @@ function PostTaskModalContent() {
           setPlacingDestination(false);
         }
       } else {
-        alert("Location not found. Please try a different search term or drop the pin manually.");
+        toast.error("Location not found. Please try a different search term or drop the pin manually.");
       }
     } catch (e) {
       console.error(e);
-      alert("Error searching for location.");
+      toast.error("Error searching for location.");
     }
     setIsLocating(false);
   };

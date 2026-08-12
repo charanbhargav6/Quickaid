@@ -2,6 +2,7 @@
 import { useState, useRef } from 'react';
 import { createClient } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 
 export default function AvatarUpload({ profile, isOwner }) {
   const [uploading, setUploading] = useState(false);
@@ -36,8 +37,9 @@ export default function AvatarUpload({ profile, isOwner }) {
       if (updateError) throw updateError;
       
       router.refresh();
+      toast.success('Avatar updated successfully!');
     } catch (error) {
-      alert('Error uploading avatar: ' + error.message);
+      toast.error('Error uploading avatar: ' + error.message);
     } finally {
       setUploading(false);
     }

@@ -7,7 +7,7 @@ import { revalidatePath } from 'next/cache'
 const postTaskSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters").max(100),
   description: z.string().min(5, "Description must be at least 5 characters"),
-  price: z.number().positive("Price must be positive"),
+  price: z.number().min(50, "Minimum task price is ₹50"),
   task_type: z.enum(['physical', 'delivery', 'digital']).default('physical'),
   category: z.string().nullable().optional(),
   location_name: z.string().nullable().optional(),
@@ -33,8 +33,13 @@ export async function postTask(formData) {
     return { success: false, error: 'Unauthorized' }
   }
 
-  // 1. Fetch wallet balance
-  const { data: profile } = await supabase.from('profiles').select('wallet_balance').eq('id', user.id).single();
+  // 1. Fetch wallet balance and role
+  const { data: profile } = await supabase.from('profiles').select('wallet_balance, role').eq('id', user.id).single();
+  
+  if (profile?.role === 'admin') {
+    return { success: false, error: 'Admins are not allowed to post tasks.' };
+  }
+
   const balance = Number(profile?.wallet_balance || 0);
 
   // Note: Platform fee is now deducted from the helper during payout. 

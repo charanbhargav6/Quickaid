@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { acceptOffer } from '@/app/seeker/_actions/taskActions';
+import toast from 'react-hot-toast';
 
 export default function IncomingOffers({ userId }) {
   const [offers, setOffers] = useState([]);
@@ -38,10 +39,10 @@ export default function IncomingOffers({ userId }) {
     if (!confirm("Are you sure you want to accept this offer?")) return;
     const res = await acceptOffer({ offerId });
     if (res.success) {
-      alert("Offer accepted successfully!");
-      fetchOffers();
+      toast.success("Offer accepted successfully!");
+      setOffers(offers.filter(o => o.id !== offerId));
     } else {
-      alert(res.error || "Failed to accept offer.");
+      toast.error(res.error || "Failed to accept offer.");
     }
   };
 

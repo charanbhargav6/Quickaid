@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase';
+import toast from 'react-hot-toast';
 
 function ReviewForm() {
   const router = useRouter();
@@ -90,7 +91,7 @@ function ReviewForm() {
         }).eq('id', task.helper_id);
       }
 
-      alert("Review submitted successfully!");
+      toast.success("Review submitted successfully!");
       router.push('/seeker/tasks');
       
     } catch (err) {

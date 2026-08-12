@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { submitReview } from '@/app/seeker/_actions/reviewActions';
+import toast from 'react-hot-toast';
 
 export default function ReviewModal() {
   const [task, setTask] = useState(null);
@@ -41,7 +42,7 @@ export default function ReviewModal() {
 
     if (res.success) {
       setIsOpen(false);
-      alert('Review submitted successfully!');
+      toast.success('Review submitted successfully!');
     } else {
       setError(res.error || 'Failed to submit review. You may have already reviewed this task.');
     }

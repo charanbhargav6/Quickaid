@@ -20,6 +20,8 @@ export const viewport = {
   maximumScale: 1,
 };
 
+import { Toaster } from 'react-hot-toast';
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${inter.variable}`}>
@@ -33,6 +35,7 @@ export default function RootLayout({ children }) {
         }} />
         <NotificationProvider>
           {children}
+          <Toaster position="bottom-center" />
         </NotificationProvider>
       </body>
     </html>

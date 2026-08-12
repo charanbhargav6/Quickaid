@@ -1,12 +1,15 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { addFunds } from '@/app/seeker/_actions/walletActions';
+import toast from 'react-hot-toast';
 
 export default function AddFundsModal({ isOpen, onClose }) {
   const [amount, setAmount] = useState(500);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const router = useRouter();
 
   if (!isOpen) return null;
 
@@ -21,13 +24,11 @@ export default function AddFundsModal({ isOpen, onClose }) {
     setLoading(false);
     
     if (result.success) {
-      setSuccess(true);
-      setTimeout(() => {
-        setSuccess(false);
-        onClose();
-      }, 2000);
+      toast.success(`Successfully added ₹${amount} to wallet!`);
+      onClose();
+      router.refresh();
     } else {
-      alert(result.error);
+      toast.error(result.error);
     }
   };
 

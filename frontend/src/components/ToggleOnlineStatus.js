@@ -1,6 +1,7 @@
 'use client';
 import { useState, useTransition } from 'react';
 import { toggleOnlineStatus } from '@/app/helper/_actions/helperActions';
+import toast from 'react-hot-toast';
 
 export default function ToggleOnlineStatus({ initialStatus }) {
   const [isOnline, setIsOnline] = useState(initialStatus);
@@ -16,7 +17,9 @@ export default function ToggleOnlineStatus({ initialStatus }) {
       if (!res.success) {
         // Revert on failure
         setIsOnline(!newStatus);
-        alert(res.error);
+        toast.error(res.error);
+      } else {
+        toast.success(newStatus ? 'You are now online' : 'You are now offline');
       }
     });
   };
