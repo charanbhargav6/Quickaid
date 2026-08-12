@@ -12,7 +12,6 @@ const ADMIN_NAV = [
   { icon: '📊', label: 'Dashboard', path: '/admin/dashboard' },
   { icon: '👥', label: 'Users', path: '/admin/users' },
   { icon: '📋', label: 'Tasks', path: '/admin/tasks' },
-  { icon: '💰', label: 'Earnings', path: '/admin/earnings' },
   { icon: '💬', label: 'Messages', path: '/chat' },
   { icon: '⭐', label: 'Reviews', path: '/admin/reviews' },
   { icon: '🚩', label: 'Reports', path: '/admin/reports' },
@@ -206,18 +205,22 @@ export default function Sidebar() {
       </nav>
 
       {/* ── User Profile Card ──────── */}
-      <div className={styles.userCard}>
+      <Link href={`/profile/${profile?.id}`} className={styles.userCard} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: '1rem' }}>
         <div className={styles.userAvatar}>
-          <span>{profile?.full_name ? profile.full_name[0] : 'U'}</span>
+          {profile?.avatar_url ? (
+            <img src={profile.avatar_url} alt="Avatar" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+          ) : (
+            <span>{profile?.full_name ? profile.full_name[0] : 'U'}</span>
+          )}
           <div className={styles.onlineDot} />
         </div>
         <div className={styles.userInfo}>
-          <p className={styles.userName}>{profile?.full_name || 'User'}</p>
-          <p className={styles.userEmail}>{role === 'admin' ? 'ADMIN' : 'USER'}</p>
-          <span className={styles.userStatus}>● Online</span>
+          <p className={styles.userName} style={{ margin: 0, fontWeight: 'bold' }}>{profile?.full_name || 'User'}</p>
+          <p className={styles.userEmail} style={{ margin: 0, fontSize: '0.8rem', opacity: 0.8 }}>{role === 'admin' ? 'ADMIN' : 'USER'}</p>
+          <span className={styles.userStatus} style={{ fontSize: '0.75rem', color: 'var(--green-500)' }}>● Online</span>
         </div>
-        <div className={styles.verifiedBadge}>Verified User</div>
-      </div>
+        {role !== 'admin' && <div className={styles.verifiedBadge} style={{ fontSize: '0.7rem' }}>Verified</div>}
+      </Link>
     </aside>
   );
 }
