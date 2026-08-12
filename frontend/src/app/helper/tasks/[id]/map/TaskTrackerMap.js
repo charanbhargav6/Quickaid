@@ -17,8 +17,10 @@ export default function TaskTrackerMap({ task }) {
     ? [task.destination_lat, task.destination_lng] 
     : null;
 
+  const [routeLine, setRouteLine] = useState([]);
+
   useEffect(() => {
-    // Get Helper's current location to show on the map
+    // Get Helper's current location
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (pos) => setHelperPos([pos.coords.latitude, pos.coords.longitude]),
@@ -28,14 +30,40 @@ export default function TaskTrackerMap({ task }) {
     }
   }, []);
 
+  useEffect(() => {
+    // Fetch actual street route from OSRM API
+    async function fetchRoute() {
+      try {
+        const waypoints = [];
+        if (helperPos) waypoints.push(`${helperPos[1]},${helperPos[0]}`);
+        waypoints.push(`${pickupPos[1]},${pickupPos[0]}`);
+        if (dropoffPos) waypoints.push(`${dropoffPos[1]},${dropoffPos[0]}`);
+
+        if (waypoints.length > 1) {
+          const coordsStr = waypoints.join(';');
+          const res = await fetch(`https://router.project-osrm.org/route/v1/driving/${coordsStr}?overview=full&geometries=geojson`);
+          const data = await res.json();
+          if (data.routes && data.routes[0]) {
+            // OSRM returns [lng, lat], Leaflet needs [lat, lng]
+            const latLngs = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+            setRouteLine(latLngs);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch route:", err);
+        // Fallback to straight line
+        const fallback = [];
+        if (helperPos) fallback.push(helperPos);
+        fallback.push(pickupPos);
+        if (dropoffPos) fallback.push(dropoffPos);
+        setRouteLine(fallback);
+      }
+    }
+    fetchRoute();
+  }, [helperPos, pickupPos[0], pickupPos[1], dropoffPos?.[0], dropoffPos?.[1]]);
+
   // Determine center based on available points
   const center = helperPos || pickupPos;
-
-  // Simple straight line route for visualization
-  const routePositions = [];
-  if (helperPos) routePositions.push(helperPos);
-  routePositions.push(pickupPos);
-  if (dropoffPos) routePositions.push(dropoffPos);
 
   return (
     <div style={{ height: '100%', width: '100%', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border)', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', position: 'relative' }}>
@@ -82,14 +110,13 @@ export default function TaskTrackerMap({ task }) {
           </Marker>
         )}
 
-        {/* Draw a route line between the points */}
-        {routePositions.length > 1 && (
+        {/* Draw the street route line between the points */}
+        {routeLine.length > 1 && (
           <Polyline 
-            positions={routePositions} 
+            positions={routeLine} 
             color="var(--primary)" 
-            weight={4} 
-            opacity={0.7} 
-            dashArray="10, 10" 
+            weight={5} 
+            opacity={0.8} 
           />
         )}
       </MapContainer>
