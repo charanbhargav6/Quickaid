@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 
@@ -16,15 +16,18 @@ const TaskTrackerMap = dynamic(() => import('./TaskTrackerMap'), {
   )
 });
 
-export default function LiveTaskMapPage({ params }) {
+export default function LiveTaskMapPage() {
   const router = useRouter();
-  const { id: taskId } = params;
+  const params = useParams();
+  const taskId = params?.id;
   
   const [task, setTask] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchTaskDetails();
+    if (taskId) {
+      fetchTaskDetails();
+    }
   }, [taskId]);
 
   const fetchTaskDetails = async () => {
