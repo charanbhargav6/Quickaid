@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../services/supabase_service.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -45,6 +47,29 @@ class _ChatScreenState extends State<ChatScreen> {
       });
     } catch (e) {
       if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to send: $e')));
+    }
+  }
+  Future<void> _sendImage() async {
+    final picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 70);
+    if (image == null) return;
+    
+    try {
+      final bytes = await image.readAsBytes();
+      final fileExt = image.name.split('.').last;
+      final fileName = 'chat/${widget.taskId}-${DateTime.now().millisecondsSinceEpoch}.$fileExt';
+      
+      final storage = SupabaseService.client.storage.from('avatars');
+      await storage.uploadBinary(fileName, bytes, fileOptions: const FileOptions(upsert: true));
+      final publicUrl = storage.getPublicUrl(fileName);
+      
+      await SupabaseService.client.from('messages').insert({
+        'task_id': widget.taskId,
+        'sender_id': _currentUserId,
+        'content': '[IMAGE]$publicUrl',
+      });
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to send image: $e'), backgroundColor: Colors.red));
     }
   }
 
@@ -150,17 +175,19 @@ class _ChatScreenState extends State<ChatScreen> {
                 
                 return ListView.builder(
                   padding: const EdgeInsets.all(16),
-                  reverse: false, // We stream ascending, so new messages are at the bottom
+                  reverse: false, 
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
                     final msg = messages[index];
                     final isMe = msg['sender_id'] == _currentUserId;
+                    final content = msg['content'] ?? '';
+                    final isImage = content.startsWith('[IMAGE]');
                     
                     return Align(
                       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
                       child: Container(
                         margin: const EdgeInsets.only(bottom: 8),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        padding: EdgeInsets.symmetric(horizontal: isImage ? 4 : 16, vertical: isImage ? 4 : 12),
                         decoration: BoxDecoration(
                           color: isMe ? const Color(0xFFDCFCE7) : const Color(0xFFF1F5F9),
                           borderRadius: BorderRadius.only(
@@ -171,10 +198,20 @@ class _ChatScreenState extends State<ChatScreen> {
                           ),
                           border: Border.all(color: isMe ? const Color(0xFF86EFAC) : const Color(0xFFE2E8F0)),
                         ),
-                        child: Text(
-                          msg['content'] ?? '',
-                          style: TextStyle(color: isMe ? const Color(0xFF14532D) : const Color(0xFF1E293B)),
-                        ),
+                        child: isImage 
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: Image.network(
+                                content.substring(7),
+                                width: 200,
+                                fit: BoxFit.cover,
+                                errorBuilder: (c,e,s) => const Icon(Icons.broken_image, size: 100, color: Colors.grey),
+                              ),
+                            )
+                          : Text(
+                              content,
+                              style: TextStyle(color: isMe ? const Color(0xFF14532D) : const Color(0xFF1E293B)),
+                            ),
                       ),
                     );
                   },
@@ -188,30 +225,36 @@ class _ChatScreenState extends State<ChatScreen> {
               color: Colors.white,
               border: Border(top: BorderSide(color: Colors.grey.shade300)),
             ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _messageCtrl,
-                    decoration: InputDecoration(
-                      hintText: 'Type a message...',
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      filled: true,
-                      fillColor: Colors.grey.shade100,
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
+            child: SafeArea(
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.image, color: Colors.grey),
+                    onPressed: _sendImage,
+                  ),
+                  Expanded(
+                    child: TextField(
+                      controller: _messageCtrl,
+                      decoration: InputDecoration(
+                        hintText: 'Type a message...',
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        filled: true,
+                        fillColor: Colors.grey.shade100,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
+                      ),
+                      onSubmitted: (_) => _sendMessage(),
                     ),
-                    onSubmitted: (_) => _sendMessage(),
                   ),
-                ),
-                const SizedBox(width: 8),
-                CircleAvatar(
-                  backgroundColor: const Color(0xFF22C55E),
-                  child: IconButton(
-                    icon: const Icon(Icons.send, color: Colors.white),
-                    onPressed: _sendMessage,
+                  const SizedBox(width: 8),
+                  CircleAvatar(
+                    backgroundColor: const Color(0xFF22C55E),
+                    child: IconButton(
+                      icon: const Icon(Icons.send, color: Colors.white),
+                      onPressed: _sendMessage,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],

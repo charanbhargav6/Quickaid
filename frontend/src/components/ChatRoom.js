@@ -97,6 +97,37 @@ export default function ChatRoom({ initialMessages, taskId, userId, taskStatus }
     setLoading(false);
   };
 
+  const fileInputRef = useRef(null);
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLoading(true);
+    try {
+      const supabase = createClient();
+      const fileExt = file.name.split('.').pop();
+      const fileName = `chat/${taskId}-${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(fileName, file, { upsert: true });
+        
+      if (uploadError) throw uploadError;
+      
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName);
+      
+      await supabase.from('messages').insert({
+        task_id: taskId,
+        sender_id: userId,
+        content: `[IMAGE]${publicUrl}`,
+      });
+    } catch (err) {
+      alert('Failed to upload image: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: '#f0f2f5' }}>
       {/* Messages Area */}
@@ -128,7 +159,18 @@ export default function ChatRoom({ initialMessages, taskId, userId, taskStatus }
                     {msg.profiles.full_name}
                   </div>
                 )}
-                <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
+                {msg.content?.startsWith('[IMAGE]') ? (
+                  <div style={{ marginTop: '4px' }}>
+                    <img 
+                      src={msg.content.substring(7)} 
+                      alt="Chat Attachment" 
+                      style={{ maxWidth: '240px', borderRadius: '12px', cursor: 'pointer', display: 'block' }} 
+                      onClick={() => window.open(msg.content.substring(7), '_blank')}
+                    />
+                  </div>
+                ) : (
+                  <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
+                )}
                 <div style={{ 
                   fontSize: '10px', 
                   color: isMe ? 'rgba(255,255,255,0.7)' : 'var(--text-muted)', 
@@ -148,6 +190,28 @@ export default function ChatRoom({ initialMessages, taskId, userId, taskStatus }
       <div style={{ padding: '1rem', background: '#fff', borderTop: '1px solid var(--border)' }}>
         {taskStatus === 'accepted' ? (
           <form onSubmit={handleSendMessage} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <input 
+              type="file" 
+              accept="image/*" 
+              style={{ display: 'none' }} 
+              ref={fileInputRef} 
+              onChange={handleImageUpload} 
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={loading}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                padding: '8px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', justifyContent: 'center'
+              }}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <polyline points="21 15 16 10 5 21"></polyline>
+              </svg>
+            </button>
             <input
               className="input"
               style={{ flex: 1, borderRadius: '24px', padding: '12px 20px' }}
@@ -169,8 +233,8 @@ export default function ChatRoom({ initialMessages, taskId, userId, taskStatus }
             </button>
           </form>
         ) : (
-          <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '10px 0' }}>
-            Chat is closed. This task is {taskStatus}.
+          <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '0.5rem 0' }}>
+            Chat is disabled because this task is {taskStatus}.
           </div>
         )}
       </div>
