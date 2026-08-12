@@ -124,15 +124,27 @@ export default function TaskTrackerMap({ task }) {
       {/* Floating Info Overlay */}
       <div style={{
         position: 'absolute', bottom: '20px', left: '20px', zIndex: 1000,
-        backgroundColor: 'var(--card-bg)', padding: '1rem', borderRadius: '12px',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.15)', maxWidth: '300px'
+        backgroundColor: 'var(--card-bg)', padding: '1.25rem', borderRadius: '16px',
+        boxShadow: '0 8px 30px rgba(0,0,0,0.2)', width: '320px', maxWidth: 'calc(100vw - 40px)'
       }}>
-        <h4 style={{ margin: '0 0 8px 0', fontSize: '1rem' }}>📍 Task Route</h4>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem' }}>
+        <h4 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', fontWeight: 700 }}>📍 Route Details</h4>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.9rem', marginBottom: '16px' }}>
           {helperPos && <div style={{ color: 'var(--text-secondary)' }}>🧑‍🔧 Your Location</div>}
-          <div style={{ color: 'var(--text-primary)', fontWeight: 500 }}>↓ {task.location_name || 'Pickup'}</div>
-          {dropoffPos && <div style={{ color: 'var(--text-primary)', fontWeight: 500 }}>↓ {task.destination_name}</div>}
+          <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>↓ {task.location_name || 'Pickup'}</div>
+          {dropoffPos && <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>↓ {task.destination_name}</div>}
         </div>
+        
+        {helperPos && (
+          <a 
+            href={`https://www.google.com/maps/dir/?api=1&origin=${helperPos[0]},${helperPos[1]}&destination=${dropoffPos ? `${dropoffPos[0]},${dropoffPos[1]}` : `${pickupPos[0]},${pickupPos[1]}`}${dropoffPos ? `&waypoints=${pickupPos[0]},${pickupPos[1]}` : ''}&travelmode=driving`}
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="btn btn-primary"
+            style={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px', padding: '12px', fontSize: '1rem', fontWeight: 700 }}
+          >
+            🧭 Start Navigation
+          </a>
+        )}
       </div>
     </div>
   );
