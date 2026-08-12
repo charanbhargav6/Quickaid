@@ -20,54 +20,63 @@ export async function acceptTask(rawInput) {
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) return { success: false, error: 'Unauthorized' }
   
-  // Prevent accepting own task
-  const { data: checkTask } = await supabase.from('tasks').select('seeker_id').eq('id', taskId).single();
-  if (checkTask && checkTask.seeker_id === user.id) {
-    return { success: false, error: 'You cannot accept your own task.' };
-  }
-
-  // Use Admin Client for updates because RLS prevents helpers from updating tasks or inserting notifications for seekers
-  const supabaseAdmin = createSupabaseClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-  );
-
-  // Atomic Update to prevent race conditions
-  const { data, error } = await supabaseAdmin
-    .from('tasks')
-    .update({ status: 'accepted', helper_id: user.id, accepted_at: new Date().toISOString() })
-    .match({ id: taskId, status: 'open' })
-    .select()
-    .single()
-
-  if (error || !data) {
-    return { success: false, error: 'Task is no longer available or does not exist.' }
-  }
-
-  // Notify seeker
-  await supabaseAdmin.from('notifications').insert({
-    user_id: data.seeker_id,
-    title: 'Task Accepted! 🤝',
-    body: `A helper has accepted your task: "${data.title}"`,
-    data: {
-      type: 'task_accepted',
-      route: `/chat/${data.id}`
+  try {
+    // Prevent accepting own task
+    const { data: checkTask } = await supabase.from('tasks').select('seeker_id').eq('id', taskId).single();
+    if (checkTask && checkTask.seeker_id === user.id) {
+      return { success: false, error: 'You cannot accept your own task.' };
     }
-  });
 
-  // Send Push Notification
-  const { data: seekerProfile } = await supabase.from('profiles').select('fcm_token').eq('id', data.seeker_id).single();
-  if (seekerProfile && seekerProfile.fcm_token) {
-    await sendPushNotification(
-      seekerProfile.fcm_token,
-      'Task Accepted! 🤝',
-      `A helper has accepted your task: "${data.title}"`,
-      { type: 'task_accepted', taskId: data.id }
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return { success: false, error: 'Server configuration error: Missing SUPABASE_SERVICE_ROLE_KEY in environment variables. Please add it to Vercel.' };
+    }
+
+    // Use Admin Client for updates because RLS prevents helpers from updating tasks or inserting notifications for seekers
+    const supabaseAdmin = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_SERVICE_ROLE_KEY
     );
-  }
 
-  revalidatePath('/helper')
-  return { success: true, task: data }
+    // Atomic Update to prevent race conditions
+    const { data, error } = await supabaseAdmin
+      .from('tasks')
+      .update({ status: 'accepted', helper_id: user.id, accepted_at: new Date().toISOString() })
+      .match({ id: taskId, status: 'open' })
+      .select()
+      .single()
+
+    if (error || !data) {
+      return { success: false, error: 'Task is no longer available or does not exist.' }
+    }
+
+    // Notify seeker
+    await supabaseAdmin.from('notifications').insert({
+      user_id: data.seeker_id,
+      title: 'Task Accepted! 🤝',
+      body: `A helper has accepted your task: "${data.title}"`,
+      data: {
+        type: 'task_accepted',
+        route: `/chat/${data.id}`
+      }
+    });
+
+    // Send Push Notification
+    const { data: seekerProfile } = await supabase.from('profiles').select('fcm_token').eq('id', data.seeker_id).single();
+    if (seekerProfile && seekerProfile.fcm_token) {
+      await sendPushNotification(
+        seekerProfile.fcm_token,
+        'Task Accepted! 🤝',
+        `A helper has accepted your task: "${data.title}"`,
+        { type: 'task_accepted', taskId: data.id }
+      );
+    }
+
+    revalidatePath('/helper')
+    return { success: true, task: data }
+  } catch (e) {
+    console.error('acceptTask Error:', e);
+    return { success: false, error: e.message || 'An unexpected error occurred while accepting the task.' };
+  }
 }
 
 export async function cancelTask(rawInput) {
