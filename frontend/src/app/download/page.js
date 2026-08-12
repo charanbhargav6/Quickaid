@@ -51,13 +51,12 @@ export default function DownloadPage() {
             </div>
 
             <div style={{ marginTop: '2rem' }}>
-              {siteUrl && (
-                <a 
-                  href={`${siteUrl}/QuickAid.apk`}
-                  download
-                  className="btn btn-primary"
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
-                >
+              <a 
+                href="https://github.com/charanbhargav6/Quickaid/releases/latest/download/app-release.apk"
+                download
+                className="btn btn-primary"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
+              >
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 15v4a2 20 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                     <polyline points="7 10 12 15 17 10"></polyline>
@@ -65,7 +64,6 @@ export default function DownloadPage() {
                   </svg>
                   Download APK Directly
                 </a>
-              )}
             </div>
           </div>
 
@@ -79,11 +77,7 @@ export default function DownloadPage() {
               boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
               marginBottom: '1rem'
             }}>
-              {siteUrl ? (
-                <QRCodeSVG value={`${siteUrl}/QuickAid.apk`} size={180} />
-              ) : (
-                <div style={{ width: 180, height: 180, background: '#f5f5f5', borderRadius: 8 }}></div>
-              )}
+              <QRCodeSVG value="https://github.com/charanbhargav6/Quickaid/releases/latest/download/app-release.apk" size={180} />
             </div>
           </div>
         </div>
