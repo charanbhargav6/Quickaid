@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import TaskReviewModal from '@/components/TaskReviewModal';
 import AlertModal from '@/components/AlertModal';
 import { cancelTask, raiseDispute } from '@/app/seeker/_actions/taskActions';
+import Link from 'next/link';
 
 export default function RealtimeTaskList({ initialTasks, userId }) {
   const [tasks, setTasks] = useState(initialTasks);
@@ -139,6 +140,15 @@ export default function RealtimeTaskList({ initialTasks, userId }) {
                     >
                       {cancellingId === task.id ? '...' : 'Cancel'}
                     </button>
+                  )}
+                  {['accepted', 'completed', 'disputed'].includes(task.status) && task.helper_id && (
+                    <Link
+                      href={`/chat/${task.id}`}
+                      className="btn btn-primary"
+                      style={{ fontSize: '12px', padding: '4px 10px', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}
+                    >
+                      💬 Message
+                    </Link>
                   )}
                   {task.status === 'accepted' && (
                     <button

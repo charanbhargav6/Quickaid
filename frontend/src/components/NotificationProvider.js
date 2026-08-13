@@ -31,7 +31,7 @@ export default function NotificationProvider({ children }) {
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
-        .limit(20);
+        .limit(100);
         
       if (data) {
         setNotifications(data);

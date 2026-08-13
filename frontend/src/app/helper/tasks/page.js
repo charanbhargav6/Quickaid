@@ -30,7 +30,7 @@ export default function HelperTasksPage() {
         seeker:seeker_id(full_name, phone)
       `)
       .eq('helper_id', currentUser.id)
-      .in('status', ['accepted', 'completed'])
+      .in('status', ['accepted', 'completed', 'disputed'])
       .order('created_at', { ascending: false });
 
     if (data) setTasks(data);
@@ -130,7 +130,12 @@ export default function HelperTasksPage() {
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: '1.5rem' }}>
+              <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: '1.5rem', flexWrap: 'wrap' }}>
+                {['accepted', 'completed', 'disputed'].includes(task.status) && (
+                  <Link href={`/chat/${task.id}`} className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    💬 Message
+                  </Link>
+                )}
                 {task.status === 'accepted' && (
                   <>
                     <Link href={`/helper/tasks/${task.id}/map`} className="btn btn-outline" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

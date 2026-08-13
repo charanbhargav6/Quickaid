@@ -17,7 +17,7 @@ export default async function ChatHubPage() {
       created_at
     `)
     .or(`seeker_id.eq.${user.id},helper_id.eq.${user.id}`)
-    .eq('status', 'accepted')
+    .not('helper_id', 'is', null)
     .order('created_at', { ascending: false });
 
   // For each conversation, we want to fetch the "other" person's profile info
