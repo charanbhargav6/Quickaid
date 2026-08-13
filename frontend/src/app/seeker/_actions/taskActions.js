@@ -263,7 +263,7 @@ export async function raiseDispute(taskId, reason) {
 
   if (updateError) {
     console.error("Failed to update task to disputed:", updateError)
-    return { success: false, error: 'Failed to update task status' }
+    return { success: false, error: `Failed to update task status: ${updateError.message}` }
   }
 
   // Notify admin via notifications table (admin reads disputed tasks from admin panel)
