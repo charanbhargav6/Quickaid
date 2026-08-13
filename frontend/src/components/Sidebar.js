@@ -11,7 +11,6 @@ import { useNotifications } from '@/components/NotificationProvider';
 const ADMIN_NAV = [
   { icon: '📊', label: 'Dashboard', path: '/admin/dashboard' },
   { icon: '👥', label: 'Users', path: '/admin/users' },
-  { icon: '📋', label: 'Tasks', path: '/admin/tasks' },
   { icon: '💬', label: 'Messages', path: '/chat' },
   { icon: '⭐', label: 'Reviews', path: '/admin/reviews' },
   { icon: '🚩', label: 'Reports', path: '/admin/reports' },

@@ -10,6 +10,7 @@ export default function HelperSettings() {
   const [user, setUser] = useState(null);
   
   const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   
@@ -45,6 +46,7 @@ export default function HelperSettings() {
 
     if (data) {
       setFullName(data.full_name || '');
+      setPhone(data.phone || '');
       setVerificationStatus(data.verification_status || null);
     }
     setLoading(false);
@@ -86,7 +88,7 @@ export default function HelperSettings() {
 
     const { error: profileError } = await supabase
       .from('profiles')
-      .update({ full_name: fullName })
+      .update({ full_name: fullName, phone: phone })
       .eq('id', user.id);
 
     if (profileError) {
@@ -141,6 +143,16 @@ export default function HelperSettings() {
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Enter your full name"
                 required
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '14px', marginBottom: '8px', fontWeight: 500 }}>Phone Number</label>
+              <input 
+                type="tel" 
+                className="input" 
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="Enter your phone number"
               />
             </div>
             <div>

@@ -44,10 +44,16 @@ export default async function ProfilePage({ params }) {
 
   return (
     <div style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto', fontFamily: 'inherit' }}>
-      
-      <Link href={isOwner ? (profile.role === 'seeker' ? "/seeker" : "/helper") : "javascript:history.back()"} style={{ color: 'var(--primary)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', marginBottom: '2rem', fontWeight: 600, padding: '8px 16px', background: 'var(--primary-light)', borderRadius: '20px' }}>
-        ← Back
-      </Link>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <Link href={isOwner ? (profile.role === 'seeker' ? "/seeker" : "/helper") : "javascript:history.back()"} style={{ color: 'var(--primary)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', fontWeight: 600, padding: '8px 16px', background: 'var(--primary-light)', borderRadius: '20px' }}>
+          ← Back
+        </Link>
+        {isOwner && (
+          <Link href={profile.role === 'seeker' ? "/seeker/settings" : "/helper/settings"} className="btn btn-outline" style={{ fontSize: '14px', padding: '8px 16px', borderRadius: '20px' }}>
+            Edit Profile
+          </Link>
+        )}
+      </div>
 
       <div className="card fade-in" style={{ padding: '3rem', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: '2rem', background: 'linear-gradient(145deg, var(--card-bg) 0%, var(--bg-secondary) 100%)', border: '1px solid var(--border)' }}>
         <AvatarUpload profile={profile} isOwner={isOwner} />
