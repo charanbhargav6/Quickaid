@@ -1,8 +1,14 @@
 'use server'
 
 import { createClient } from '@/utils/supabase/server'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
+
+const supabaseAdmin = createSupabaseClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+)
 
 const postTaskSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters").max(100),
@@ -249,11 +255,19 @@ export async function raiseDispute(taskId, reason) {
     return { success: false, error: 'Only accepted or in-progress tasks can be disputed' }
   }
 
-  // Mark task as disputed
-  await supabase.from('tasks').update({ status: 'disputed' }).eq('id', taskId)
+  // Mark task as disputed and save reason
+  const { error: updateError } = await supabaseAdmin.from('tasks').update({ 
+    status: 'disputed',
+    dispute_reason: reason 
+  }).eq('id', taskId)
+
+  if (updateError) {
+    console.error("Failed to update task to disputed:", updateError)
+    return { success: false, error: 'Failed to update task status' }
+  }
 
   // Notify admin via notifications table (admin reads disputed tasks from admin panel)
-  await supabase.from('notifications').insert({
+  await supabaseAdmin.from('notifications').insert({
     user_id: user.id, // seeker's own notification record
     title: 'Dispute Filed 🚩',
     body: `Your dispute for "${task.title}" has been submitted. Admin will review it shortly.`,
@@ -262,7 +276,7 @@ export async function raiseDispute(taskId, reason) {
 
   // Notify helper too
   if (task.helper_id) {
-    await supabase.from('notifications').insert({
+    await supabaseAdmin.from('notifications').insert({
       user_id: task.helper_id,
       title: 'Dispute Raised ⚠️',
       body: `The seeker has raised a dispute on task: "${task.title}". Admin will review.`,
