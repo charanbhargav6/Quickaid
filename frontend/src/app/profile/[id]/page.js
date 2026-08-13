@@ -33,13 +33,15 @@ export default async function ProfilePage({ params }) {
   const trustScore = profile.trust_score || 50;
 
   // Profile completion calculation (owner only)
-  const completionItems = [
+  let completionItems = [
     { label: 'Avatar uploaded', done: !!profile.avatar_url },
     { label: 'Phone number added', done: !!profile.phone },
     { label: 'Email verified', done: true }, // must be verified to be logged in
-    { label: 'First task completed', done: (profile.tasks_completed || 0) > 0 },
-    { label: 'First review received', done: totalReviews > 0 },
   ];
+  if (profile.role !== 'admin') {
+    completionItems.push({ label: 'First task completed', done: (profile.tasks_completed || 0) > 0 });
+    completionItems.push({ label: 'First review received', done: totalReviews > 0 });
+  }
   const completionPct = Math.round((completionItems.filter(i => i.done).length / completionItems.length) * 100);
 
   return (
