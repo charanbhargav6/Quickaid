@@ -14,6 +14,9 @@ export default function Register() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [alertModal, setAlertModal] = useState({ isOpen: false });
   const [loading, setLoading] = useState(false);
+  const [showOtp, setShowOtp] = useState(false);
+  const [otpToken, setOtpToken] = useState('');
+  const [otpLoading, setOtpLoading] = useState(false);
   const router = useRouter();
 
   // Password Validation Rules
@@ -128,7 +131,8 @@ export default function Register() {
         setLoading(false);
         return;
       }
-      router.push('/login?registered=true');
+      // Successfully signed up, show OTP modal instead of redirecting
+      setShowOtp(true);
     } else {
       setAlertModal({
         isOpen: true,
@@ -139,6 +143,36 @@ export default function Register() {
         onPrimaryAction: () => setAlertModal({ isOpen: false })
       });
       setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    if (otpToken.length !== 6) {
+      setAlertModal({
+        isOpen: true, title: 'Invalid Code', message: 'Please enter a 6-digit code.', type: 'warning',
+        primaryActionText: 'Ok', onPrimaryAction: () => setAlertModal({ isOpen: false })
+      });
+      return;
+    }
+    
+    setOtpLoading(true);
+    const supabase = createClient();
+    const { error } = await supabase.auth.verifyOtp({
+      email,
+      token: otpToken,
+      type: 'signup'
+    });
+    
+    setOtpLoading(false);
+    
+    if (error) {
+      setAlertModal({
+        isOpen: true, title: 'Verification Failed', message: error.message, type: 'danger',
+        primaryActionText: 'Ok', onPrimaryAction: () => setAlertModal({ isOpen: false })
+      });
+    } else {
+      router.push('/login?registered=true');
     }
   };
 
@@ -171,9 +205,38 @@ export default function Register() {
           <span className={styles.logoIcon}>⚡</span>
           <h1 className={styles.logoText}>Quick<span className={styles.primaryText}>Aid</span></h1>
         </div>
-        <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>Create an account to get started</p>
+        <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
+          {showOtp ? "We've sent a 6-digit code to your email." : "Create an account to get started"}
+        </p>
         
-        <form onSubmit={handleRegister} className={styles.form}>
+        {showOtp ? (
+          <form onSubmit={handleVerifyOtp} className={styles.form}>
+            <div className={styles.inputGroup}>
+              <label>Verification Code</label>
+              <input 
+                type="text" 
+                className="input" 
+                placeholder="123456"
+                value={otpToken}
+                onChange={(e) => setOtpToken(e.target.value.replace(/\D/g, '').substring(0, 6))}
+                style={{ fontSize: '24px', letterSpacing: '8px', textAlign: 'center', fontWeight: 'bold' }}
+                required
+              />
+            </div>
+            <button type="submit" className={`btn btn-primary ${styles.loginBtn}`} disabled={otpLoading || otpToken.length !== 6} style={{ marginTop: '1rem' }}>
+              {otpLoading ? 'Verifying...' : 'Verify Code'}
+            </button>
+            <button 
+              type="button" 
+              className={`btn btn-outline`} 
+              onClick={() => setShowOtp(false)} 
+              style={{ marginTop: '0.5rem', width: '100%', padding: '12px', fontSize: '1rem' }}
+            >
+              Cancel
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleRegister} className={styles.form}>
           <div className={styles.inputGroup}>
             <label>Full Name</label>
             <input 
@@ -293,15 +356,61 @@ export default function Register() {
           Google
         </button>
 
-        <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '14px' }}>
-          <span style={{ color: 'var(--text-secondary)' }}>Already have an account? </span>
-          <Link href="/login" style={{ color: 'var(--primary)', fontWeight: 'bold', textDecoration: 'none' }}>
-            Sign In
-          </Link>
-        </div>
+        )}
+
+        {!showOtp && (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', margin: '1.5rem 0', color: '#94a3b8', fontSize: '14px' }}>
+              <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }}></div>
+              <span style={{ padding: '0 10px' }}>Or continue with</span>
+              <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }}></div>
+            </div>
+
+            <button 
+              type="button" 
+              onClick={handleGoogleSignIn}
+              disabled={loading}
+              style={{
+                width: '100%',
+                padding: '12px',
+                background: 'white',
+                border: '1px solid #e2e8f0',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '10px',
+                cursor: 'pointer',
+                fontSize: '15px',
+                fontWeight: '500',
+                color: '#1e293b',
+                transition: 'background 0.2s'
+              }}
+              onMouseOver={e => e.currentTarget.style.background = '#f8fafc'}
+              onMouseOut={e => e.currentTarget.style.background = 'white'}
+            >
+              <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" style={{ width: '18px', height: '18px' }} />
+              Google
+            </button>
+
+            <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '14px' }}>
+              <span style={{ color: 'var(--text-secondary)' }}>Already have an account? </span>
+              <Link href="/login" style={{ color: 'var(--primary)', fontWeight: 'bold', textDecoration: 'none' }}>
+                Sign In
+              </Link>
+            </div>
+          </>
+        )}
       </div>
       
-      <AlertModal {...alertModal} />
+      <AlertModal 
+        isOpen={alertModal.isOpen}
+        title={alertModal.title}
+        message={alertModal.message}
+        type={alertModal.type}
+        primaryActionText={alertModal.primaryActionText}
+        onPrimaryAction={alertModal.onPrimaryAction}
+      />
     </div>
   );
 }

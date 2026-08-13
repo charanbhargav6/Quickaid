@@ -4,6 +4,7 @@ import '../../services/supabase_service.dart';
 import '../../widgets/gradient_button.dart';
 import '../../widgets/auth_text_field.dart';
 import '../../widgets/alert_modal.dart';
+import 'otp_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -36,10 +37,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
         role: 'both',
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Registration successful! Please check your email to verify your account.')),
+      
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => OtpScreen(
+            email: _emailCtrl.text.trim(),
+            isSignup: true,
+          ),
+        ),
       );
-      Navigator.pushReplacementNamed(context, '/login');
     } on AuthException catch (e) {
       setState(() => _loading = false);
       AlertModal.show(context, title: 'Registration Error', message: e.message, type: AlertType.error);

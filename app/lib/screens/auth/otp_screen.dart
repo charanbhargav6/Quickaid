@@ -6,7 +6,8 @@ import '../../widgets/gradient_button.dart';
 class OtpScreen extends StatefulWidget {
   final String email;
   final bool isNewDevice;
-  const OtpScreen({super.key, required this.email, this.isNewDevice = false});
+  final bool isSignup;
+  const OtpScreen({super.key, required this.email, this.isNewDevice = false, this.isSignup = false});
 
   @override
   State<OtpScreen> createState() => _OtpScreenState();
@@ -30,14 +31,24 @@ class _OtpScreenState extends State<OtpScreen> {
 
     setState(() { _loading = true; _error = null; });
     try {
+      final type = widget.isSignup 
+          ? OtpType.signup 
+          : (widget.isNewDevice ? OtpType.magiclink : OtpType.recovery);
+          
       final res = await SupabaseService.auth.verifyOTP(
         email: widget.email,
         token: otp,
-        type: widget.isNewDevice ? OtpType.magiclink : OtpType.recovery,
+        type: type,
       );
       
-      if (res.session != null) {
-        if (!widget.isNewDevice) {
+      if (res.session != null || widget.isSignup) {
+        if (widget.isSignup) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Verification successful! You can now log in.')),
+          );
+          Navigator.pushReplacementNamed(context, '/login');
+        } else if (!widget.isNewDevice) {
           setState(() {
             _otpVerified = true;
             _error = null;
@@ -110,9 +121,9 @@ class _OtpScreenState extends State<OtpScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          widget.isNewDevice 
+          widget.isSignup ? 'Verify Email' : (widget.isNewDevice 
               ? 'Verify Device' 
-              : (_otpVerified ? 'Enter New Password' : 'Reset Password'),
+              : (_otpVerified ? 'Enter New Password' : 'Reset Password')),
           style: TextStyle(color: theme.colorScheme.onSurface),
         ),
         backgroundColor: Colors.transparent,
@@ -126,7 +137,9 @@ class _OtpScreenState extends State<OtpScreen> {
           children: [
             if (!_otpVerified) ...[
               Text(
-                'Enter the OTP sent to\n${widget.email}',
+                widget.isSignup 
+                    ? 'Enter the 6-digit registration code sent to\n${widget.email}'
+                    : 'Enter the OTP sent to\n${widget.email}',
                 style: TextStyle(fontSize: 16, color: theme.colorScheme.onSurface.withOpacity(0.7)),
               ),
               const SizedBox(height: 24),
