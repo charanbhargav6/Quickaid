@@ -322,40 +322,6 @@ export default function Register() {
             {loading ? 'Creating Account...' : 'Sign Up'}
           </button>
         </form>
-
-        <div style={{ display: 'flex', alignItems: 'center', margin: '1.5rem 0', color: '#94a3b8', fontSize: '14px' }}>
-          <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }}></div>
-          <span style={{ padding: '0 10px' }}>Or continue with</span>
-          <div style={{ flex: 1, height: '1px', background: '#e2e8f0' }}></div>
-        </div>
-
-        <button 
-          type="button" 
-          onClick={handleGoogleSignIn}
-          disabled={loading}
-          style={{
-            width: '100%',
-            padding: '12px',
-            background: 'white',
-            border: '1px solid #e2e8f0',
-            borderRadius: '8px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '10px',
-            cursor: 'pointer',
-            fontSize: '15px',
-            fontWeight: '500',
-            color: '#1e293b',
-            transition: 'background 0.2s'
-          }}
-          onMouseOver={e => e.currentTarget.style.background = '#f8fafc'}
-          onMouseOut={e => e.currentTarget.style.background = 'white'}
-        >
-          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" style={{ width: '18px', height: '18px' }} />
-          Google
-        </button>
-
         )}
 
         {!showOtp && (
