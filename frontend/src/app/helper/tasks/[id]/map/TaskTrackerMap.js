@@ -134,9 +134,11 @@ export default function TaskTrackerMap({ task }) {
           {dropoffPos && <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>↓ {task.destination_name}</div>}
         </div>
         
-        {helperPos && (
-          <a 
-            href={`https://www.google.com/maps/dir/?api=1&origin=${helperPos[0]},${helperPos[1]}&destination=${dropoffPos ? `${dropoffPos[0]},${dropoffPos[1]}` : `${pickupPos[0]},${pickupPos[1]}`}${dropoffPos ? `&waypoints=${pickupPos[0]},${pickupPos[1]}` : ''}&travelmode=driving`}
+        {helperPos && (() => {
+          const mode = task.vehicle_required?.toLowerCase() === 'bike' ? 'two-wheeler' : 'driving';
+          return (
+            <a 
+              href={`https://www.google.com/maps/dir/?api=1&origin=${helperPos[0]},${helperPos[1]}&destination=${dropoffPos ? `${dropoffPos[0]},${dropoffPos[1]}` : `${pickupPos[0]},${pickupPos[1]}`}${dropoffPos ? `&waypoints=${pickupPos[0]},${pickupPos[1]}` : ''}&travelmode=${mode}`}
             target="_blank" 
             rel="noopener noreferrer"
             className="btn btn-primary"
@@ -144,7 +146,8 @@ export default function TaskTrackerMap({ task }) {
           >
             🧭 Start Navigation
           </a>
-        )}
+          );
+        })()}
       </div>
     </div>
   );

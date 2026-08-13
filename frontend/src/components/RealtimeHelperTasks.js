@@ -86,10 +86,25 @@ export default function RealtimeHelperTasks({ initialTasks }) {
     setReviewTask({ ...task, status: 'completed' });
   };
 
+  const getTripDistance = (task) => {
+    if (!task.lat || !task.lng || !task.destination_lat || !task.destination_lng) return null;
+    const R = 6371; // km
+    const dLat = (task.destination_lat - task.lat) * (Math.PI/180);
+    const dLon = (task.destination_lng - task.lng) * (Math.PI/180);
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(task.lat * (Math.PI/180)) * Math.cos(task.destination_lat * (Math.PI/180)) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2); 
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+    return (R * c).toFixed(1);
+  };
+
   const openTasks = tasks.length === 0 ? (
     <p style={{ color: 'var(--text-muted)' }}>No open tasks right now. Check back later!</p>
   ) : (
-    tasks.map(task => (
+    tasks.map(task => {
+      const distance = getTripDistance(task);
+      return (
       <div 
         key={task.id} 
         className="card" 
@@ -102,13 +117,20 @@ export default function RealtimeHelperTasks({ initialTasks }) {
           <h3 style={{ margin: 0, fontSize: '18px' }}>{task.title}</h3>
           <span className="badge badge-blue">₹{task.pay?.toFixed(2) ?? task.price?.toFixed(2)}</span>
         </div>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          {distance && (
+            <span className="badge badge-gray" style={{ color: 'var(--primary)' }}>
+              🛣️ ~{distance} km
+            </span>
+          )}
+        </div>
         <p style={{ color: 'var(--text-secondary)', fontSize: '14px', margin: 0, flex: 1, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{task.description}</p>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto' }}>
           <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{new Date(task.created_at).toLocaleDateString()}</span>
           <button className="btn btn-outline" style={{ padding: '6px 12px', fontSize: '12px' }}>View Details</button>
         </div>
       </div>
-    ))
+    )})
   );
 
   return (
@@ -126,7 +148,14 @@ export default function RealtimeHelperTasks({ initialTasks }) {
             {myAcceptedTasks.map(task => (
               <div key={task.id} className="card" style={{ padding: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                 <div>
-                  <div style={{ fontWeight: 600 }}>{task.title}</div>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <div style={{ fontWeight: 600 }}>{task.title}</div>
+                    {getTripDistance(task) && (
+                      <span className="badge badge-gray" style={{ color: 'var(--primary)', padding: '2px 6px', fontSize: '11px' }}>
+                        🛣️ {getTripDistance(task)} km
+                      </span>
+                    )}
+                  </div>
                   <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px', marginBottom: '8px' }}>{task.description}</div>
                   <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
                     {task.location_name && <div>📍 <strong>Pickup:</strong> {task.location_name}</div>}
@@ -190,6 +219,11 @@ export default function RealtimeHelperTasks({ initialTasks }) {
               <div style={{ display: 'flex', gap: '8px', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
                 <span className="badge badge-gray">{selectedTask.category?.replace('_', ' ').toUpperCase()}</span>
                 <span className="badge badge-gray">{selectedTask.task_type?.toUpperCase()}</span>
+                {getTripDistance(selectedTask) && (
+                  <span className="badge badge-gray" style={{ color: 'var(--primary)' }}>
+                    🛣️ ~{getTripDistance(selectedTask)} km trip
+                  </span>
+                )}
               </div>
               
               <div style={{ marginBottom: '1.5rem', padding: '1rem', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
