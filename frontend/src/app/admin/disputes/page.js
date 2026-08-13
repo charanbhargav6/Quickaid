@@ -1,6 +1,7 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useTransition } from 'react';
 import { createClient } from '@/lib/supabase';
+import { fetchDisputes, resolveDispute } from '../_actions/disputeActions';
 
 const supabase = createClient();
 
@@ -13,38 +14,33 @@ export default function DisputesPage() {
   }, []);
 
   async function fetchDisputedTasks() {
-    try {
-      const { data } = await supabase
-        .from('tasks')
-        .select(`
-          *,
-          seeker:seeker_id(full_name, email),
-          helper:helper_id(full_name, email)
-        `)
-        .eq('status', 'disputed')
-        .order('created_at', { ascending: false });
-      setTasks(data || []);
-    } finally {
-      setLoading(false);
+    setLoading(true);
+    const result = await fetchDisputes();
+    if (result.success) {
+      setTasks(result.data || []);
+    } else {
+      console.error(result.error);
     }
+    setLoading(false);
   }
+
+  const [isPending, startTransition] = useTransition();
 
   async function handleResolve(taskId, resolution) {
     const actionText = resolution === 'seeker' ? 'Cancel task and refund Seeker' : 'Complete task and pay Helper';
     if (!confirm(`Are you sure you want to resolve in favor of the ${resolution}? This will: ${actionText}`)) return;
     
-    try {
-      const { error } = await supabase.rpc('admin_resolve_dispute', { 
-        p_task_id: taskId,
-        p_resolution: resolution,
-        p_admin_id: (await supabase.auth.getUser()).data.user.id
-      });
-      if (error) throw error;
-      setTasks(tasks.filter(t => t.id !== taskId));
-      alert('Dispute resolved successfully.');
-    } catch (err) {
-      alert('Failed to resolve dispute: ' + err.message);
-    }
+    startTransition(async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      const result = await resolveDispute(taskId, resolution, user?.id);
+      
+      if (result.success) {
+        setTasks(prev => prev.filter(t => t.id !== taskId));
+        alert('Dispute resolved successfully.');
+      } else {
+        alert('Failed to resolve dispute: ' + result.error);
+      }
+    });
   }
 
   return (
