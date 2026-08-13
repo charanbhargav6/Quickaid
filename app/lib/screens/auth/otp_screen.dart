@@ -59,12 +59,7 @@ class _OtpScreenState extends State<OtpScreen> {
           await SupabaseService.client.rpc('log_device_login', params: {'p_device_id': deviceId});
           
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Device verified successfully!')),
-          );
-          
-          final profile = await SupabaseService.getProfile(res.user!.id);
-          final role = profile?['role'] ?? 'seeker';
+          final role = res.session!.user.userMetadata?['role'] as String? ?? 'seeker';
           if (role == 'admin') {
             Navigator.pushReplacementNamed(context, '/admin');
           } else if (role == 'helper') {
@@ -73,39 +68,34 @@ class _OtpScreenState extends State<OtpScreen> {
             Navigator.pushReplacementNamed(context, '/seeker');
           }
         }
-      } else {
-        setState(() => _error = 'Invalid or expired OTP');
       }
     } on AuthException catch (e) {
       setState(() => _error = e.message);
     } catch (e) {
-      setState(() => _error = 'An unexpected error occurred');
+      setState(() => _error = 'Verification failed. Please try again.');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
   Future<void> _updatePassword() async {
-    final newPass = _newPassCtrl.text;
-    final confirmPass = _confirmPassCtrl.text;
-    
-    if (newPass.length < 6) {
-      setState(() => _error = 'Enter a new password (min 6 chars)');
-      return;
-    }
-    if (newPass != confirmPass) {
+    if (_newPassCtrl.text != _confirmPassCtrl.text) {
       setState(() => _error = 'Passwords do not match');
       return;
     }
 
     setState(() { _loading = true; _error = null; });
     try {
-      await SupabaseService.updatePassword(newPass);
+      await SupabaseService.client.auth.updateUser(
+        UserAttributes(password: _newPassCtrl.text),
+      );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password changed successfully!')),
+        const SnackBar(content: Text('Password updated successfully. Please login.')),
       );
       Navigator.pushReplacementNamed(context, '/login');
+    } on AuthException catch (e) {
+      setState(() => _error = e.message);
     } catch (e) {
       setState(() => _error = 'Failed to update password');
     } finally {
@@ -115,88 +105,177 @@ class _OtpScreenState extends State<OtpScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          widget.isSignup ? 'Verify Email' : (widget.isNewDevice 
-              ? 'Verify Device' 
-              : (_otpVerified ? 'Enter New Password' : 'Reset Password')),
-          style: TextStyle(color: theme.colorScheme.onSurface),
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
         ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: IconThemeData(color: theme.colorScheme.onSurface),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (!_otpVerified) ...[
-              Text(
-                widget.isSignup 
-                    ? 'Enter the 6-digit registration code sent to\n${widget.email}'
-                    : 'Enter the OTP sent to\n${widget.email}',
-                style: TextStyle(fontSize: 16, color: theme.colorScheme.onSurface.withOpacity(0.7)),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Align(
+                    alignment: Alignment.topLeft,
+                    child: GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
+                          ],
+                        ),
+                        child: Icon(Icons.arrow_back_ios_new_rounded,
+                          size: 18,
+                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  
+                  // Icon header
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        widget.isSignup ? Icons.mark_email_read_rounded : Icons.lock_reset_rounded,
+                        size: 48,
+                        color: Colors.blue,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  
+                  Text(
+                    widget.isSignup ? 'Verify Email' : (widget.isNewDevice 
+                        ? 'Verify Device' 
+                        : (_otpVerified ? 'Enter New Password' : 'Reset Password')),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
+                      color: isDark ? Colors.white : const Color(0xFF0F172A),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  
+                  if (!_otpVerified) ...[
+                    Text(
+                      widget.isSignup 
+                          ? 'Enter the 6-digit code sent to\n${widget.email}'
+                          : 'Enter the OTP sent to\n${widget.email}',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 15, 
+                        color: isDark ? Colors.white70 : Colors.black54,
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    TextField(
+                      controller: _otpCtrl,
+                      keyboardType: TextInputType.number,
+                      maxLength: 6,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: isDark ? Colors.white : Colors.black,
+                        fontSize: 24,
+                        letterSpacing: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      decoration: InputDecoration(
+                        hintText: '000000',
+                        hintStyle: TextStyle(
+                          color: isDark ? Colors.white24 : Colors.black26,
+                          letterSpacing: 10,
+                        ),
+                        filled: true,
+                        fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                        counterText: '',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: BorderSide.none,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          borderSide: const BorderSide(color: Colors.blue, width: 2),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 20),
+                      ),
+                    ),
+                  ] else ...[
+                    const SizedBox(height: 32),
+                    TextField(
+                      controller: _newPassCtrl,
+                      obscureText: true,
+                      style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                      decoration: InputDecoration(
+                        hintText: 'New Password',
+                        hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.black38),
+                        filled: true,
+                        fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _confirmPassCtrl,
+                      obscureText: true,
+                      style: TextStyle(color: isDark ? Colors.white : Colors.black),
+                      decoration: InputDecoration(
+                        hintText: 'Confirm New Password',
+                        hintStyle: TextStyle(color: isDark ? Colors.white38 : Colors.black38),
+                        filled: true,
+                        fillColor: isDark ? const Color(0xFF1E293B) : Colors.white,
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (_error != null) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.red.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w500)),
+                    ),
+                  ],
+                  const SizedBox(height: 32),
+                  GradientButton(
+                    label: widget.isNewDevice 
+                        ? 'Verify & Login' 
+                        : (_otpVerified ? 'Update Password' : 'Verify Code'),
+                    onPressed: _loading ? () {} : (_otpVerified ? _updatePassword : _verifyOtp),
+                    loading: _loading,
+                  ),
+                ],
               ),
-              const SizedBox(height: 24),
-              TextField(
-                controller: _otpCtrl,
-                keyboardType: TextInputType.number,
-                maxLength: 8,
-                style: TextStyle(color: theme.colorScheme.onSurface),
-                decoration: InputDecoration(
-                  hintText: 'OTP (6-8 digits)',
-                  hintStyle: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.3)),
-                  filled: true,
-                  fillColor: theme.colorScheme.onSurface.withOpacity(0.05),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-            ] else ...[
-              const SizedBox(height: 16),
-              TextField(
-                controller: _newPassCtrl,
-                obscureText: true,
-                style: TextStyle(color: theme.colorScheme.onSurface),
-                decoration: InputDecoration(
-                  hintText: 'New Password',
-                  hintStyle: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.3)),
-                  filled: true,
-                  fillColor: theme.colorScheme.onSurface.withOpacity(0.05),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _confirmPassCtrl,
-                obscureText: true,
-                style: TextStyle(color: theme.colorScheme.onSurface),
-                decoration: InputDecoration(
-                  hintText: 'Confirm New Password',
-                  hintStyle: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.3)),
-                  filled: true,
-                  fillColor: theme.colorScheme.onSurface.withOpacity(0.05),
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
-            ],
-            if (_error != null) ...[
-              const SizedBox(height: 16),
-              Text(_error!, style: const TextStyle(color: Colors.red)),
-            ],
-            const SizedBox(height: 24),
-            GradientButton(
-              label: widget.isNewDevice 
-                  ? 'Verify & Login' 
-                  : (_otpVerified ? 'Update Password' : 'Verify OTP'),
-              onPressed: _loading ? () {} : (_otpVerified ? _updatePassword : _verifyOtp),
-              loading: _loading,
             ),
-          ],
+          ),
         ),
       ),
     );

@@ -163,13 +163,18 @@ Future<void> main() async {
     anonKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
   
-  // Initialize Firebase
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
-  
-  // Initialize Notification Service
-  await NotificationService.initialize();
+  // Initialize Firebase and Notifications safely
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    // Don't await NotificationService so it doesn't block runApp if FCM hangs
+    NotificationService.initialize().catchError((e) {
+      debugPrint('Failed to initialize notifications: $e');
+    });
+  } catch (e) {
+    debugPrint('Failed to initialize Firebase: $e');
+  }
 
   runApp(const QuickAidApp());
 }
