@@ -27,7 +27,7 @@ export async function fetchDisputes() {
   return { success: true, data };
 }
 
-export async function resolveDispute(taskId, resolution, adminId) {
+export async function resolveDispute(taskId, resolution, adminId, adminNotes = '') {
   try {
     // 1. Fetch task
     const { data: task, error: fetchError } = await supabaseAdmin
@@ -63,9 +63,12 @@ export async function resolveDispute(taskId, resolution, adminId) {
       }
 
       // Notify users
+      const seekerMsg = 'Dispute resolved in your favor. Task cancelled and refunded.' + (adminNotes ? `\n\nAdmin Note: ${adminNotes}` : '');
+      const helperMsg = 'Dispute resolved in favor of the seeker. Task cancelled.' + (adminNotes ? `\n\nAdmin Note: ${adminNotes}` : '');
+      
       await supabaseAdmin.from('notifications').insert([
-        { user_id: task.seeker_id, title: 'Dispute Resolved', body: 'Dispute resolved in your favor. Task cancelled and refunded.' },
-        { user_id: task.helper_id, title: 'Dispute Resolved', body: 'Dispute resolved in favor of the seeker. Task cancelled.' }
+        { user_id: task.seeker_id, title: 'Dispute Resolved', body: seekerMsg },
+        { user_id: task.helper_id, title: 'Dispute Resolved', body: helperMsg }
       ]);
 
     } else if (resolution === 'helper') {
@@ -93,9 +96,12 @@ export async function resolveDispute(taskId, resolution, adminId) {
       }
 
       // Notify users
+      const seekerMsg = 'Dispute resolved in favor of the helper. Task marked as completed.' + (adminNotes ? `\n\nAdmin Note: ${adminNotes}` : '');
+      const helperMsg = 'Dispute resolved in your favor. Funds transferred to your wallet.' + (adminNotes ? `\n\nAdmin Note: ${adminNotes}` : '');
+
       await supabaseAdmin.from('notifications').insert([
-        { user_id: task.seeker_id, title: 'Dispute Resolved', body: 'Dispute resolved in favor of the helper. Task marked as completed.' },
-        { user_id: task.helper_id, title: 'Dispute Resolved', body: 'Dispute resolved in your favor. Funds transferred to your wallet.' }
+        { user_id: task.seeker_id, title: 'Dispute Resolved', body: seekerMsg },
+        { user_id: task.helper_id, title: 'Dispute Resolved', body: helperMsg }
       ]);
     }
 

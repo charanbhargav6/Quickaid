@@ -2,6 +2,7 @@
 import { useState, useEffect, useTransition } from 'react';
 import { createClient } from '@/lib/supabase';
 import { fetchDisputes, resolveDispute } from '../_actions/disputeActions';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const supabase = createClient();
 
@@ -25,17 +26,25 @@ export default function DisputesPage() {
   }
 
   const [isPending, startTransition] = useTransition();
+  const [resolveModal, setResolveModal] = useState({ isOpen: false, taskId: null, target: null });
+  const [adminNotes, setAdminNotes] = useState('');
 
-  async function handleResolve(taskId, resolution) {
-    const actionText = resolution === 'seeker' ? 'Cancel task and refund Seeker' : 'Complete task and pay Helper';
-    if (!confirm(`Are you sure you want to resolve in favor of the ${resolution}? This will: ${actionText}`)) return;
+  function openResolveModal(taskId, target) {
+    setResolveModal({ isOpen: true, taskId, target });
+    setAdminNotes('');
+  }
+
+  async function confirmResolve() {
+    const { taskId, target } = resolveModal;
+    if (!taskId || !target) return;
     
     startTransition(async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      const result = await resolveDispute(taskId, resolution, user?.id);
+      const result = await resolveDispute(taskId, target, user?.id, adminNotes);
       
       if (result.success) {
         setTasks(prev => prev.filter(t => t.id !== taskId));
+        setResolveModal({ isOpen: false, taskId: null, target: null });
         alert('Dispute resolved successfully.');
       } else {
         alert('Failed to resolve dispute: ' + result.error);
@@ -118,7 +127,7 @@ export default function DisputesPage() {
                 </button>
                 <div style={{ display: 'flex', gap: '8px' }}>
                   <button 
-                    onClick={() => handleResolve(task.id, 'seeker')}
+                    onClick={() => openResolveModal(task.id, 'seeker')}
                     style={{
                       flex: 1,
                       background: 'none',
@@ -134,7 +143,7 @@ export default function DisputesPage() {
                     Resolve to Seeker
                   </button>
                   <button 
-                    onClick={() => handleResolve(task.id, 'helper')}
+                    onClick={() => openResolveModal(task.id, 'helper')}
                     style={{
                       flex: 1,
                       background: 'var(--green-500)',
@@ -155,6 +164,56 @@ export default function DisputesPage() {
           ))
         )}
       </div>
+
+      {/* --- Resolve Modal --- */}
+      <AnimatePresence>
+        {resolveModal.isOpen && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}
+            onClick={() => setResolveModal({ isOpen: false, taskId: null, target: null })}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              onClick={e => e.stopPropagation()}
+              className="card"
+              style={{ width: '100%', maxWidth: '480px', padding: '2rem', background: 'var(--card-bg)', borderRadius: '20px', boxShadow: '0 24px 60px rgba(0,0,0,0.3)' }}
+            >
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '0.5rem' }}>
+                {resolveModal.target === 'seeker' ? 'Refund Seeker' : 'Pay Helper'}
+              </h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '1.25rem' }}>
+                You are about to resolve this dispute in favor of the <strong>{resolveModal.target}</strong>. 
+                {resolveModal.target === 'seeker' ? ' The task will be cancelled and the seeker refunded.' : ' The task will be marked completed and the helper paid.'}
+              </p>
+              
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, color: 'var(--text-secondary)', marginBottom: '8px', textTransform: 'uppercase' }}>Admin Resolution Note (Optional)</label>
+                <textarea
+                  value={adminNotes}
+                  onChange={e => setAdminNotes(e.target.value)}
+                  placeholder="Explain your decision. This will be sent in the notification to both users."
+                  rows={3}
+                  style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '14px', resize: 'vertical' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button className="btn btn-outline" onClick={() => setResolveModal({ isOpen: false, taskId: null, target: null })} disabled={isPending}>Cancel</button>
+                <button
+                  className="btn btn-primary"
+                  style={{ background: resolveModal.target === 'seeker' ? 'var(--blue-600)' : 'var(--green-600)', border: 'none' }}
+                  disabled={isPending}
+                  onClick={confirmResolve}
+                >
+                  {isPending ? 'Processing...' : 'Confirm Resolution'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }
