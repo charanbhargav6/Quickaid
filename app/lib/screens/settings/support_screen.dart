@@ -55,7 +55,7 @@ class SupportScreen extends StatelessWidget {
               decoration: BoxDecoration(
                 color: theme.colorScheme.surface,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: theme.colorScheme.onSurface.withOpacity(0.1)),
+                border: Border.all(color: theme.colorScheme.onSurface.withValues(alpha: 0.1)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -71,7 +71,7 @@ class SupportScreen extends StatelessWidget {
                   Text(
                     'Our support team is here for you.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.6)),
+                    style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
                   ),
                   const SizedBox(height: 24),
                   GradientButton(
@@ -104,7 +104,7 @@ class SupportScreen extends StatelessWidget {
         children: [
           Text(question, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.blue)),
           const SizedBox(height: 8),
-          Text(answer, style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.8), height: 1.5)),
+          Text(answer, style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.8), height: 1.5)),
         ],
       ),
     );

@@ -10,7 +10,6 @@ import 'screens/seeker/seeker_dashboard.dart';
 import 'screens/helper/helper_dashboard.dart';
 import 'screens/admin/admin_dashboard.dart';
 import 'screens/shared/splash_screen.dart';
-import 'screens/shared/placeholder_screen.dart';
 import 'screens/shared/my_tasks_screen.dart';
 import 'screens/shared/earnings_screen.dart';
 import 'screens/shared/messages_screen.dart';

@@ -22,11 +22,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _confirmPassCtrl = TextEditingController();
   bool _loading = false;
   bool _obscurePass = true;
-  String? _error;
-
+  
   Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() { _loading = true; _error = null; });
+    setState(() { _loading = true; });
 
     try {
       await SupabaseService.signUp(
@@ -57,7 +56,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _googleSignIn() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() { _loading = true; });
     try {
       await SupabaseService.signInWithGoogle();
     } on AuthException catch (e) {

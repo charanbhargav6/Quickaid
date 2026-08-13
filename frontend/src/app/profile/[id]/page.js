@@ -32,6 +32,16 @@ export default async function ProfilePage({ params }) {
   const totalReviews = reviews?.length || 0;
   const trustScore = profile.trust_score || 50;
 
+  // Profile completion calculation (owner only)
+  const completionItems = [
+    { label: 'Avatar uploaded', done: !!profile.avatar_url },
+    { label: 'Phone number added', done: !!profile.phone },
+    { label: 'Email verified', done: true }, // must be verified to be logged in
+    { label: 'First task completed', done: (profile.tasks_completed || 0) > 0 },
+    { label: 'First review received', done: totalReviews > 0 },
+  ];
+  const completionPct = Math.round((completionItems.filter(i => i.done).length / completionItems.length) * 100);
+
   return (
     <div style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto', fontFamily: 'inherit' }}>
       
@@ -73,6 +83,26 @@ export default async function ProfilePage({ params }) {
           </div>
         </div>
       </div>
+
+      {/* Profile Completion – owner only */}
+      {isOwner && completionPct < 100 && (
+        <div className="card fade-in" style={{ padding: '1.5rem 2rem', marginBottom: '2rem', border: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+            <div style={{ fontWeight: 700, fontSize: '15px' }}>🏆 Profile Strength</div>
+            <div style={{ fontWeight: 800, fontSize: '18px', color: completionPct >= 80 ? '#10b981' : completionPct >= 50 ? '#f59e0b' : '#ef4444' }}>{completionPct}%</div>
+          </div>
+          <div style={{ height: '8px', background: 'var(--border)', borderRadius: '99px', overflow: 'hidden', marginBottom: '12px' }}>
+            <div style={{ height: '100%', width: `${completionPct}%`, background: completionPct >= 80 ? '#10b981' : completionPct >= 50 ? '#f59e0b' : '#ef4444', borderRadius: '99px', transition: 'width 0.6s ease' }} />
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {completionItems.map(item => (
+              <span key={item.label} style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '20px', background: item.done ? 'rgba(16,185,129,0.1)' : 'var(--bg-secondary)', color: item.done ? '#10b981' : 'var(--text-muted)', fontWeight: 500 }}>
+                {item.done ? '✓' : '○'} {item.label}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       <h2 style={{ fontSize: '24px', fontWeight: 800, marginBottom: '1.5rem' }}>Recent Reviews</h2>
       

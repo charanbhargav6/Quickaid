@@ -20,11 +20,10 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passCtrl = TextEditingController();
   bool _loading = false;
   bool _obscurePass = true;
-  String? _error;
 
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() { _loading = true; _error = null; });
+    setState(() { _loading = true; });
 
     try {
       final res = await SupabaseService.signIn(
@@ -70,7 +69,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _googleSignIn() async {
-    setState(() { _loading = true; _error = null; });
+    setState(() { _loading = true; });
     try {
       await SupabaseService.signInWithGoogle();
     } on AuthException catch (e) {

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'dart:ui';
 import '../../services/supabase_service.dart';
 
 class HelperProfileScreen extends StatefulWidget {
@@ -127,7 +126,7 @@ class _HelperProfileScreenState extends State<HelperProfileScreen> {
                 ),
                 borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(32), bottomRight: Radius.circular(32)),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 15, offset: const Offset(0, 5))
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 15, offset: const Offset(0, 5))
                 ]
               ),
               child: SafeArea(
@@ -146,7 +145,7 @@ class _HelperProfileScreenState extends State<HelperProfileScreen> {
                                 shape: BoxShape.circle,
                                 color: Colors.white,
                                 boxShadow: [
-                                  BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 20, spreadRadius: 2)
+                                  BoxShadow(color: Colors.black.withValues(alpha: 0.2), blurRadius: 20, spreadRadius: 2)
                                 ],
                                 image: _profile!['avatar_url'] != null ? DecorationImage(
                                   image: NetworkImage(_profile!['avatar_url']),
@@ -263,9 +262,9 @@ class _HelperProfileScreenState extends State<HelperProfileScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.15),
+        color: Colors.white.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withOpacity(0.2)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -284,7 +283,7 @@ class _HelperProfileScreenState extends State<HelperProfileScreen> {
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
         border: Border.all(color: isDark ? Colors.white12 : Colors.grey[100]!),
       ),
       child: Column(
@@ -311,7 +310,7 @@ class _HelperProfileScreenState extends State<HelperProfileScreen> {
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 12, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12, offset: const Offset(0, 4))],
         border: Border.all(color: isDark ? Colors.white12 : Colors.grey[200]!),
       ),
       child: Column(
@@ -322,7 +321,7 @@ class _HelperProfileScreenState extends State<HelperProfileScreen> {
               Container(
                 width: 44, height: 44,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2563EB).withOpacity(0.1),
+                  color: const Color(0xFF2563EB).withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                   image: avatarUrl != null ? DecorationImage(image: NetworkImage(avatarUrl), fit: BoxFit.cover) : null,
                 ),

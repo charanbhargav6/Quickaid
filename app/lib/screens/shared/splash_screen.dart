@@ -49,29 +49,22 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
         final prefs = await SharedPreferences.getInstance();
         final lastVerified = prefs.getInt('last_verified_at');
         if (lastVerified == null) {
-          await SupabaseService.signOut();
-          _navigate('/login');
-          return;
-        }
-        
-        final lastDate = DateTime.fromMillisecondsSinceEpoch(lastVerified);
-        final diff = DateTime.now().difference(lastDate).inDays;
-        if (diff >= 30) {
-          await SupabaseService.signOut();
-          _navigate('/login');
-          return;
-        }
-
-        final profile = await SupabaseService.getProfile(session.user.id);
-        
-        // Sync push notification token
-        await NotificationService.syncTokenToSupabase();
-        
-        // Save last_verified_at if not set (handles Google OAuth users who skip signIn())
-        final prefs = await SharedPreferences.getInstance();
-        if (prefs.getInt('last_verified_at') == null) {
+          // First time or Google OAuth user – save timestamp instead of signing out
           await prefs.setInt('last_verified_at', DateTime.now().millisecondsSinceEpoch);
+        } else {
+          final lastDate = DateTime.fromMillisecondsSinceEpoch(lastVerified);
+          final diff = DateTime.now().difference(lastDate).inDays;
+          if (diff >= 30) {
+            await SupabaseService.signOut();
+            _navigate('/login');
+            return;
+          }
         }
+        
+        if (!mounted) return;
+        
+        final profile = await SupabaseService.getProfile(session.user.id);
+        await NotificationService.syncTokenToSupabase();
         
         if (!mounted) return;
         final role = profile?['role'] as String? ?? 'seeker';

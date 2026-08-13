@@ -225,14 +225,14 @@ class _TaskTrackingScreenState extends State<TaskTrackingScreen> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, 10))
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20, offset: const Offset(0, 10))
                 ],
               ),
               child: Row(
                 children: [
                   Container(
                     width: 50, height: 50,
-                    decoration: BoxDecoration(color: Colors.blue.withOpacity(0.1), shape: BoxShape.circle),
+                    decoration: BoxDecoration(color: Colors.blue.withValues(alpha: 0.1), shape: BoxShape.circle),
                     child: const Icon(Icons.person, color: Colors.blue),
                   ),
                   const SizedBox(width: 16),
@@ -250,7 +250,7 @@ class _TaskTrackingScreenState extends State<TaskTrackingScreen> {
                   IconButton(
                     onPressed: _centerMap,
                     icon: const Icon(Icons.my_location, color: Colors.blueAccent),
-                    style: IconButton.styleFrom(backgroundColor: Colors.blue.withOpacity(0.1)),
+                    style: IconButton.styleFrom(backgroundColor: Colors.blue.withValues(alpha: 0.1)),
                   ),
                 ],
               ),

@@ -58,7 +58,6 @@ class AlertModal extends StatelessWidget {
       case AlertType.error:
         return const Color(0xFFEF4444);
       case AlertType.info:
-      default:
         return const Color(0xFF3B82F6);
     }
   }
@@ -72,7 +71,6 @@ class AlertModal extends StatelessWidget {
       case AlertType.error:
         return Icons.error_outline_rounded;
       case AlertType.info:
-      default:
         return Icons.info_outline_rounded;
     }
   }

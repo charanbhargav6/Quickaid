@@ -293,6 +293,13 @@ a {
   min-height: 100vh;
   background: var(--bg);
 }
+
+@media (max-width: 768px) {
+  .main-content {
+    margin-left: 0;
+    padding-top: 60px; /* space for hamburger button */
+  }
+}
 .section-action {
   font-size: 13px;
   font-weight: 600;

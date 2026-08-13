@@ -28,7 +28,7 @@ class LegalScreen extends StatelessWidget {
               '3. Permitted Tasks\nThe platform is intended for physical nearby assistance (carrying luggage, grocery help, etc.). Prohibited tasks include harassment, illegal deliveries, cheating, and unsafe requests.\n\n'
               '4. Payments and Liability\nPayments are handled externally directly between the Seeker and Helper. QuickAid is not responsible for payment disputes or damages incurred during a task.\n\n'
               '5. Trust and Safety\nWe utilize a Trust Score system. QuickAid reserves the right to suspend users who violate guidelines or receive negative reviews.',
-              style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.8), height: 1.5),
+              style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.8), height: 1.5),
             ),
             
             const SizedBox(height: 32),
@@ -42,14 +42,14 @@ class LegalScreen extends StatelessWidget {
               '2. How We Use Your Information\nYour information is used to facilitate connections and compute distances. Your precise location is only shared when a task is accepted.\n\n'
               '3. Information Sharing\nWe do not sell personal data. Your contact info is only unlocked and shared after mutual task acceptance.\n\n'
               '4. Data Security\nWe implement standard security measures to protect your data. Chat messages are securely stored for dispute resolution.',
-              style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.8), height: 1.5),
+              style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.8), height: 1.5),
             ),
             
             const SizedBox(height: 48),
             Center(
               child: Text(
                 'Last updated: June 2026',
-                style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.5), fontSize: 12),
+                style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.5), fontSize: 12),
               ),
             ),
           ],

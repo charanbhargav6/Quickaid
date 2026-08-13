@@ -62,6 +62,7 @@ export default function Sidebar() {
   const { unreadCount } = useNotifications();
   const [role, setRole] = useState('seeker');
   const [profile, setProfile] = useState(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   // Determine current mode from URL
   const currentMode = pathname?.startsWith('/helper') ? 'helper' : 'seeker';
@@ -129,7 +130,24 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className={styles.sidebar}>
+    <>
+      {/* Hamburger – mobile only */}
+      <button
+        className={styles.hamburger}
+        onClick={() => setMobileOpen(o => !o)}
+        aria-label="Toggle navigation"
+      >
+        <span className={styles.hamburgerLine} />
+        <span className={styles.hamburgerLine} />
+        <span className={styles.hamburgerLine} />
+      </button>
+
+      {/* Dark overlay – closes sidebar on tap */}
+      {mobileOpen && (
+        <div className={styles.overlay} onClick={() => setMobileOpen(false)} />
+      )}
+
+      <aside className={`${styles.sidebar} ${mobileOpen ? styles.sidebarOpen : ''}`}>
       {/* ── Brand ──────────────────── */}
       <div className={styles.brand}>
         <div className={styles.brandIcon}>
@@ -186,6 +204,7 @@ export default function Sidebar() {
             <Link 
               key={item.path}
               href={item.path}
+              onClick={() => setMobileOpen(false)}
               className={`${styles.navItem} ${pathname === item.path || (item.path !== '/seeker' && item.path !== '/helper' && pathname.startsWith(item.path)) ? styles.active : ''}`}
             >
               <span className={styles.navIcon}>{item.icon}</span>
@@ -222,5 +241,6 @@ export default function Sidebar() {
         {role !== 'admin' && <div className={styles.verifiedBadge} style={{ fontSize: '0.7rem' }}>Verified</div>}
       </Link>
     </aside>
+    </>
   );
 }

@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
 import 'notification_service.dart';
 
 class NewDeviceException implements Exception {}
@@ -36,7 +37,7 @@ class SupabaseService {
     final prefs = await SharedPreferences.getInstance();
     String? deviceId = prefs.getString('device_id');
     if (deviceId == null) {
-      deviceId = DateTime.now().millisecondsSinceEpoch.toString() + '_' + (1000 + DateTime.now().microsecond).toString();
+      deviceId = const Uuid().v4();
       await prefs.setString('device_id', deviceId);
     }
     return deviceId;

@@ -92,6 +92,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           .eq('user_id', userId)
           .eq('is_read', false);
 
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('All notifications marked as read')),
       );
@@ -246,8 +247,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                             child: Container(
                               color: isUnread
                                   ? (isDarkMode
-                                      ? Colors.orange.withOpacity(0.04)
-                                      : Colors.orange.withOpacity(0.05))
+                                      ? Colors.orange.withValues(alpha: 0.04)
+                                      : Colors.orange.withValues(alpha: 0.05))
                                   : Colors.transparent,
                               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
                               child: Row(

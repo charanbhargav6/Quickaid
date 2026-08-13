@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/supabase_service.dart';
 import '../../main.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class AppDrawer extends StatelessWidget {
   final Map<String, dynamic> user;

@@ -42,6 +42,7 @@ class _PostTaskModalState extends State<PostTaskModal> {
   final MapController _mapController = MapController();
 
   String _taskType = 'physical'; // 'physical', 'delivery', 'digital'
+  String _vehicleType = 'bike'; // bike, auto, mini_car, suv, mini_truck
   bool _placingDestination = false;
   bool _isSearchingLoc = false;
   bool _isSearchingDest = false;
@@ -127,8 +128,31 @@ class _PostTaskModalState extends State<PostTaskModal> {
     if (_taskType == 'delivery') {
       final distMeters = const Distance().distance(_selectedLocation, _selectedDestination);
       final distKm = distMeters / 1000.0;
-      final fare = 25 + (distKm * 12);
-      _payCtrl.text = (fare < 30 ? 30 : fare).round().toString();
+
+      if (distKm > 150) {
+        _payCtrl.text = ''; // Out of service range
+        return;
+      }
+
+      double baseFare;
+      double perKm;
+      switch (_vehicleType) {
+        case 'auto':      baseFare = 40;  perKm = 15; break;
+        case 'mini_car':  baseFare = 70;  perKm = 18; break;
+        case 'suv':       baseFare = 100; perKm = 22; break;
+        case 'mini_truck': baseFare = 250; perKm = 35; break;
+        case 'bike':      
+        default:          baseFare = 25;  perKm = 10; break;
+      }
+
+      // Outstation / long-distance fee (>30 km)
+      if (distKm > 30) {
+        baseFare += 200;
+        perKm += 5;
+      }
+
+      final fare = (baseFare + (distKm * perKm)).round();
+      _payCtrl.text = (fare < baseFare.round() ? baseFare.round() : fare).toString();
     }
   }
 
@@ -180,17 +204,19 @@ class _PostTaskModalState extends State<PostTaskModal> {
         'seeker_id': widget.currentUser['id'],
         'status': 'open',
         'location': _taskType != 'digital' ? _locCtrl.text.isEmpty ? 'Specified on Map' : _locCtrl.text : 'Remote / Online',
+        if (_taskType == 'delivery') 'vehicle_required': _vehicleType,
       };
 
       if (_taskType != 'digital') {
-        taskData['latitude'] = _selectedLocation.latitude;
-        taskData['longitude'] = _selectedLocation.longitude;
+        taskData['lat'] = _selectedLocation.latitude;
+        taskData['lng'] = _selectedLocation.longitude;
+        taskData['location_name'] = _locCtrl.text.isEmpty ? 'Specified on Map' : _locCtrl.text;
       }
 
       if (_taskType == 'delivery') {
         taskData['destination_name'] = _destLocCtrl.text.isEmpty ? 'Specified on Map' : _destLocCtrl.text;
-        taskData['dest_latitude'] = _selectedDestination.latitude;
-        taskData['dest_longitude'] = _selectedDestination.longitude;
+        taskData['destination_lat'] = _selectedDestination.latitude;
+        taskData['destination_lng'] = _selectedDestination.longitude;
       }
 
       await Supabase.instance.client.from('tasks').insert(taskData);
@@ -369,6 +395,37 @@ class _PostTaskModalState extends State<PostTaskModal> {
                               icon: _isSearchingDest ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.search, color: Colors.red),
                               onPressed: () => _searchLocation(_destLocCtrl.text, true),
                             ),
+                          ),
+                          const SizedBox(height: 12),
+                          // Vehicle Type Selector
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('Vehicle Required', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                              const SizedBox(height: 8),
+                              DropdownButtonFormField<String>(
+                                initialValue: _vehicleType,
+                                decoration: InputDecoration(
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                  prefixIcon: const Icon(Icons.two_wheeler, color: Colors.blue),
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                                  enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                                ),
+                                items: const [
+                                  DropdownMenuItem(value: 'bike', child: Text('🛵 2-Wheeler (Bike / Scooter)')),
+                                  DropdownMenuItem(value: 'auto', child: Text('🛺 3-Wheeler (Auto)')),
+                                  DropdownMenuItem(value: 'mini_car', child: Text('🚗 Mini Car (4 Seater)')),
+                                  DropdownMenuItem(value: 'suv', child: Text('🚙 SUV (6-7 Seater)')),
+                                  DropdownMenuItem(value: 'mini_truck', child: Text('🛻 Mini Truck (Tata Ace)')),
+                                ],
+                                onChanged: (val) {
+                                  setState(() {
+                                    _vehicleType = val!;
+                                    _calculateDeliveryFare();
+                                  });
+                                },
+                              ),
+                            ],
                           ),
                           const SizedBox(height: 16),
                           Row(

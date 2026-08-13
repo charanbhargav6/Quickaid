@@ -166,3 +166,52 @@ export async function acceptOffer(rawInput) {
   revalidatePath('/seeker')
   return { success: true }
 }
+
+export async function cancelTask(taskId) {
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) return { success: false, error: 'Unauthorized' }
+
+  // Fetch task to verify ownership and get the pay amount for refund
+  const { data: task, error: taskError } = await supabase
+    .from('tasks')
+    .select('seeker_id, pay, status, helper_id')
+    .eq('id', taskId)
+    .single()
+
+  if (taskError || !task) return { success: false, error: 'Task not found' }
+  if (task.seeker_id !== user.id) return { success: false, error: 'You do not own this task' }
+  if (!['open', 'accepted'].includes(task.status)) return { success: false, error: 'This task cannot be cancelled' }
+
+  // Refund the pay to the seeker's wallet
+  const payAmount = Number(task.pay || 0)
+  if (payAmount > 0) {
+    const { data: profile } = await supabase.from('profiles').select('wallet_balance').eq('id', user.id).single()
+    const newBalance = Number(profile?.wallet_balance || 0) + payAmount
+    await supabase.from('profiles').update({ wallet_balance: newBalance }).eq('id', user.id)
+    // Record refund transaction
+    await supabase.from('transactions').insert({
+      task_id: taskId,
+      user_id: user.id,
+      amount: payAmount,
+      type: 'refund',
+      status: 'completed'
+    })
+  }
+
+  // Mark task cancelled
+  await supabase.from('tasks').update({ status: 'cancelled' }).eq('id', taskId)
+
+  // Notify helper if one was assigned
+  if (task.helper_id) {
+    await supabase.from('notifications').insert({
+      user_id: task.helper_id,
+      title: 'Task Cancelled',
+      body: 'The seeker has cancelled a task you accepted. Please check your wallet.',
+      data: { type: 'task_cancelled', taskId }
+    })
+  }
+
+  revalidatePath('/seeker')
+  return { success: true }
+}

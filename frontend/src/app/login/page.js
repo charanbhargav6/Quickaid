@@ -36,6 +36,17 @@ export default function Login() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+
+    // Client-side validation
+    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setAlertModal({ isOpen: true, title: 'Invalid Email', message: 'Please enter a valid email address.', type: 'warning', primaryActionText: 'Ok', onPrimaryAction: () => setAlertModal({ isOpen: false }) });
+      return;
+    }
+    if (password.length < 6) {
+      setAlertModal({ isOpen: true, title: 'Password Too Short', message: 'Password must be at least 6 characters.', type: 'warning', primaryActionText: 'Ok', onPrimaryAction: () => setAlertModal({ isOpen: false }) });
+      return;
+    }
+
     setLoading(true);
     setAlertModal({ isOpen: false });
     

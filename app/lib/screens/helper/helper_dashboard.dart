@@ -902,7 +902,7 @@ class _HelperDashboardState extends State<HelperDashboard> {
     
     showDialog(
       context: context,
-      barrierColor: Colors.black.withOpacity(0.5),
+      barrierColor: Colors.black.withValues(alpha: 0.5),
       builder: (ctx) => BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
         child: StatefulBuilder(
@@ -918,7 +918,7 @@ class _HelperDashboardState extends State<HelperDashboard> {
                   color: isDark ? const Color(0xFF1E293B) : Colors.white,
                   borderRadius: BorderRadius.circular(28),
                   boxShadow: [
-                    BoxShadow(color: Colors.black.withOpacity(isDark ? 0.4 : 0.1), blurRadius: 24, offset: const Offset(0, 10))
+                    BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.4 : 0.1), blurRadius: 24, offset: const Offset(0, 10))
                   ],
                   border: Border.all(color: isDark ? Colors.white12 : Colors.grey[200]!, width: 1.5),
                 ),
@@ -928,7 +928,7 @@ class _HelperDashboardState extends State<HelperDashboard> {
                     Container(
                       width: 64, height: 64,
                       decoration: BoxDecoration(
-                        color: Colors.amber.withOpacity(0.1),
+                        color: Colors.amber.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
                       child: const Center(child: Text('⭐', style: TextStyle(fontSize: 32))),

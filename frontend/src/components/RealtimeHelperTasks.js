@@ -10,6 +10,8 @@ export default function RealtimeHelperTasks({ initialTasks }) {
   const [myAcceptedTasks, setMyAcceptedTasks] = useState([]);
   const [reviewTask, setReviewTask] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
   const currentUserId = React.useRef(null);
 
   useEffect(() => {
@@ -99,10 +101,26 @@ export default function RealtimeHelperTasks({ initialTasks }) {
     return (R * c).toFixed(1);
   };
 
-  const openTasks = tasks.length === 0 ? (
-    <p style={{ color: 'var(--text-muted)' }}>No open tasks right now. Check back later!</p>
+  const CATEGORIES = [
+    { value: 'all', label: 'All Tasks' },
+    { value: 'delivery', label: '🚚 Delivery' },
+    { value: 'physical', label: '🔧 Physical' },
+    { value: 'digital', label: '💻 Digital' },
+  ];
+
+  const filteredTasks = tasks.filter(task => {
+    const matchesSearch = !searchQuery || 
+      task.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      task.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      task.location_name?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === 'all' || task.task_type === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const openTasks = filteredTasks.length === 0 ? (
+    <p style={{ color: 'var(--text-muted)' }}>{tasks.length === 0 ? 'No open tasks right now. Check back later!' : 'No tasks match your search.'}</p>
   ) : (
-    tasks.map(task => {
+    filteredTasks.map(task => {
       const distance = getTripDistance(task);
       return (
       <div 
@@ -135,6 +153,48 @@ export default function RealtimeHelperTasks({ initialTasks }) {
 
   return (
     <>
+      {/* Search & Filter Bar */}
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '1.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ flex: '1 1 200px', position: 'relative', minWidth: '180px' }}>
+          <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', pointerEvents: 'none' }}>🔍</span>
+          <input
+            type="text"
+            placeholder="Search tasks..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="input"
+            style={{ paddingLeft: '36px', width: '100%' }}
+          />
+        </div>
+        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+          {CATEGORIES.map(cat => (
+            <button
+              key={cat.value}
+              onClick={() => setSelectedCategory(cat.value)}
+              className="btn"
+              style={{
+                padding: '8px 14px', fontSize: '13px',
+                background: selectedCategory === cat.value ? 'var(--primary)' : 'var(--card-bg)',
+                color: selectedCategory === cat.value ? '#fff' : 'var(--text-secondary)',
+                border: `1px solid ${selectedCategory === cat.value ? 'var(--primary)' : 'var(--border)'}`,
+                fontWeight: selectedCategory === cat.value ? 600 : 400,
+              }}
+            >
+              {cat.label}
+            </button>
+          ))}
+        </div>
+        {(searchQuery || selectedCategory !== 'all') && (
+          <button
+            onClick={() => { setSearchQuery(''); setSelectedCategory('all'); }}
+            className="btn btn-outline"
+            style={{ padding: '8px 12px', fontSize: '12px' }}
+          >
+            Clear
+          </button>
+        )}
+      </div>
+
       {/* Open tasks grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
         {openTasks}

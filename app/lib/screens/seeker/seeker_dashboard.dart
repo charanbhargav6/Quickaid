@@ -46,27 +46,72 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
   }
 
   void _setupRealtime() {
-    _realtimeChannel = SupabaseService.client.channel('public:profiles').onPostgresChanges(
-      event: PostgresChangeEvent.update,
-      schema: 'public',
-      table: 'profiles',
-      callback: (payload) {
-        final newRecord = payload.newRecord;
-        final updatedId = newRecord['id'];
-        
-        final assignedTasks = _myTasks.where((t) => t['status'] == 'accepted' && t['helper_id'] == updatedId);
-        if (assignedTasks.isNotEmpty) {
-          setState(() {
-            for (var task in _myTasks) {
-              if (task['helper_id'] == updatedId && task['helper'] != null) {
-                task['helper']['current_lat'] = newRecord['current_lat'];
-                task['helper']['current_lng'] = newRecord['current_lng'];
+    // Subscribe to helper location updates
+    _realtimeChannel = SupabaseService.client.channel('seeker-dashboard-realtime')
+      .onPostgresChanges(
+        event: PostgresChangeEvent.update,
+        schema: 'public',
+        table: 'profiles',
+        callback: (payload) {
+          final newRecord = payload.newRecord;
+          final updatedId = newRecord['id'];
+          
+          final assignedTasks = _myTasks.where((t) => t['status'] == 'accepted' && t['helper_id'] == updatedId);
+          if (assignedTasks.isNotEmpty) {
+            setState(() {
+              for (var task in _myTasks) {
+                if (task['helper_id'] == updatedId && task['helper'] != null) {
+                  task['helper']['current_lat'] = newRecord['current_lat'];
+                  task['helper']['current_lng'] = newRecord['current_lng'];
+                }
               }
+            });
+          }
+        }
+      )
+      .onPostgresChanges(
+        // Subscribe to task status changes – live updates without refresh
+        event: PostgresChangeEvent.update,
+        schema: 'public',
+        table: 'tasks',
+        callback: (payload) {
+          final updated = payload.newRecord;
+          final seekerId = _currentUser['id'];
+          if (updated['seeker_id'] != seekerId) return;
+
+          setState(() {
+            final idx = _myTasks.indexWhere((t) => t['id'] == updated['id']);
+            if (idx != -1) {
+              // Preserve nested helper object which realtime doesn't return
+              final helper = _myTasks[idx]['helper'];
+              _myTasks[idx] = {...updated, 'helper': helper};
+            } else if (updated['status'] == 'open') {
+              _myTasks.insert(0, updated);
             }
           });
+
+          // Show in-app snackbar for key status changes
+          final status = updated['status'] as String?;
+          if (status == 'accepted' && mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('A helper accepted your task: "${updated['title']}"'),
+                backgroundColor: const Color(0xFF10B981),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          } else if (status == 'completed' && mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('"${updated['title']}" has been marked complete!'),
+                backgroundColor: const Color(0xFF3B82F6),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          }
         }
-      }
-    ).subscribe();
+      )
+      .subscribe();
   }
 
   @override
