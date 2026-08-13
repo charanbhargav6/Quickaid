@@ -17,18 +17,21 @@ export default function Register() {
   const [showOtp, setShowOtp] = useState(false);
   const [otpToken, setOtpToken] = useState('');
   const [otpLoading, setOtpLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const router = useRouter();
 
   // Password Validation Rules
   const hasUppercase = /[A-Z]/.test(password);
   const hasNumber = /\d/.test(password);
+  const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
   const hasMinLength = password.length >= 8;
-  const isPasswordValid = hasUppercase && hasNumber && hasMinLength;
+  const isPasswordValid = hasUppercase && hasNumber && hasSpecialChar && hasMinLength;
 
   // Calculate Strength Bar
   let strength = 0;
   if (password.length > 0) strength += 1; // Weak
-  if (hasUppercase || hasNumber) strength += 1; // Moderate
+  if ((hasUppercase || hasNumber) && hasMinLength) strength += 1; // Moderate
   if (isPasswordValid) strength += 1; // Strong
 
   const getStrengthColor = () => {
@@ -274,26 +277,46 @@ export default function Register() {
           
           <div className={styles.inputGroup}>
             <label>Password *</label>
-            <input 
-              type="password" 
-              className="input" 
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            <div style={{ position: 'relative' }}>
+              <input 
+                type={showPassword ? "text" : "password"} 
+                className="input" 
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                style={{ paddingRight: '40px' }}
+                required
+              />
+              <button 
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', opacity: 0.5 }}
+              >
+                {showPassword ? '👁️' : '👁️‍🗨️'}
+              </button>
+            </div>
           </div>
 
           <div className={styles.inputGroup}>
             <label>Confirm Password *</label>
-            <input 
-              type="password" 
-              className="input" 
-              placeholder="••••••••"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-            />
+            <div style={{ position: 'relative' }}>
+              <input 
+                type={showConfirmPassword ? "text" : "password"} 
+                className="input" 
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                style={{ paddingRight: '40px' }}
+                required
+              />
+              <button 
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', opacity: 0.5 }}
+              >
+                {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
+              </button>
+            </div>
           </div>
 
           {/* Dynamic Password Validation UI */}
@@ -314,6 +337,9 @@ export default function Register() {
               </div>
               <div style={{ color: hasMinLength ? '#10B981' : 'inherit', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 {hasMinLength ? '✅' : '⚪'} At least 8 characters
+              </div>
+              <div style={{ color: hasSpecialChar ? '#10B981' : 'inherit', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {hasSpecialChar ? '✅' : '⚪'} At least 1 special character
               </div>
             </div>
           </div>
