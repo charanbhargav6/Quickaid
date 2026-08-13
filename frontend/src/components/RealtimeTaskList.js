@@ -4,13 +4,16 @@ import { createClient } from '@/lib/supabase';
 import { motion, AnimatePresence } from 'framer-motion';
 import TaskReviewModal from '@/components/TaskReviewModal';
 import AlertModal from '@/components/AlertModal';
-import { cancelTask } from '@/app/seeker/_actions/taskActions';
+import { cancelTask, raiseDispute } from '@/app/seeker/_actions/taskActions';
 
 export default function RealtimeTaskList({ initialTasks, userId }) {
   const [tasks, setTasks] = useState(initialTasks);
   const [reviewTask, setReviewTask] = useState(null);
   const [alertModal, setAlertModal] = useState({ isOpen: false });
   const [cancellingId, setCancellingId] = useState(null);
+  const [disputeModal, setDisputeModal] = useState({ isOpen: false, task: null });
+  const [disputeReason, setDisputeReason] = useState('');
+  const [disputeSubmitting, setDisputeSubmitting] = useState(false);
   const [, startTransition] = useTransition();
 
   useEffect(() => {
@@ -137,10 +140,22 @@ export default function RealtimeTaskList({ initialTasks, userId }) {
                       {cancellingId === task.id ? '...' : 'Cancel'}
                     </button>
                   )}
-                  {task.status === 'cancelled' && (
-                    <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>Refunded</span>
+                  {task.status === 'accepted' && (
+                    <button
+                      className="btn btn-outline"
+                      style={{ fontSize: '12px', padding: '4px 10px', borderColor: '#f59e0b', color: '#f59e0b' }}
+                      onClick={() => { setDisputeReason(''); setDisputeModal({ isOpen: true, task }); }}
+                    >
+                      🚩 Dispute
+                    </button>
                   )}
-                  {!['open','accepted','completed','cancelled'].includes(task.status) && (
+                  {task.status === 'cancelled' && (
+                    <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>💰 Refunded</span>
+                  )}
+                  {task.status === 'disputed' && (
+                    <span style={{ color: '#f59e0b', fontSize: '12px' }}>⏳ Under Review</span>
+                  )}
+                  {!['open','accepted','completed','cancelled','disputed'].includes(task.status) && (
                     <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>-</span>
                   )}
                 </div>
@@ -162,6 +177,58 @@ export default function RealtimeTaskList({ initialTasks, userId }) {
       </AnimatePresence>
 
       <AlertModal {...alertModal} />
+
+      {/* ── Dispute Modal ───────────────────────── */}
+      <AnimatePresence>
+        {disputeModal.isOpen && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000 }}
+            onClick={() => setDisputeModal({ isOpen: false, task: null })}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              onClick={e => e.stopPropagation()}
+              className="card"
+              style={{ width: '100%', maxWidth: '480px', padding: '2rem', background: 'var(--card-bg)', borderRadius: '20px', boxShadow: '0 24px 60px rgba(0,0,0,0.3)' }}
+            >
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '0.5rem' }}>🚩 Raise a Dispute</h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '1.25rem' }}>
+                Describe your issue with task: <strong>{disputeModal.task?.title}</strong>. Admin will review and resolve.
+              </p>
+              <textarea
+                value={disputeReason}
+                onChange={e => setDisputeReason(e.target.value)}
+                placeholder="Explain what went wrong (e.g. helper didn't show up, task incomplete...)"
+                rows={4}
+                style={{ width: '100%', padding: '0.75rem', borderRadius: '10px', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '14px', resize: 'vertical', marginBottom: '1rem' }}
+              />
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button className="btn btn-outline" onClick={() => setDisputeModal({ isOpen: false, task: null })} disabled={disputeSubmitting}>Cancel</button>
+                <button
+                  className="btn btn-primary"
+                  style={{ background: '#f59e0b', borderColor: '#f59e0b' }}
+                  disabled={disputeSubmitting || !disputeReason.trim()}
+                  onClick={async () => {
+                    if (!disputeReason.trim()) return;
+                    setDisputeSubmitting(true);
+                    const res = await raiseDispute(disputeModal.task.id, disputeReason);
+                    setDisputeSubmitting(false);
+                    setDisputeModal({ isOpen: false, task: null });
+                    if (res.success) {
+                      setAlertModal({ isOpen: true, title: 'Dispute Filed ✅', message: 'Your dispute has been submitted. Admin will review it shortly.', type: 'success', primaryActionText: 'OK', onPrimaryAction: () => setAlertModal({ isOpen: false }) });
+                    } else {
+                      setAlertModal({ isOpen: true, title: 'Error', message: res.error || 'Failed to raise dispute', type: 'danger', primaryActionText: 'OK', onPrimaryAction: () => setAlertModal({ isOpen: false }) });
+                    }
+                  }}
+                >
+                  {disputeSubmitting ? 'Submitting...' : 'Submit Dispute'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }

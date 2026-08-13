@@ -4,7 +4,7 @@ import styles from './Dashboard.module.css';
 import { createClient } from '@/lib/supabase';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer,
-  BarChart, Bar, Legend
+  BarChart, Bar, Legend, LineChart, Line
 } from 'recharts';
 
 export default function DashboardPage() {
@@ -126,6 +126,34 @@ export default function DashboardPage() {
         Posted: dayTasks.length,
         Completed: dayCompleted.length
       });
+    }
+  }
+
+  // User Growth — cumulative registrations last 30 days
+  const userGrowthData = [];
+  if (isMounted) {
+    const now = new Date();
+    let cumulative = 0;
+    const baseDate = new Date();
+    baseDate.setDate(now.getDate() - 29);
+    baseDate.setHours(0, 0, 0, 0);
+    // count users registered before window as base
+    const priorUsers = profiles.filter(p => new Date(p.created_at) < baseDate).length;
+    cumulative = priorUsers;
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(now.getDate() - i);
+      const dayStart = new Date(d.setHours(0,0,0,0));
+      const dayEnd = new Date(d.setHours(23,59,59,999));
+      const dayLabel = dayStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      const newUsers = profiles.filter(p => {
+        const t = new Date(p.created_at);
+        return t >= dayStart && t <= dayEnd;
+      }).length;
+      cumulative += newUsers;
+      if (i % 5 === 0 || i === 29 || i === 0) { // show every 5th day label
+        userGrowthData.push({ name: dayLabel, Users: cumulative, New: newUsers });
+      }
     }
   }
 
@@ -279,6 +307,30 @@ export default function DashboardPage() {
               </BarChart>
             </ResponsiveContainer>
           </div>
+        </div>
+      </div>
+
+      {/* ── User Growth Chart ────────────────────────── */}
+      <div className={`card ${styles.chartCardWide}`} style={{ height: '320px', margin: '0 0 24px 0' }}>
+        <h3 className={styles.cardTitle}>📈 User Growth (Last 30 Days)</h3>
+        <div style={{ width: '100%', height: '260px' }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={userGrowthData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="colorUsers" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.1}/>
+                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11 }} dy={8} />
+              <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748b', fontSize: 11 }} />
+              <RechartsTooltip contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} />
+              <Legend iconType="circle" wrapperStyle={{ paddingTop: '8px', fontSize: '13px' }} />
+              <Line type="monotone" dataKey="Users" stroke="#6366f1" strokeWidth={2.5} dot={{ r: 3, fill: '#6366f1' }} activeDot={{ r: 5 }} />
+              <Line type="monotone" dataKey="New" stroke="#f59e0b" strokeWidth={1.5} strokeDasharray="4 4" dot={false} />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
       </div>
 

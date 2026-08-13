@@ -202,7 +202,7 @@ export async function cancelTask(taskId) {
   // Mark task cancelled
   await supabase.from('tasks').update({ status: 'cancelled' }).eq('id', taskId)
 
-  // Notify helper if one was assigned
+  // Notify helper if one was assigned (in-app + push)
   if (task.helper_id) {
     await supabase.from('notifications').insert({
       user_id: task.helper_id,
@@ -210,8 +210,78 @@ export async function cancelTask(taskId) {
       body: 'The seeker has cancelled a task you accepted. Please check your wallet.',
       data: { type: 'task_cancelled', taskId }
     })
+
+    // Send FCM push to helper
+    const { sendPushNotification } = await import('@/utils/push')
+    const { data: helperProfile } = await supabase.from('profiles').select('fcm_token').eq('id', task.helper_id).single()
+    if (helperProfile?.fcm_token) {
+      await sendPushNotification(
+        helperProfile.fcm_token,
+        'Task Cancelled ⚠️',
+        'The seeker has cancelled a task you accepted. It is no longer available.',
+        { type: 'task_cancelled', taskId }
+      )
+    }
   }
 
   revalidatePath('/seeker')
   return { success: true }
 }
+
+// ── Raise Dispute ─────────────────────────────────────────────────────
+export async function raiseDispute(taskId, reason) {
+  if (!taskId || !reason?.trim()) return { success: false, error: 'Task ID and reason are required' }
+
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) return { success: false, error: 'Unauthorized' }
+
+  // Fetch task to verify ownership
+  const { data: task, error: taskError } = await supabase
+    .from('tasks')
+    .select('seeker_id, helper_id, status, title')
+    .eq('id', taskId)
+    .single()
+
+  if (taskError || !task) return { success: false, error: 'Task not found' }
+  if (task.seeker_id !== user.id) return { success: false, error: 'You do not own this task' }
+  if (!['accepted', 'in_progress'].includes(task.status)) {
+    return { success: false, error: 'Only accepted or in-progress tasks can be disputed' }
+  }
+
+  // Mark task as disputed
+  await supabase.from('tasks').update({ status: 'disputed' }).eq('id', taskId)
+
+  // Notify admin via notifications table (admin reads disputed tasks from admin panel)
+  await supabase.from('notifications').insert({
+    user_id: user.id, // seeker's own notification record
+    title: 'Dispute Filed 🚩',
+    body: `Your dispute for "${task.title}" has been submitted. Admin will review it shortly.`,
+    data: { type: 'dispute_filed', taskId }
+  })
+
+  // Notify helper too
+  if (task.helper_id) {
+    await supabase.from('notifications').insert({
+      user_id: task.helper_id,
+      title: 'Dispute Raised ⚠️',
+      body: `The seeker has raised a dispute on task: "${task.title}". Admin will review.`,
+      data: { type: 'dispute_raised', taskId }
+    })
+    // FCM push to helper
+    const { sendPushNotification } = await import('@/utils/push')
+    const { data: helperProfile } = await supabase.from('profiles').select('fcm_token').eq('id', task.helper_id).single()
+    if (helperProfile?.fcm_token) {
+      await sendPushNotification(
+        helperProfile.fcm_token,
+        'Dispute Raised ⚠️',
+        `The seeker has raised a dispute on task: "${task.title}". Admin will review.`,
+        { type: 'dispute_raised', taskId }
+      )
+    }
+  }
+
+  revalidatePath('/seeker')
+  return { success: true }
+}
+

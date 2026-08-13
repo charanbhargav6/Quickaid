@@ -57,6 +57,24 @@ export default function UsersPage() {
     router.refresh();
   }
 
+  async function handleVerification(userId, docPath, decision) {
+    const supabase = createClient();
+    const newStatus = decision === 'approve' ? 'verified' : 'rejected';
+    const update = { verification_status: newStatus };
+    if (decision === 'approve') update.trust_score = 110; // Verification bonus — capped later at 100 by review system
+    await supabase.from('profiles').update(update).eq('id', userId);
+    // Notify the helper
+    await supabase.from('notifications').insert({
+      user_id: userId,
+      title: decision === 'approve' ? 'Identity Verified ✅' : 'Verification Rejected ❌',
+      body: decision === 'approve'
+        ? 'Your ID has been verified. You now have a Verified badge!'
+        : 'Your ID verification was rejected. Please re-upload a clearer image.',
+      data: { type: 'verification_update' }
+    });
+    fetchUsers();
+  }
+
   const filteredUsers = users.filter(u => {
     const matchesSearch = (u.full_name?.toLowerCase() || '').includes(search.toLowerCase()) || 
                           (u.email?.toLowerCase() || '').includes(search.toLowerCase());
@@ -102,6 +120,7 @@ export default function UsersPage() {
                 <th>Contact</th>
                 <th>Role</th>
                 <th>Status</th>
+                <th>Verification</th>
                 <th style={{ textAlign: 'right' }}>Actions</th>
               </tr>
             </thead>
@@ -138,6 +157,32 @@ export default function UsersPage() {
                         <span className="badge badge-red">Suspended</span>
                       ) : (
                         <span className="badge badge-gray">Active</span>
+                      )}
+                    </td>
+                    <td>
+                      {user.verification_status === 'pending' ? (
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <button
+                            className="btn btn-primary"
+                            style={{ padding: '4px 10px', fontSize: '12px', background: '#22c55e', borderColor: '#22c55e' }}
+                            onClick={() => handleVerification(user.id, user.verification_doc_path, 'approve')}
+                          >
+                            ✅ Approve
+                          </button>
+                          <button
+                            className="btn btn-outline"
+                            style={{ padding: '4px 10px', fontSize: '12px', borderColor: '#ef4444', color: '#ef4444' }}
+                            onClick={() => handleVerification(user.id, user.verification_doc_path, 'reject')}
+                          >
+                            ❌ Reject
+                          </button>
+                        </div>
+                      ) : user.verification_status === 'verified' ? (
+                        <span className="badge badge-green">Verified</span>
+                      ) : user.verification_status === 'rejected' ? (
+                        <span className="badge badge-red">Rejected</span>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>—</span>
                       )}
                     </td>
                     <td style={{ textAlign: 'right' }}>

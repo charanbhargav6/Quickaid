@@ -16,6 +16,9 @@ export default function HelperSettings() {
   const [msg, setMsg] = useState({ type: '', text: '' });
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [verificationStatus, setVerificationStatus] = useState(null);
+  const [verificationDoc, setVerificationDoc] = useState(null);
+  const [verifyUploading, setVerifyUploading] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -42,6 +45,7 @@ export default function HelperSettings() {
 
     if (data) {
       setFullName(data.full_name || '');
+      setVerificationStatus(data.verification_status || null);
     }
     setLoading(false);
   };
@@ -183,6 +187,69 @@ export default function HelperSettings() {
               />
             </div>
           </div>
+        </div>
+
+        {/* ── ID Verification ───────────────── */}
+        <div className="card" style={{ padding: '24px' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '4px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
+            🪪 ID Verification
+          </h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '16px' }}>Upload a government-issued ID (Aadhaar, PAN, Driving Licence) to get a Verified badge. Admin will review within 24 hours.</p>
+
+          {verificationStatus === 'verified' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', background: '#dcfce7', borderRadius: '10px', color: '#16a34a', fontWeight: 600 }}>
+              ✅ Your identity has been verified!
+            </div>
+          )}
+          {verificationStatus === 'pending' && (
+            <div style={{ padding: '12px 16px', background: '#fef3c7', borderRadius: '10px', color: '#b45309', fontWeight: 600 }}>
+              ⏳ Verification under review — Admin will confirm shortly.
+            </div>
+          )}
+          {verificationStatus === 'rejected' && (
+            <div style={{ padding: '12px 16px', background: '#fee2e2', borderRadius: '10px', color: '#dc2626', fontWeight: 600, marginBottom: '12px' }}>
+              ❌ Your ID was rejected. Please upload a clearer image.
+            </div>
+          )}
+
+          {(verificationStatus === null || verificationStatus === 'rejected') && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '400px', marginTop: '12px' }}>
+              <input
+                type="file"
+                accept="image/*,.pdf"
+                className="input"
+                style={{ padding: '8px' }}
+                onChange={e => setVerificationDoc(e.target.files[0])}
+              />
+              <button
+                type="button"
+                className="btn btn-primary"
+                disabled={!verificationDoc || verifyUploading}
+                onClick={async () => {
+                  if (!verificationDoc || !user) return;
+                  setVerifyUploading(true);
+                  const supabase = (await import('@/lib/supabase')).createClient();
+                  const filePath = `${user.id}/${Date.now()}_${verificationDoc.name}`;
+                  const { error: uploadErr } = await supabase.storage
+                    .from('verifications')
+                    .upload(filePath, verificationDoc, { upsert: true });
+                  if (uploadErr) {
+                    setMsg({ type: 'error', text: 'Upload failed: ' + uploadErr.message });
+                  } else {
+                    await supabase.from('profiles').update({
+                      verification_status: 'pending',
+                      verification_doc_path: filePath
+                    }).eq('id', user.id);
+                    setVerificationStatus('pending');
+                    setMsg({ type: 'success', text: 'ID uploaded! Pending admin review.' });
+                  }
+                  setVerifyUploading(false);
+                }}
+              >
+                {verifyUploading ? 'Uploading...' : '📤 Upload ID Document'}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Security Section */}

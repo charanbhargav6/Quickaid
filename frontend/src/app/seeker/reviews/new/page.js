@@ -75,19 +75,21 @@ function ReviewForm() {
         throw reviewError;
       }
 
-      // 2. Fetch current helper profile
-      const { data: profile } = await supabase.from('profiles').select('trust_score, tasks_completed').eq('id', task.helper_id).single();
-      
-      if (profile) {
-        // Basic calculation: adjust trust score based on rating
-        // 5 stars = +5, 4 stars = +2, 3 stars = 0, 2 stars = -5, 1 star = -10
-        const scoreAdjust = rating === 5 ? 5 : rating === 4 ? 2 : rating === 3 ? 0 : rating === 2 ? -5 : -10;
-        let newScore = (profile.trust_score || 100) + scoreAdjust;
-        newScore = Math.max(0, Math.min(100, newScore)); // Cap between 0-100
+      // 2. Update trust_score using true average across all reviews
+      const { data: allReviews } = await supabase
+        .from('reviews')
+        .select('rating')
+        .eq('reviewee_id', task.helper_id);
+
+      if (allReviews && allReviews.length > 0) {
+        const avgRating = allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length;
+        // Convert 1-5 scale to 0-100 trust score
+        const newTrustScore = Math.round((avgRating / 5) * 100);
 
         await supabase.from('profiles').update({
-          trust_score: newScore,
-          tasks_completed: (profile.tasks_completed || 0) + 1
+          trust_score: newTrustScore,
+          total_reviews: allReviews.length,
+          tasks_completed: (profile?.tasks_completed || 0) + 1,
         }).eq('id', task.helper_id);
       }
 

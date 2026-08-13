@@ -50,10 +50,25 @@ jobs:
           cache: true
       - name: Install dependencies
         run: flutter pub get
-      - name: Analyze code
+      - name: Create required config stubs
         run: |
           touch .env
-          flutter analyze --no-fatal-warnings --no-fatal-infos
+          # Create google-services.json if secret is set, otherwise use a minimal stub
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+          else
+            cat > android/app/google-services.json << 'EOF'
+          {
+            "project_info": { "project_number": "000000000000", "project_id": "quickaid-stub", "storage_bucket": "quickaid-stub.appspot.com" },
+            "client": [{ "client_info": { "mobilesdk_app_id": "1:000000000000:android:0000000000000000", "android_client_info": { "package_name": "com.example.app" } }, "oauth_client": [], "api_key": [{ "current_key": "stub" }], "services": { "appinvite_service": { "other_platform_oauth_client": [] } } }],
+            "configuration_version": "1"
+          }
+          EOF
+          fi
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+      - name: Analyze code
+        run: flutter analyze --no-fatal-warnings --no-fatal-infos
       - name: Build Web
         run: flutter build web
       
