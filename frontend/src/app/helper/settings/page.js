@@ -11,8 +11,7 @@ export default function HelperSettings() {
   
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [resettingPwd, setResettingPwd] = useState(false);
   
   const [msg, setMsg] = useState({ type: '', text: '' });
   const [saving, setSaving] = useState(false);
@@ -63,28 +62,27 @@ export default function HelperSettings() {
     }
   };
 
+  const handleResetPassword = async () => {
+    if (!user?.email) return;
+    setResettingPwd(true);
+    setMsg({ type: '', text: '' });
+    const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) {
+      setMsg({ type: 'error', text: error.message });
+    } else {
+      setMsg({ type: 'success', text: 'Password reset email sent! Please check your inbox.' });
+    }
+    setResettingPwd(false);
+  };
+
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
     if (!user) return;
     
     setSaving(true);
     setMsg({ type: '', text: '' });
-
-    if (password) {
-      if (password !== confirmPassword) {
-        setMsg({ type: 'error', text: 'Passwords do not match.' });
-        setSaving(false);
-        return;
-      }
-      const { error: passError } = await supabase.auth.updateUser({
-        password: password
-      });
-      if (passError) {
-        setMsg({ type: 'error', text: passError.message });
-        setSaving(false);
-        return;
-      }
-    }
 
     const { error: profileError } = await supabase
       .from('profiles')
@@ -95,8 +93,6 @@ export default function HelperSettings() {
       setMsg({ type: 'error', text: 'Error updating profile' });
     } else {
       setMsg({ type: 'success', text: 'Settings updated successfully.' });
-      setPassword('');
-      setConfirmPassword('');
     }
     setSaving(false);
   };
@@ -129,47 +125,52 @@ export default function HelperSettings() {
       <form onSubmit={handleUpdateProfile} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
         
         {/* Profile Section */}
-        <div className="card" style={{ padding: '24px' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
+        <div className="card" style={{ padding: '24px', borderRadius: '16px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '20px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
             Profile Information
           </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '400px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxWidth: '400px' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '14px', marginBottom: '8px', fontWeight: 500 }}>Username (Full Name)</label>
+              <label style={{ display: 'block', fontSize: '14px', marginBottom: '8px', fontWeight: 600, color: 'var(--text-secondary)' }}>Full Name</label>
               <input 
                 type="text" 
                 className="input" 
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder="Enter your full name"
+                placeholder="e.g. John Doe"
+                autoComplete="name"
+                style={{ padding: '12px 16px', borderRadius: '12px', background: 'var(--bg-secondary)', border: '1px solid var(--border)', fontSize: '15px' }}
                 required
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '14px', marginBottom: '8px', fontWeight: 500 }}>Phone Number</label>
+              <label style={{ display: 'block', fontSize: '14px', marginBottom: '8px', fontWeight: 600, color: 'var(--text-secondary)' }}>Phone Number</label>
               <input 
                 type="tel" 
                 className="input" 
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="Enter your phone number"
+                placeholder="e.g. 555-1234-5678"
+                autoComplete="tel"
+                style={{ padding: '12px 16px', borderRadius: '12px', background: 'var(--bg-secondary)', border: '1px solid var(--border)', fontSize: '15px' }}
               />
             </div>
             <div>
-              <label style={{ display: 'block', fontSize: '14px', marginBottom: '8px', fontWeight: 500 }}>Email Address</label>
+              <label style={{ display: 'block', fontSize: '14px', marginBottom: '8px', fontWeight: 600, color: 'var(--text-secondary)' }}>Email Address</label>
               <input 
-                type="text" 
+                type="email" 
                 className="input" 
                 value={user?.email || ''}
                 disabled
-                style={{ background: 'var(--slate-100)', color: 'var(--text-muted)' }}
+                autoComplete="email"
+                style={{ padding: '12px 16px', borderRadius: '12px', background: 'var(--bg-secondary)', border: '1px solid var(--border)', fontSize: '15px', color: 'var(--text-muted)' }}
               />
             </div>
           </div>
         </div>
 
         {/* Preferences Section */}
-        <div className="card" style={{ padding: '24px' }}>
+        <div className="card" style={{ padding: '24px', borderRadius: '16px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
           <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
             Preferences
           </h2>
@@ -202,41 +203,60 @@ export default function HelperSettings() {
         </div>
 
         {/* ── ID Verification ───────────────── */}
-        <div className="card" style={{ padding: '24px' }}>
+        <div className="card" style={{ padding: '24px', borderRadius: '16px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
           <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '4px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
             🪪 ID Verification
           </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '13px', marginBottom: '16px' }}>Upload a government-issued ID (Aadhaar, PAN, Driving Licence) to get a Verified badge. Admin will review within 24 hours.</p>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '20px' }}>Upload a government-issued ID (Aadhaar, PAN, Driving Licence) to get a Verified badge. Admin will review within 24 hours.</p>
 
           {verificationStatus === 'verified' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', background: '#dcfce7', borderRadius: '10px', color: '#16a34a', fontWeight: 600 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 16px', background: '#dcfce7', borderRadius: '12px', color: '#16a34a', fontWeight: 600 }}>
               ✅ Your identity has been verified!
             </div>
           )}
           {verificationStatus === 'pending' && (
-            <div style={{ padding: '12px 16px', background: '#fef3c7', borderRadius: '10px', color: '#b45309', fontWeight: 600 }}>
+            <div style={{ padding: '12px 16px', background: '#fef3c7', borderRadius: '12px', color: '#b45309', fontWeight: 600 }}>
               ⏳ Verification under review — Admin will confirm shortly.
             </div>
           )}
           {verificationStatus === 'rejected' && (
-            <div style={{ padding: '12px 16px', background: '#fee2e2', borderRadius: '10px', color: '#dc2626', fontWeight: 600, marginBottom: '12px' }}>
+            <div style={{ padding: '12px 16px', background: '#fee2e2', borderRadius: '12px', color: '#dc2626', fontWeight: 600, marginBottom: '16px' }}>
               ❌ Your ID was rejected. Please upload a clearer image.
             </div>
           )}
 
           {(verificationStatus === null || verificationStatus === 'rejected') && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '400px', marginTop: '12px' }}>
-              <input
-                type="file"
-                accept="image/*,.pdf"
-                className="input"
-                style={{ padding: '8px' }}
-                onChange={e => setVerificationDoc(e.target.files[0])}
-              />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '400px', marginTop: '12px' }}>
+              <div style={{ 
+                border: '2px dashed var(--border)', 
+                borderRadius: '16px', 
+                padding: '32px 24px', 
+                textAlign: 'center',
+                background: 'var(--bg-secondary)',
+                position: 'relative',
+                transition: 'border-color 0.2s ease',
+                cursor: 'pointer'
+              }} className="hover:border-primary">
+                <input
+                  type="file"
+                  accept="image/*,.pdf"
+                  onChange={e => setVerificationDoc(e.target.files[0])}
+                  style={{ position: 'absolute', inset: 0, opacity: 0, cursor: 'pointer', zIndex: 10 }}
+                />
+                <div style={{ fontSize: '32px', marginBottom: '12px' }}>📄</div>
+                <div style={{ fontWeight: 600, fontSize: '15px', color: 'var(--text-primary)' }}>
+                  {verificationDoc ? verificationDoc.name : 'Click or drag file here'}
+                </div>
+                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '6px' }}>
+                  Supports JPG, PNG, PDF (Max 5MB)
+                </div>
+              </div>
+
               <button
                 type="button"
                 className="btn btn-primary"
                 disabled={!verificationDoc || verifyUploading}
+                style={{ padding: '12px 16px', borderRadius: '12px', fontWeight: 600 }}
                 onClick={async () => {
                   if (!verificationDoc || !user) return;
                   setVerifyUploading(true);
@@ -265,37 +285,29 @@ export default function HelperSettings() {
         </div>
 
         {/* Security Section */}
-        <div className="card" style={{ padding: '24px' }}>
+        <div className="card" style={{ padding: '24px', borderRadius: '16px', border: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
           <h2 style={{ fontSize: '18px', fontWeight: 700, marginBottom: '16px', borderBottom: '1px solid var(--border)', paddingBottom: '12px' }}>
             Security
           </h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '400px' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', marginBottom: '8px', fontWeight: 500 }}>New Password</label>
-              <input 
-                type="password" 
-                className="input" 
-                placeholder="Leave blank to keep current" 
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '14px', marginBottom: '8px', fontWeight: 500 }}>Confirm New Password</label>
-              <input 
-                type="password" 
-                className="input" 
-                placeholder="Leave blank to keep current" 
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-              />
-            </div>
+            <p style={{ fontSize: '14px', color: 'var(--text-secondary)' }}>
+              To change your password, we'll send a secure reset link to your email.
+            </p>
+            <button
+              type="button"
+              className="btn btn-outline"
+              disabled={resettingPwd}
+              onClick={handleResetPassword}
+              style={{ padding: '10px 20px', fontSize: '14px', borderRadius: '12px', alignSelf: 'flex-start' }}
+            >
+              {resettingPwd ? 'Sending link...' : 'Send Password Reset Email'}
+            </button>
           </div>
         </div>
 
         <div style={{ paddingBottom: '40px' }}>
-          <button type="submit" className="btn btn-primary" disabled={saving} style={{ padding: '12px 24px', fontSize: '16px' }}>
-            {saving ? 'Saving Changes...' : 'Save All Changes'}
+          <button type="submit" className="btn btn-primary" disabled={saving} style={{ padding: '14px 28px', fontSize: '16px', borderRadius: '12px' }}>
+            {saving ? 'Saving...' : 'Save Profile Changes'}
           </button>
         </div>
 
