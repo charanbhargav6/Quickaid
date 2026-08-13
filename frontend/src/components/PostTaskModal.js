@@ -271,6 +271,7 @@ function PostTaskModalContent() {
       destination_lat: requiresTwoLocations ? (destinationLocation?.lat ?? null) : null,
       destination_lng: requiresTwoLocations ? (destinationLocation?.lng ?? null) : null,
       destination_name: requiresTwoLocations ? destinationName.trim() : null,
+      vehicle_required: requiresTwoLocations ? vehicleType : null,
     };
 
     const res = await postTask(formData);

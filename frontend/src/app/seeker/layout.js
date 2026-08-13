@@ -14,7 +14,7 @@ export default async function SeekerLayout({ children }) {
 
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
   if (!profile || (profile.role !== 'seeker' && profile.role !== 'both' && profile.role !== 'admin')) {
-    redirect('/login');
+    redirect('/helper'); // Pure helpers should go to the helper dashboard
   }
 
   return (

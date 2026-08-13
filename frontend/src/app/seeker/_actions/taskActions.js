@@ -16,6 +16,7 @@ const postTaskSchema = z.object({
   destination_name: z.string().nullable().optional(),
   destination_lat: z.number().nullable().optional(),
   destination_lng: z.number().nullable().optional(),
+  vehicle_required: z.string().nullable().optional(),
 })
 
 export async function postTask(formData) {
@@ -67,6 +68,7 @@ export async function postTask(formData) {
     destination_name: parsed.data.destination_name,
     destination_lat: parsed.data.destination_lat,
     destination_lng: parsed.data.destination_lng,
+    vehicle_required: parsed.data.vehicle_required ?? null,
     status: 'open'
   }).select().single()
 

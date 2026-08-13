@@ -135,6 +135,7 @@ export default function Register() {
         return;
       }
       // Successfully signed up, show OTP modal instead of redirecting
+      setLoading(false);
       setShowOtp(true);
     } else {
       setAlertModal({

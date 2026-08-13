@@ -8,8 +8,8 @@ const inter = Inter({
 });
 
 export const metadata = {
-  title: "QuickAid Admin Panel",
-  description: "Campus task marketplace administration",
+  title: "QuickAid – Fast Help, Trusted People",
+  description: "QuickAid connects you with trusted local helpers for everyday tasks. Post a task, get help fast.",
   manifest: "/manifest.json",
 };
 

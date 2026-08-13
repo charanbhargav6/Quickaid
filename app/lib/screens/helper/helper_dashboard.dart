@@ -101,6 +101,7 @@ class _HelperDashboardState extends State<HelperDashboard> {
               .from('tasks')
               .select('*, seeker:profiles!seeker_id(full_name)')
               .eq('helper_id', _currentUser['id'])
+              .inFilter('status', ['accepted', 'in_progress', 'completed'])
               .order('created_at', ascending: false);
           
           _myTasks = List<Map<String, dynamic>>.from(myTasksRes);
@@ -872,8 +873,8 @@ class _HelperDashboardState extends State<HelperDashboard> {
                           taskId: task['id'],
                           helperId: SupabaseService.currentUser!.id,
                           seekerId: task['seeker_id'],
-                          taskLat: task['latitude'] != null ? (task['latitude'] as num).toDouble() : 0.0,
-                          taskLng: task['longitude'] != null ? (task['longitude'] as num).toDouble() : 0.0,
+                          taskLat: task['lat'] != null ? (task['lat'] as num).toDouble() : 0.0,
+                          taskLng: task['lng'] != null ? (task['lng'] as num).toDouble() : 0.0,
                           taskTitle: task['title'],
                         ),
                       ),

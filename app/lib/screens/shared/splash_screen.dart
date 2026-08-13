@@ -67,6 +67,12 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
         // Sync push notification token
         await NotificationService.syncTokenToSupabase();
         
+        // Save last_verified_at if not set (handles Google OAuth users who skip signIn())
+        final prefs = await SharedPreferences.getInstance();
+        if (prefs.getInt('last_verified_at') == null) {
+          await prefs.setInt('last_verified_at', DateTime.now().millisecondsSinceEpoch);
+        }
+        
         if (!mounted) return;
         final role = profile?['role'] as String? ?? 'seeker';
         if (role == 'admin') {
