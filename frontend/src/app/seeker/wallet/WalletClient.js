@@ -59,8 +59,7 @@ export default function WalletClient({ initialBalance, initialTransactions }) {
     const { data: tx, error: txErr } = await supabase.from('transactions').insert({
       user_id: user.id,
       amount: amt,
-      type: 'payout',
-      description: `UPI: ${upiId.trim()}`,
+      type: 'payout'
     }).select().single();
 
     setWithdrawing(false);
