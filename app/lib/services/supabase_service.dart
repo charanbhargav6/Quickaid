@@ -245,7 +245,7 @@ class SupabaseService {
     await client.from('transactions').insert({
       'user_id': user.id,
       'amount': amount,
-      'type': 'withdrawal'
+      'type': 'payout'
     });
   }
 
