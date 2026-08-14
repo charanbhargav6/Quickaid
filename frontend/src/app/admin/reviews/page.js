@@ -11,6 +11,28 @@ export default function ReviewsPage() {
 
   useEffect(() => {
     fetchReviews();
+
+    // Real-time: auto-update when a new review is inserted
+    const channel = supabase
+      .channel('admin-reviews-realtime')
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'reviews',
+      }, async (payload) => {
+        // Fetch full review with joined names
+        const { data } = await supabase
+          .from('reviews')
+          .select(`*, reviewer:reviewer_id(full_name, role), reviewee:reviewee_id(full_name, role), tasks(title)`)
+          .eq('id', payload.new.id)
+          .single();
+        if (data) {
+          setReviews(prev => [data, ...prev]);
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
   async function fetchReviews() {
@@ -21,7 +43,7 @@ export default function ReviewsPage() {
         .select(`
           *,
           reviewer:reviewer_id(full_name, role),
-          reviewee:reviewed_user_id(full_name, role),
+          reviewee:reviewee_id(full_name, role),
           tasks(title)
         `)
         .order('created_at', { ascending: false });
@@ -44,7 +66,11 @@ export default function ReviewsPage() {
       }}>
         <div>
           <h1 style={{ fontSize: '2rem', fontWeight: '800', color: 'var(--text-primary)' }}>Platform Reviews</h1>
-          <p style={{ color: 'var(--text-secondary)', marginTop: '4px' }}>Monitor all feedback and ratings between seekers and helpers.</p>
+          <p style={{ color: 'var(--text-secondary)', marginTop: '4px' }}>Monitor all feedback and ratings between seekers and helpers. Updates in real-time.</p>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--primary)', fontWeight: 600 }}>
+          <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--primary)', display: 'inline-block', animation: 'pulse 2s infinite' }}></span>
+          Live
         </div>
       </div>
 
@@ -54,7 +80,7 @@ export default function ReviewsPage() {
             <tr style={{ background: 'var(--slate-50)', borderBottom: '1px solid var(--border)', textAlign: 'left' }}>
               <th style={{ padding: '16px', fontSize: '12px', color: 'var(--text-muted)' }}>DATE</th>
               <th style={{ padding: '16px', fontSize: '12px', color: 'var(--text-muted)' }}>REVIEWER</th>
-              <th style={{ padding: '16px', fontSize: '12px', color: 'var(--text-muted)' }}>REVIEWEE</th>
+              <th style={{ padding: '16px', fontSize: '12px', color: 'var(--text-muted)' }}>REVIEWED</th>
               <th style={{ padding: '16px', fontSize: '12px', color: 'var(--text-muted)' }}>TASK</th>
               <th style={{ padding: '16px', fontSize: '12px', color: 'var(--text-muted)' }}>RATING</th>
               <th style={{ padding: '16px', fontSize: '12px', color: 'var(--text-muted)' }}>COMMENT</th>
@@ -73,9 +99,11 @@ export default function ReviewsPage() {
                   </td>
                   <td style={{ padding: '16px', fontSize: '14px', fontWeight: '500' }}>
                     {review.reviewer?.full_name || 'Unknown'}
+                    <span style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{review.reviewer?.role}</span>
                   </td>
                   <td style={{ padding: '16px', fontSize: '14px', fontWeight: '500' }}>
                     {review.reviewee?.full_name || 'Unknown'}
+                    <span style={{ display: 'block', fontSize: '11px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{review.reviewee?.role}</span>
                   </td>
                   <td style={{ padding: '16px', fontSize: '14px' }}>
                     {review.tasks?.title || 'Unknown Task'}

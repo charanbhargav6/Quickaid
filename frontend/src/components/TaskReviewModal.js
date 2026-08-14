@@ -8,6 +8,7 @@ export default function TaskReviewModal({ task, reviewerRole, onClose, onSubmitt
   const [comment, setComment] = useState('');
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState(null);
+  const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -23,17 +24,17 @@ export default function TaskReviewModal({ task, reviewerRole, onClose, onSubmitt
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Determine who is being reviewed
       const reviewedId = reviewerRole === 'seeker' ? task.helper_id : task.seeker_id;
 
-      // Insert review
-      const { error: reviewError } = await supabase.from('reviews').insert({
+      // Use upsert to prevent duplicate key error if user tries to review twice
+      const { error: reviewError } = await supabase.from('reviews').upsert({
         task_id: task.id,
         reviewer_id: user.id,
         reviewee_id: reviewedId,
         rating,
         comment: comment.trim(),
-      });
+      }, { onConflict: 'task_id,reviewer_id' });
+      
       if (reviewError) throw reviewError;
 
       // Update trust score on the reviewed profile (weighted average)
@@ -55,8 +56,12 @@ export default function TaskReviewModal({ task, reviewerRole, onClose, onSubmitt
         }).eq('id', reviewedId);
       }
 
-      onSubmitted?.();
-      onClose();
+      // Show "Reviewed" success state briefly then close
+      setSubmitted(true);
+      setTimeout(() => {
+        onSubmitted?.();
+        onClose();
+      }, 1800);
     } catch (err) {
       setError(err.message || 'Failed to submit review. Please try again.');
       setIsPending(false);
@@ -76,86 +81,97 @@ export default function TaskReviewModal({ task, reviewerRole, onClose, onSubmitt
         background: 'var(--card-bg)', borderRadius: '20px',
         boxShadow: '0 24px 60px rgba(0,0,0,0.3)',
       }}>
-        {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-          <div style={{ fontSize: '48px', marginBottom: '0.5rem' }}>⭐</div>
-          <h2 style={{ margin: 0, fontSize: '22px', fontWeight: 800 }}>Rate your experience</h2>
-          <p style={{ color: 'var(--text-muted)', marginTop: '6px', fontSize: '14px' }}>
-            Task: <strong>{task.title}</strong> — Please rate {targetLabel}
-          </p>
-        </div>
+        {submitted ? (
+          /* ── Success State ── */
+          <div style={{ textAlign: 'center', padding: '2rem 0' }}>
+            <div style={{ fontSize: '56px', marginBottom: '1rem' }}>✅</div>
+            <h2 style={{ margin: 0, color: 'var(--primary)', fontWeight: 800 }}>Review Submitted!</h2>
+            <p style={{ color: 'var(--text-muted)', marginTop: '8px' }}>Thank you for your feedback.</p>
+          </div>
+        ) : (
+          <>
+            {/* Header */}
+            <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
+              <div style={{ fontSize: '48px', marginBottom: '0.5rem' }}>⭐</div>
+              <h2 style={{ margin: 0, fontSize: '22px', fontWeight: 800 }}>Rate your experience</h2>
+              <p style={{ color: 'var(--text-muted)', marginTop: '6px', fontSize: '14px' }}>
+                Task: <strong>{task.title}</strong> — Please rate {targetLabel}
+              </p>
+            </div>
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          {/* Star Rating */}
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '8px' }}>
-              {[1, 2, 3, 4, 5].map((star) => (
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              {/* Star Rating */}
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '8px' }}>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setRating(star)}
+                      onMouseEnter={() => setHoveredRating(star)}
+                      onMouseLeave={() => setHoveredRating(0)}
+                      style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        fontSize: '36px', padding: '4px',
+                        color: star <= (hoveredRating || rating) ? '#F59E0B' : 'var(--border)',
+                        transition: 'color 0.15s, transform 0.15s',
+                        transform: star <= (hoveredRating || rating) ? 'scale(1.2)' : 'scale(1)',
+                      }}
+                    >
+                      ★
+                    </button>
+                  ))}
+                </div>
+                <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>
+                  {rating === 0 ? 'Tap a star to rate' : ['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'][rating]}
+                </p>
+              </div>
+
+              {/* Comment */}
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '6px' }}>
+                  Leave a comment <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span>
+                </label>
+                <textarea
+                  className="input"
+                  rows={3}
+                  placeholder={`How was your experience with ${targetLabel}?`}
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  disabled={isPending}
+                  style={{ resize: 'vertical', minHeight: '80px' }}
+                />
+              </div>
+
+              {error && (
+                <div style={{ color: '#EF4444', fontSize: '13px', background: 'rgba(239,68,68,0.08)', padding: '10px 14px', borderRadius: '8px' }}>
+                  {error}
+                </div>
+              )}
+
+              {/* Actions */}
+              <div style={{ display: 'flex', gap: '12px' }}>
                 <button
-                  key={star}
                   type="button"
-                  onClick={() => setRating(star)}
-                  onMouseEnter={() => setHoveredRating(star)}
-                  onMouseLeave={() => setHoveredRating(0)}
-                  style={{
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    fontSize: '36px', padding: '4px',
-                    color: star <= (hoveredRating || rating) ? '#F59E0B' : 'var(--border)',
-                    transition: 'color 0.15s, transform 0.15s',
-                    transform: star <= (hoveredRating || rating) ? 'scale(1.2)' : 'scale(1)',
-                  }}
+                  className="btn btn-outline"
+                  style={{ flex: 1 }}
+                  onClick={onClose}
+                  disabled={isPending}
                 >
-                  ★
+                  Skip for now
                 </button>
-              ))}
-            </div>
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: 0 }}>
-              {rating === 0 ? 'Tap a star to rate' : ['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'][rating]}
-            </p>
-          </div>
-
-          {/* Comment */}
-          <div>
-            <label style={{ display: 'block', fontSize: '14px', fontWeight: 600, marginBottom: '6px' }}>
-              Leave a comment <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span>
-            </label>
-            <textarea
-              className="input"
-              rows={3}
-              placeholder={`How was your experience with ${targetLabel}?`}
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              disabled={isPending}
-              style={{ resize: 'vertical', minHeight: '80px' }}
-            />
-          </div>
-
-          {error && (
-            <div style={{ color: '#EF4444', fontSize: '13px', background: 'rgba(239,68,68,0.08)', padding: '10px 14px', borderRadius: '8px' }}>
-              {error}
-            </div>
-          )}
-
-          {/* Actions */}
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <button
-              type="button"
-              className="btn btn-outline"
-              style={{ flex: 1 }}
-              onClick={onClose}
-              disabled={isPending}
-            >
-              Skip for now
-            </button>
-            <button
-              type="submit"
-              className="btn btn-primary"
-              style={{ flex: 1 }}
-              disabled={isPending}
-            >
-              {isPending ? 'Submitting…' : 'Submit Review'}
-            </button>
-          </div>
-        </form>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  style={{ flex: 1 }}
+                  disabled={isPending}
+                >
+                  {isPending ? 'Submitting…' : 'Submit Review'}
+                </button>
+              </div>
+            </form>
+          </>
+        )}
       </div>
     </div>
   );

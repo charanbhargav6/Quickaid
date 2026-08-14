@@ -9,6 +9,7 @@ export default function RealtimeHelperTasks({ initialTasks }) {
   const [tasks, setTasks] = useState(initialTasks);
   const [myAcceptedTasks, setMyAcceptedTasks] = useState([]);
   const [reviewTask, setReviewTask] = useState(null);
+  const [reviewedTaskIds, setReviewedTaskIds] = useState(new Set());
   const [selectedTask, setSelectedTask] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -29,6 +30,14 @@ export default function RealtimeHelperTasks({ initialTasks }) {
           .order('created_at', { ascending: false })
           .then(({ data }) => {
             if (data) setMyAcceptedTasks(data);
+          });
+        // Fetch reviews I've already submitted (to show "Reviewed" badge)
+        supabase
+          .from('reviews')
+          .select('task_id')
+          .eq('reviewer_id', user.id)
+          .then(({ data: reviewData }) => {
+            if (reviewData) setReviewedTaskIds(new Set(reviewData.map(r => r.task_id)));
           });
       }
     });
@@ -236,13 +245,19 @@ export default function RealtimeHelperTasks({ initialTasks }) {
                     </button>
                   )}
                   {(task.status === 'completed' || task.status === 'cancelled') && (
-                    <button
-                      className="btn btn-outline"
-                      style={{ fontSize: '12px', padding: '4px 10px' }}
-                      onClick={() => setReviewTask(task)}
-                    >
-                      ⭐ Rate Seeker
-                    </button>
+                    reviewedTaskIds.has(task.id) ? (
+                      <span style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '8px', background: 'rgba(16,185,129,0.1)', color: '#059669', fontWeight: 600 }}>
+                        ✓ Reviewed
+                      </span>
+                    ) : (
+                      <button
+                        className="btn btn-outline"
+                        style={{ fontSize: '12px', padding: '4px 10px' }}
+                        onClick={() => setReviewTask(task)}
+                      >
+                        ⭐ Rate Seeker
+                      </button>
+                    )
                   )}
                 </div>
               </div>
@@ -257,7 +272,10 @@ export default function RealtimeHelperTasks({ initialTasks }) {
             task={reviewTask}
             reviewerRole="helper"
             onClose={() => setReviewTask(null)}
-            onSubmitted={() => setReviewTask(null)}
+            onSubmitted={() => {
+              setReviewedTaskIds(prev => new Set([...prev, reviewTask.id]));
+              setReviewTask(null);
+            }}
           />
         )}
         
@@ -269,42 +287,52 @@ export default function RealtimeHelperTasks({ initialTasks }) {
             padding: '1rem'
           }}>
             <div className="card fade-in" style={{ width: '100%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto', padding: '2rem', background: 'var(--card-bg)', borderRadius: '20px' }}>
-              <h2 style={{ marginBottom: '1rem', marginTop: 0, fontSize: '22px', fontWeight: 800 }}>Task Details</h2>
               
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                <h3 style={{ margin: 0, fontSize: '20px' }}>{selectedTask.title}</h3>
-                <span className="badge badge-blue" style={{ fontSize: '16px' }}>₹{selectedTask.pay?.toFixed(2) ?? selectedTask.price?.toFixed(2)}</span>
+              {/* Header row */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+                <h2 style={{ margin: 0, fontSize: '13px', fontWeight: 600, textTransform: 'uppercase', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>Task Details</h2>
+                <button onClick={() => setSelectedTask(null)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-muted)', lineHeight: 1 }}>✕</button>
+              </div>
+
+              {/* Title + Price */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem', gap: '1rem' }}>
+                <h3 style={{ margin: 0, fontSize: '22px', fontWeight: 800, lineHeight: 1.2 }}>{selectedTask.title}</h3>
+                <span style={{ fontSize: '20px', fontWeight: 800, color: 'var(--primary)', whiteSpace: 'nowrap' }}>₹{(selectedTask.pay ?? selectedTask.price ?? 0).toFixed(2)}</span>
               </div>
               
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-                <span className="badge badge-gray">{selectedTask.category?.replace('_', ' ').toUpperCase()}</span>
-                <span className="badge badge-gray">{selectedTask.task_type?.toUpperCase()}</span>
+              {/* Badges */}
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '1.25rem', flexWrap: 'wrap' }}>
+                {selectedTask.category && <span className="badge badge-gray">{selectedTask.category.replace(/_/g, ' ').toUpperCase()}</span>}
+                {selectedTask.task_type && <span className="badge badge-gray">{selectedTask.task_type.toUpperCase()}</span>}
                 {getTripDistance(selectedTask) && (
-                  <span className="badge badge-gray" style={{ color: 'var(--primary)' }}>
-                    🛣️ ~{getTripDistance(selectedTask)} km trip
-                  </span>
+                  <span className="badge badge-gray" style={{ color: 'var(--primary)' }}>🛣️ ~{getTripDistance(selectedTask)} km</span>
                 )}
               </div>
-              
-              <div style={{ marginBottom: '1.5rem', padding: '1rem', background: 'var(--bg-secondary)', borderRadius: '8px' }}>
-                <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: '1.6' }}>{selectedTask.description}</p>
+
+              {/* Description */}
+              <div style={{ marginBottom: '1.25rem', padding: '1rem', background: 'var(--bg-secondary)', borderRadius: '10px' }}>
+                <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: '1.7', fontSize: '15px' }}>{selectedTask.description}</p>
               </div>
 
-              {selectedTask.location_name && (
-                <div style={{ marginBottom: '1rem' }}>
-                  <strong>Pickup / Location:</strong>
-                  <p style={{ margin: '4px 0 0 0', color: 'var(--text-secondary)' }}>{selectedTask.location_name}</p>
-                </div>
-              )}
-              
-              {selectedTask.destination_name && (
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <strong>Dropoff / Destination:</strong>
-                  <p style={{ margin: '4px 0 0 0', color: 'var(--text-secondary)' }}>{selectedTask.destination_name}</p>
+              {/* Location info only for non-digital tasks */}
+              {selectedTask.task_type !== 'digital' && (selectedTask.location_name || selectedTask.destination_name) && (
+                <div style={{ display: 'grid', gridTemplateColumns: selectedTask.destination_name ? '1fr 1fr' : '1fr', gap: '12px', marginBottom: '1.25rem' }}>
+                  {selectedTask.location_name && (
+                    <div style={{ padding: '12px', background: 'var(--bg-secondary)', borderRadius: '10px' }}>
+                      <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '4px', letterSpacing: '0.06em' }}>📍 Pickup</div>
+                      <div style={{ fontSize: '14px', fontWeight: 500 }}>{selectedTask.location_name}</div>
+                    </div>
+                  )}
+                  {selectedTask.destination_name && (
+                    <div style={{ padding: '12px', background: 'var(--bg-secondary)', borderRadius: '10px' }}>
+                      <div style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: '4px', letterSpacing: '0.06em' }}>🏁 Dropoff</div>
+                      <div style={{ fontSize: '14px', fontWeight: 500 }}>{selectedTask.destination_name}</div>
+                    </div>
+                  )}
                 </div>
               )}
 
-              <div style={{ display: 'flex', gap: '1rem', marginTop: '2rem' }}>
+              <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
                 <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => setSelectedTask(null)}>Close</button>
                 <div style={{ flex: 1 }}>
                   <AcceptTaskButton taskId={selectedTask.id} onSuccess={() => setSelectedTask(null)} />

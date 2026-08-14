@@ -32,6 +32,7 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
   Map<String, dynamic> _currentUser = {};
   Position? _currentPosition;
   RealtimeChannel? _realtimeChannel;
+  final Set<String> _reviewedTaskIds = {};
 
   @override
   void initState() {
@@ -626,11 +627,24 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
                       ),
                     ),
                     if (status == 'completed')
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF59E0B), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
-                        onPressed: () => _showReviewDialog(task['id'], task['helper_id'], task['helper']['full_name']),
-                        child: const Text('Rate Helper'),
-                      )
+                      _reviewedTaskIds.contains(task['id'])
+                          ? Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.check_circle, size: 16, color: Colors.green),
+                                  SizedBox(width: 4),
+                                  Text('Reviewed', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                                ],
+                              ),
+                            )
+                          : ElevatedButton(
+                              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFF59E0B), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                              onPressed: () => _showReviewDialog(task['id'], task['helper_id'], task['helper']['full_name']),
+                              child: const Text('Rate Helper'),
+                            )
                     else if (status == 'accepted')
                       Column(
                         children: [
@@ -771,6 +785,7 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
                     comment: commentCtrl.text,
                   );
                   if (context.mounted) Navigator.pop(ctx);
+                  setState(() => _reviewedTaskIds.add(taskId));
                   if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Review submitted!')));
                 } catch (e) {
                   if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));

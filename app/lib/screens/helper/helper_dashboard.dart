@@ -34,6 +34,7 @@ class _HelperDashboardState extends State<HelperDashboard> {
   double? _minPay;
   Timer? _locationTimer;
   RealtimeChannel? _realtimeChannel;
+  final Set<String> _reviewedTaskIds = {};
 
   @override
   void initState() {
@@ -947,11 +948,25 @@ class _HelperDashboardState extends State<HelperDashboard> {
               ),
             ] else ...[
               const SizedBox(height: 16),
-              OutlinedButton(
-                style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                onPressed: () => _showReviewDialog(task['id'], task['seeker_id'], task['seeker']?['full_name']),
-                child: const Text('Rate Seeker', style: TextStyle(fontWeight: FontWeight.bold)),
-              ),
+              _reviewedTaskIds.contains(task['id'])
+                  ? Container(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(color: Colors.green.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.check_circle, size: 20, color: Colors.green),
+                          SizedBox(width: 8),
+                          Text('Reviewed ✓', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 16)),
+                        ],
+                      ),
+                    )
+                  : OutlinedButton(
+                      style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                      onPressed: () => _showReviewDialog(task['id'], task['seeker_id'], task['seeker']?['full_name']),
+                      child: const Text('Rate Seeker', style: TextStyle(fontWeight: FontWeight.bold)),
+                    ),
             ],
           ],
         ),
@@ -1056,6 +1071,7 @@ class _HelperDashboardState extends State<HelperDashboard> {
                                   comment: commentCtrl.text,
                                 );
                                 if (context.mounted) Navigator.pop(ctx);
+                                setState(() => _reviewedTaskIds.add(taskId));
                                 if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Review submitted successfully!')));
                               } catch (e) {
                                 if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));

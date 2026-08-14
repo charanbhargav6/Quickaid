@@ -300,13 +300,31 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                       ],
                                     ),
                                   ),
-                                  // Chevron or delete button
-                                  if (notif['data'] != null && notif['data']['route'] != null)
-                                    Icon(
-                                      Icons.arrow_forward_ios_rounded,
-                                      size: 14,
-                                      color: isDarkMode ? Colors.grey.shade600 : Colors.grey.shade400,
-                                    ),
+                                  Column(
+                                    children: [
+                                      if (notif['data'] != null && notif['data']['route'] != null)
+                                        Padding(
+                                          padding: const EdgeInsets.only(bottom: 8.0),
+                                          child: Icon(
+                                            Icons.arrow_forward_ios_rounded,
+                                            size: 14,
+                                            color: isDarkMode ? Colors.grey.shade600 : Colors.grey.shade400,
+                                          ),
+                                        ),
+                                      InkWell(
+                                        onTap: () => _deleteNotification(notif['id']),
+                                        borderRadius: BorderRadius.circular(12),
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(4.0),
+                                          child: Icon(
+                                            Icons.close,
+                                            size: 18,
+                                            color: isDarkMode ? Colors.grey.shade500 : Colors.grey.shade400,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ],
                               ),
                             ),

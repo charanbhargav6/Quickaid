@@ -48,6 +48,59 @@ class _EarningsScreenState extends State<EarningsScreen> {
     }
   }
 
+  void _showWithdrawDialog() {
+    double amount = 0;
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setStateDialog) => AlertDialog(
+          title: const Text('Withdraw via UPI'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Available Balance: ₹${_balance.toStringAsFixed(2)}'),
+              const SizedBox(height: 16),
+              const TextField(
+                decoration: InputDecoration(
+                  labelText: 'UPI ID',
+                  hintText: 'example@upi',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                spacing: 8,
+                children: [
+                  ActionChip(label: const Text('₹100'), onPressed: () => setStateDialog(() => amount = 100)),
+                  ActionChip(label: const Text('₹500'), onPressed: () => setStateDialog(() => amount = 500)),
+                  ActionChip(label: const Text('All'), onPressed: () => setStateDialog(() => amount = _balance)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Text('Selected: ₹${amount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: amount > 0 && amount <= _balance ? () async {
+                try {
+                  await SupabaseService.withdrawFunds(amount);
+                  if (context.mounted) Navigator.pop(ctx);
+                  _loadData();
+                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Withdrawal Successful!')));
+                } catch (e) {
+                  if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                }
+              } : null,
+              child: const Text('Withdraw'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final userId = SupabaseService.client.auth.currentUser?.id;
@@ -66,11 +119,25 @@ class _EarningsScreenState extends State<EarningsScreen> {
                     color: Colors.green.shade800,
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('Total Balance', style: TextStyle(color: Colors.white70, fontSize: 16)),
-                      Text('₹${_balance.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Total Balance', style: TextStyle(color: Colors.white70, fontSize: 16)),
+                          Text('₹${_balance.toStringAsFixed(2)}', style: const TextStyle(color: Colors.white, fontSize: 32, fontWeight: FontWeight.bold)),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(backgroundColor: Colors.white, foregroundColor: Colors.green.shade800),
+                          onPressed: _balance > 0 ? _showWithdrawDialog : null,
+                          child: const Text('Withdraw to UPI'),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -87,20 +154,39 @@ class _EarningsScreenState extends State<EarningsScreen> {
                           itemBuilder: (context, index) {
                             final tx = _transactions[index];
                             final isReceived = tx['receiver_id'] == userId;
+                            final type = tx['type']?.toString().toUpperCase() ?? 'TRANSFER';
+                            
+                            IconData iconData = Icons.swap_horiz;
+                            Color iconColor = Colors.grey;
+                            
+                            if (type == 'WITHDRAWAL') {
+                              iconData = Icons.account_balance;
+                              iconColor = Colors.blue;
+                            } else if (type == 'ESCROW') {
+                              iconData = Icons.lock;
+                              iconColor = Colors.orange;
+                            } else if (isReceived) {
+                              iconData = Icons.arrow_downward;
+                              iconColor = Colors.green;
+                            } else {
+                              iconData = Icons.arrow_upward;
+                              iconColor = Colors.red;
+                            }
+
                             return Card(
                               margin: const EdgeInsets.only(bottom: 12),
                               child: ListTile(
                                 leading: CircleAvatar(
-                                  backgroundColor: isReceived ? Colors.green.shade100 : Colors.red.shade100,
-                                  child: Icon(isReceived ? Icons.arrow_downward : Icons.arrow_upward, color: isReceived ? Colors.green : Colors.red),
+                                  backgroundColor: iconColor.withValues(alpha: 0.1),
+                                  child: Icon(iconData, color: iconColor),
                                 ),
-                                title: Text(tx['type']?.toString().toUpperCase() ?? 'TRANSFER'),
+                                title: Text(type),
                                 subtitle: Text(tx['created_at'].toString().split('T').first),
                                 trailing: Text(
-                                  '${isReceived ? '+' : '-'}₹${tx['amount']}',
+                                  '${type == 'WITHDRAWAL' ? '-' : isReceived ? '+' : '-'}₹${tx['amount']}',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    color: isReceived ? Colors.green : Colors.red,
+                                    color: type == 'WITHDRAWAL' ? Colors.blue : (isReceived ? Colors.green : Colors.red),
                                     fontSize: 16,
                                   ),
                                 ),

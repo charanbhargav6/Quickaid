@@ -229,6 +229,27 @@ class SupabaseService {
     await client.rpc('add_demo_funds', params: {'p_amount': amount});
   }
 
+  static Future<void> withdrawFunds(double amount) async {
+    final user = currentUser;
+    if (user == null) throw Exception('Not authenticated');
+
+    final profile = await client.from('profiles').select('wallet_balance').eq('id', user.id).single();
+    final balance = (profile['wallet_balance'] as num).toDouble();
+    
+    if (balance < amount) {
+      throw Exception('Insufficient funds');
+    }
+    
+    await client.from('profiles').update({'wallet_balance': balance - amount}).eq('id', user.id);
+    
+    await client.from('transactions').insert({
+      'user_id': user.id,
+      'amount': amount,
+      'type': 'withdrawal',
+      'status': 'completed'
+    });
+  }
+
   static Future<void> deleteTask(String taskId) async {
     await client.from('tasks').delete().eq('id', taskId);
   }
@@ -276,13 +297,13 @@ class SupabaseService {
     final user = currentUser;
     if (user == null) throw Exception('Not authenticated');
 
-    await client.from('reviews').insert({
+    await client.from('reviews').upsert({
       'task_id': taskId,
       'reviewer_id': user.id,
       'reviewee_id': revieweeId,
       'rating': rating,
       'comment': comment,
-    });
+    }, onConflict: 'task_id');
   }
 
   // ── COUNTER OFFERS ─────────────────────────────────────────
