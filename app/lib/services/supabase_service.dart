@@ -398,11 +398,10 @@ class SupabaseService {
       'p_lng': lng,
       'p_radius_km': radiusKm,
       'p_helper_id': user.id,
+      'p_search_query': (searchQuery != null && searchQuery.isNotEmpty) ? searchQuery : null,
+      'p_category': (category != null && category.isNotEmpty) ? category : null,
+      'p_min_pay': minPay,
     };
-    
-    if (searchQuery != null && searchQuery.isNotEmpty) params['p_search_query'] = searchQuery;
-    if (category != null && category.isNotEmpty) params['p_category'] = category;
-    if (minPay != null) params['p_min_pay'] = minPay;
 
     final response = await client.rpc('get_nearby_tasks', params: params);
     return List<Map<String, dynamic>>.from(response);

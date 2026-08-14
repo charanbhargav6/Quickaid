@@ -117,8 +117,8 @@ class AppDrawer extends StatelessWidget {
                         if (isHelperMode || role == 'admin')
                           _DrawerItem(icon: Icons.account_balance_wallet_outlined, label: 'Earnings', onTap: () { Navigator.pop(context); Navigator.pushReplacementNamed(context, '/earnings'); }),
                         
-                        _DrawerItem(icon: Icons.message_outlined, label: 'Messages', badge: 3, onTap: () { Navigator.pop(context); Navigator.pushReplacementNamed(context, '/messages'); }),
-                        _DrawerItem(icon: Icons.notifications_none, label: 'Notifications', badge: 2, onTap: () { Navigator.pop(context); Navigator.pushReplacementNamed(context, '/notifications'); }),
+                        _DrawerItem(icon: Icons.message_outlined, label: 'Messages', onTap: () { Navigator.pop(context); Navigator.pushReplacementNamed(context, '/messages'); }),
+                        _DrawerItem(icon: Icons.notifications_none, label: 'Notifications', onTap: () { Navigator.pop(context); Navigator.pushReplacementNamed(context, '/notifications'); }),
                         
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 8),

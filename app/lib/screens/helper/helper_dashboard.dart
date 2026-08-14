@@ -8,6 +8,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../widgets/skeleton_loader.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:ui';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'dart:async';
@@ -32,18 +33,73 @@ class _HelperDashboardState extends State<HelperDashboard> {
   String _category = '';
   double? _minPay;
   Timer? _locationTimer;
+  RealtimeChannel? _realtimeChannel;
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    _setupRealtime();
     _locationTimer = Timer.periodic(const Duration(seconds: 15), (_) => _streamLocation());
   }
 
   @override
   void dispose() {
     _locationTimer?.cancel();
+    _realtimeChannel?.unsubscribe();
     super.dispose();
+  }
+
+  void _setupRealtime() {
+    _realtimeChannel = SupabaseService.client.channel('helper-dashboard-realtime')
+      // ── New task posted: add to feed ─────────────────────
+      .onPostgresChanges(
+        event: PostgresChangeEvent.insert,
+        schema: 'public',
+        table: 'tasks',
+        callback: (payload) {
+          final inserted = payload.newRecord;
+          final myId = _currentUser['id'];
+          // Skip own tasks and non-open tasks
+          if (inserted['seeker_id'] == myId) return;
+          if (inserted['status'] != 'open') return;
+          if (!mounted) return;
+          setState(() {
+            final exists = _openTasks.any((t) => t['id'] == inserted['id']);
+            if (!exists) {
+              _openTasks.insert(0, inserted);
+            }
+          });
+        }
+      )
+      // ── Task updated: status change (accepted/cancelled/completed) ─
+      .onPostgresChanges(
+        event: PostgresChangeEvent.update,
+        schema: 'public',
+        table: 'tasks',
+        callback: (payload) {
+          final updated = payload.newRecord;
+          final myId = _currentUser['id'];
+          if (!mounted) return;
+          setState(() {
+            // Remove from feed if no longer open
+            if (updated['status'] != 'open') {
+              _openTasks.removeWhere((t) => t['id'] == updated['id']);
+            }
+            // Update my tasks list if this helper is assigned
+            if (updated['helper_id'] == myId) {
+              final idx = _myTasks.indexWhere((t) => t['id'] == updated['id']);
+              if (idx != -1) {
+                final seeker = _myTasks[idx]['seeker'];
+                _myTasks[idx] = {...updated, 'seeker': seeker};
+              } else if (['accepted', 'in_progress'].contains(updated['status'])) {
+                _myTasks.insert(0, updated);
+              }
+            }
+          });
+        }
+      )
+      .subscribe();
   }
 
   Future<void> _streamLocation() async {
@@ -94,7 +150,14 @@ class _HelperDashboardState extends State<HelperDashboard> {
               await SupabaseService.toggleAvailability(4, lat: position.latitude, lng: position.longitude);
             }
           } else {
-            _openTasks = []; // Fallback to empty if no location
+            // No GPS: load all open tasks without distance filter
+            final fallbackRes = await SupabaseService.client
+                .from('tasks')
+                .select('*, seeker:profiles!seeker_id(full_name, trust_score)')
+                .eq('status', 'open')
+                .neq('seeker_id', _currentUser['id'] ?? '')
+                .order('created_at', ascending: false);
+            _openTasks = List<Map<String, dynamic>>.from(fallbackRes);
           }
           
           final myTasksRes = await SupabaseService.client

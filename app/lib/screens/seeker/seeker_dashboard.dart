@@ -46,8 +46,8 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
   }
 
   void _setupRealtime() {
-    // Subscribe to helper location updates
     _realtimeChannel = SupabaseService.client.channel('seeker-dashboard-realtime')
+      // ── Track helper live location ──────────────────────
       .onPostgresChanges(
         event: PostgresChangeEvent.update,
         schema: 'public',
@@ -69,8 +69,27 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
           }
         }
       )
+      // ── Task INSERTs: new task posted from the app or web ─
       .onPostgresChanges(
-        // Subscribe to task status changes – live updates without refresh
+        event: PostgresChangeEvent.insert,
+        schema: 'public',
+        table: 'tasks',
+        callback: (payload) {
+          final inserted = payload.newRecord;
+          final seekerId = _currentUser['id'];
+          if (inserted['seeker_id'] != seekerId) return;
+
+          setState(() {
+            // Avoid duplicates (the initial load might already have it)
+            final exists = _myTasks.any((t) => t['id'] == inserted['id']);
+            if (!exists) {
+              _myTasks.insert(0, inserted);
+            }
+          });
+        }
+      )
+      // ── Task UPDATEs: status changes (accepted, completed, etc.) ──
+      .onPostgresChanges(
         event: PostgresChangeEvent.update,
         schema: 'public',
         table: 'tasks',
@@ -85,7 +104,7 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
               // Preserve nested helper object which realtime doesn't return
               final helper = _myTasks[idx]['helper'];
               _myTasks[idx] = {...updated, 'helper': helper};
-            } else if (updated['status'] == 'open') {
+            } else {
               _myTasks.insert(0, updated);
             }
           });

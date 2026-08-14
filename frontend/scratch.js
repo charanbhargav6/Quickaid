@@ -1,19 +1,9 @@
-import { createClient } from '@supabase/supabase-js';
+const { createClient } = require('@supabase/supabase-js');
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
+  "https://kttkzrbefqnoqvtmzrag.supabase.co",
+  "sb_publishable_jrKcZlFCHQaDal9CQqtnhA_kua_e5mN"
 );
 
-async function checkTasks() {
-  const { data, error } = await supabase
-    .from('tasks')
-    .select('id, title, status, seeker_id, helper_id')
-    .order('created_at', { ascending: false })
-    .limit(5);
-  
-  if (error) console.error("Error:", error);
-  console.log(JSON.stringify(data, null, 2));
-}
-
-checkTasks();
+// We need the service role key to query postgres internals if possible, but actually we can just use the Postgres function through a direct SQL query if we had pg.
+// Alternatively, let's just inspect the frontend logic, maybe there's a simpler reason!
