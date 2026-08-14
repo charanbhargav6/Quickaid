@@ -60,7 +60,6 @@ export default function WalletClient({ initialBalance, initialTransactions }) {
       user_id: user.id,
       amount: amt,
       type: 'withdrawal',
-      status: 'completed',
       description: `UPI: ${upiId.trim()}`,
     }).select().single();
 
