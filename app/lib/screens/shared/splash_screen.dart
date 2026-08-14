@@ -42,6 +42,20 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
     await Future.delayed(const Duration(milliseconds: 2000));
     if (!mounted) return;
 
+    try {
+      await _doRedirect().timeout(
+        const Duration(seconds: 6),
+        onTimeout: () {
+          debugPrint('Splash redirect timed out — going to login');
+          _navigate('/login');
+        },
+      );
+    } catch (_) {
+      _navigate('/login');
+    }
+  }
+
+  Future<void> _doRedirect() async {
     final session = Supabase.instance.client.auth.currentSession;
     if (session != null) {
       try {
@@ -60,12 +74,16 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
             return;
           }
         }
-        
+
         if (!mounted) return;
-        
+
         final profile = await SupabaseService.getProfile(session.user.id);
-        await NotificationService.syncTokenToSupabase();
-        
+
+        // Fire-and-forget: don't let FCM token sync hang the splash screen
+        NotificationService.syncTokenToSupabase().catchError((e) {
+          debugPrint('FCM sync error (non-fatal): $e');
+        });
+
         if (!mounted) return;
         final role = profile?['role'] as String? ?? 'seeker';
         if (role == 'admin') {

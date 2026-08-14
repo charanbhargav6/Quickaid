@@ -34,67 +34,72 @@ export async function postTask(formData) {
   
   const supabase = await createClient();
 
-  // Authorization Check
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) {
-    return { success: false, error: 'Unauthorized' }
+  try {
+    // Authorization Check
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return { success: false, error: 'Unauthorized' }
+    }
+
+    // 1. Fetch wallet balance and role
+    const { data: profile } = await supabase.from('profiles').select('wallet_balance, role').eq('id', user.id).maybeSingle();
+    
+    if (profile?.role === 'admin') {
+      return { success: false, error: 'Admins are not allowed to post tasks.' };
+    }
+
+    const balance = Number(profile?.wallet_balance || 0);
+
+    // Note: Platform fee is now deducted from the helper during payout. 
+    // The Seeker simply pays the exact listed price.
+    if (balance < parsed.data.price) {
+      return { success: false, error: 'Insufficient funds. Please add funds to your wallet first.' };
+    }
+
+    // 2. Deduct from wallet
+    const newBalance = balance - parsed.data.price;
+    const { error: walletError } = await supabase.from('profiles').update({ wallet_balance: newBalance }).eq('id', user.id);
+    if (walletError) return { success: false, error: 'Payment processing failed.' };
+
+    // 3. Create Task
+    const { data: task, error: taskError } = await supabase.from('tasks').insert({
+      seeker_id: user.id,
+      title: parsed.data.title,
+      description: parsed.data.description,
+      pay: parsed.data.price,
+      task_type: parsed.data.task_type,
+      category: parsed.data.category,
+      location_name: parsed.data.location_name,
+      lat: parsed.data.lat,
+      lng: parsed.data.lng,
+      destination_name: parsed.data.destination_name,
+      destination_lat: parsed.data.destination_lat,
+      destination_lng: parsed.data.destination_lng,
+      vehicle_required: parsed.data.vehicle_required ?? null,
+      status: 'open'
+    }).select().single()
+
+    if (taskError) {
+      return { success: false, error: 'Failed to post task to database. ' + taskError.message }
+    }
+
+    // 4. Create Escrow Transaction
+    await supabase.from('transactions').insert({
+      task_id: task.id,
+      user_id: user.id,
+      amount: parsed.data.price,
+      type: 'escrow',
+      status: 'completed'
+    });
+
+    // Revalidate the seeker dashboard cache
+    revalidatePath('/seeker')
+    
+    return { success: true, task: task }
+  } catch (err) {
+    console.error('Error in postTask:', err);
+    return { success: false, error: 'Internal server error: ' + err.message };
   }
-
-  // 1. Fetch wallet balance and role
-  const { data: profile } = await supabase.from('profiles').select('wallet_balance, role').eq('id', user.id).single();
-  
-  if (profile?.role === 'admin') {
-    return { success: false, error: 'Admins are not allowed to post tasks.' };
-  }
-
-  const balance = Number(profile?.wallet_balance || 0);
-
-  // Note: Platform fee is now deducted from the helper during payout. 
-  // The Seeker simply pays the exact listed price.
-  if (balance < parsed.data.price) {
-    return { success: false, error: 'Insufficient funds. Please add funds to your wallet first.' };
-  }
-
-  // 2. Deduct from wallet
-  const newBalance = balance - parsed.data.price;
-  const { error: walletError } = await supabase.from('profiles').update({ wallet_balance: newBalance }).eq('id', user.id);
-  if (walletError) return { success: false, error: 'Payment processing failed.' };
-
-  // 3. Create Task
-  const { data: task, error: taskError } = await supabase.from('tasks').insert({
-    seeker_id: user.id,
-    title: parsed.data.title,
-    description: parsed.data.description,
-    pay: parsed.data.price,
-    task_type: parsed.data.task_type,
-    category: parsed.data.category,
-    location_name: parsed.data.location_name,
-    lat: parsed.data.lat,
-    lng: parsed.data.lng,
-    destination_name: parsed.data.destination_name,
-    destination_lat: parsed.data.destination_lat,
-    destination_lng: parsed.data.destination_lng,
-    vehicle_required: parsed.data.vehicle_required ?? null,
-    status: 'open'
-  }).select().single()
-
-  if (taskError) {
-    return { success: false, error: 'Failed to post task to database. ' + taskError.message }
-  }
-
-  // 4. Create Escrow Transaction
-  await supabase.from('transactions').insert({
-    task_id: task.id,
-    user_id: user.id,
-    amount: parsed.data.price,
-    type: 'escrow',
-    status: 'completed'
-  });
-
-  // Revalidate the seeker dashboard cache
-  revalidatePath('/seeker')
-  
-  return { success: true, task: task }
 }
 
 const acceptOfferSchema = z.object({

@@ -51,7 +51,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       AlertModal.show(context, title: 'Registration Error', message: e.message, type: AlertType.error);
     } catch (e) {
       setState(() => _loading = false);
-      AlertModal.show(context, title: 'Error', message: 'Registration failed. Please try again.', type: AlertType.error);
+      AlertModal.show(context, title: 'Error', message: e.toString(), type: AlertType.error);
     }
   }
 

@@ -274,35 +274,48 @@ function PostTaskModalContent() {
       vehicle_required: requiresTwoLocations ? vehicleType : null,
     };
 
-    const res = await postTask(formData);
+    try {
+      const res = await postTask(formData);
 
-    if (!res.success) {
-      setIsPending(false);
-      if (res.error && res.error.includes('Insufficient funds')) {
-        setAlertModal({
-          isOpen: true,
-          title: 'Insufficient Balance',
-          message: 'You need to add funds to your wallet to cover the cost of this task before posting.',
-          type: 'danger',
-          primaryActionText: 'Add Funds',
-          primaryActionHref: '/seeker/wallet',
-          secondaryActionText: 'Cancel',
-          onSecondaryAction: () => setAlertModal({ isOpen: false }),
-          onPrimaryAction: () => setAlertModal({ isOpen: false })
-        });
+      if (!res.success) {
+        setIsPending(false);
+        if (res.error && res.error.includes('Insufficient funds')) {
+          setAlertModal({
+            isOpen: true,
+            title: 'Insufficient Balance',
+            message: 'You need to add funds to your wallet to cover the cost of this task before posting.',
+            type: 'danger',
+            primaryActionText: 'Add Funds',
+            primaryActionHref: '/seeker/wallet',
+            secondaryActionText: 'Cancel',
+            onSecondaryAction: () => setAlertModal({ isOpen: false }),
+            onPrimaryAction: () => setAlertModal({ isOpen: false })
+          });
+        } else {
+          setAlertModal({
+            isOpen: true,
+            title: 'Error',
+            message: res.error || 'An unexpected error occurred.',
+            type: 'danger',
+            primaryActionText: 'Ok',
+            onPrimaryAction: () => setAlertModal({ isOpen: false })
+          });
+        }
       } else {
-        setAlertModal({
-          isOpen: true,
-          title: 'Error',
-          message: res.error || 'An unexpected error occurred.',
-          type: 'danger',
-          primaryActionText: 'Ok',
-          onPrimaryAction: () => setAlertModal({ isOpen: false })
-        });
+        setIsPending(false);
+        handleClose();
       }
-    } else {
+    } catch (err) {
+      console.error(err);
       setIsPending(false);
-      handleClose();
+      setAlertModal({
+        isOpen: true,
+        title: 'Network Error',
+        message: 'Failed to post task. Please try again.',
+        type: 'danger',
+        primaryActionText: 'Ok',
+        onPrimaryAction: () => setAlertModal({ isOpen: false })
+      });
     }
   };
 

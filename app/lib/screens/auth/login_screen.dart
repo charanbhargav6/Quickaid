@@ -64,7 +64,7 @@ class _LoginScreenState extends State<LoginScreen> {
       AlertModal.show(context, title: 'Login Error', message: e.message, type: AlertType.error);
     } catch (e) {
       setState(() => _loading = false);
-      AlertModal.show(context, title: 'Error', message: 'Login failed. Please try again.', type: AlertType.error);
+      AlertModal.show(context, title: 'Error', message: e.toString(), type: AlertType.error);
     }
   }
 
