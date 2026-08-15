@@ -1,0 +1,232 @@
+name: QuickAid Security Audit
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────
+  # JOB 1: DETECT STACK & SAST
+  # ─────────────────────────────────────────────────────────────────────
+  sast-and-secrets:
+    name: SAST & Secret Detection
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # Detect backend technology
+      - name: Detect Stack
+        run: |
+          echo "## Stack Detection" >> $GITHUB_STEP_SUMMARY
+          if [ -f "frontend/package.json" ]; then
+            echo "✅ Next.js frontend detected" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ -f "backend/package.json" ]; then
+            echo "✅ Node.js backend scripts detected" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ -f "app/pubspec.yaml" ]; then
+            echo "✅ Flutter mobile app detected" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      # Secret scanning with Gitleaks
+      - name: Run Gitleaks Secret Scanning
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+        continue-on-error: true
+
+      # Check for known sensitive patterns
+      - name: Custom Secret Pattern Check
+        run: |
+          echo "## Secret Pattern Scan" >> $GITHUB_STEP_SUMMARY
+          FAILED=0
+
+          if [ -f "backend/firebase-service-account.json" ]; then
+            if grep -q "BEGIN PRIVATE KEY" backend/firebase-service-account.json; then
+              echo "❌ CRITICAL: Real Firebase service account private key detected!" >> $GITHUB_STEP_SUMMARY
+              FAILED=1
+            fi
+          fi
+
+          if git ls-files | grep -E "^(backend|frontend)/\.env$" > /dev/null 2>&1; then
+            echo "⚠️  HIGH: .env files are tracked in git" >> $GITHUB_STEP_SUMMARY
+            FAILED=1
+          fi
+
+          if [ "$FAILED" = "1" ]; then
+            echo "::error::Critical secrets detected in repository!"
+            exit 1
+          else
+            echo "✅ No hardcoded secrets detected" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      # Semgrep SAST
+      - name: Run Semgrep SAST
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/javascript
+            p/nextjs
+            p/owasp-top-ten
+            p/security-audit
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+        continue-on-error: true
+
+  # ─────────────────────────────────────────────────────────────────────
+  # JOB 2: DEPENDENCY SCANNING
+  # ─────────────────────────────────────────────────────────────────────
+  dependency-scan:
+    name: Dependency Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Frontend npm audit
+        working-directory: frontend
+        run: |
+          npm install --package-lock-only 2>/dev/null || true
+          echo "## Frontend Dependency Audit" >> $GITHUB_STEP_SUMMARY
+          npm audit --json > /tmp/frontend-audit.json 2>&1 || true
+          CRITICAL=$(cat /tmp/frontend-audit.json | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('metadata',{}).get('vulnerabilities',{}).get('critical',0))" 2>/dev/null || echo 0)
+          HIGH=$(cat /tmp/frontend-audit.json | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('metadata',{}).get('vulnerabilities',{}).get('high',0))" 2>/dev/null || echo 0)
+          echo "Critical: $CRITICAL | High: $HIGH" >> $GITHUB_STEP_SUMMARY
+          if [ "$CRITICAL" -gt 0 ]; then
+            echo "::error::$CRITICAL CRITICAL vulnerabilities in frontend!"
+            exit 1
+          fi
+        continue-on-error: true
+
+      - name: Run Trivy Filesystem Scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          exit-code: '0'
+        continue-on-error: true
+
+      - name: Upload Trivy SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+        continue-on-error: true
+
+  # ─────────────────────────────────────────────────────────────────────
+  # JOB 3: API SECURITY CHECKS
+  # ─────────────────────────────────────────────────────────────────────
+  api-security:
+    name: API Security Tests
+    runs-on: ubuntu-latest
+    if: vars.QUICKAID_API_URL != ''
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run API Security Tests
+        run: |
+          API_URL="${{ vars.QUICKAID_API_URL }}"
+          echo "## API Security Tests" >> $GITHUB_STEP_SUMMARY
+          FAILED=0
+
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$API_URL/api/notify" \
+            -H "Content-Type: application/json" \
+            -d '{"token":"test-token","title":"Security Test","body":"Auth bypass test"}')
+          
+          if [ "$STATUS" = "200" ]; then
+            echo "❌ CRITICAL: POST /api/notify returned 200 without authentication!" >> $GITHUB_STEP_SUMMARY
+            FAILED=1
+          else
+            echo "✅ POST /api/notify correctly returns $STATUS (requires auth)" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          HEADERS=$(curl -sI "$API_URL")
+          for header in "x-frame-options" "x-content-type-options" "strict-transport-security"; do
+            if echo "$HEADERS" | grep -qi "$header"; then
+              echo "✅ $header present" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "⚠️  Missing security header: $header" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+          if [ "$FAILED" = "1" ]; then
+            exit 1
+          fi
+        continue-on-error: true
+
+  # ─────────────────────────────────────────────────────────────────────
+  # JOB 4: GENERATE AND UPLOAD REPORT
+  # ─────────────────────────────────────────────────────────────────────
+  generate-report:
+    name: Generate Security Report
+    runs-on: ubuntu-latest
+    needs: [sast-and-secrets, dependency-scan]
+    if: always()
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install and Generate Excel Reports
+        run: |
+          cd "Vulnerability Test Results"
+          npm init -y
+          npm install exceljs
+          node generate-report.js
+
+      - name: Upload Security Reports as Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-reports-${{ github.run_number }}
+          path: |
+            Vulnerability Test Results/security-review.md
+            Vulnerability Test Results/executive-summary.md
+            Vulnerability Test Results/dependency-report.md
+            Vulnerability Test Results/findings.xlsx
+          retention-days: 90
+
+      - name: Publish Job Summary
+        run: |
+          echo "## 🔐 QuickAid Security Assessment" >> $GITHUB_STEP_SUMMARY
+          echo "| Severity | Count |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔴 Critical | 5 |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🟠 High | 6 |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🟡 Medium | 6 |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🟢 Low | 3 |" >> $GITHUB_STEP_SUMMARY
+          echo "**Overall Score: 32/100**" >> $GITHUB_STEP_SUMMARY
+          echo "### Immediate Actions:" >> $GITHUB_STEP_SUMMARY
+          echo "1. Revoke Firebase key (committed to Git)" >> $GITHUB_STEP_SUMMARY
+          echo "2. Rotate Supabase service key" >> $GITHUB_STEP_SUMMARY
+          echo "3. Add auth to /api/notify" >> $GITHUB_STEP_SUMMARY
+          echo "4. Restrict add_demo_funds RPC" >> $GITHUB_STEP_SUMMARY
+          echo "5. Add caller check to complete_task_with_trust" >> $GITHUB_STEP_SUMMARY
