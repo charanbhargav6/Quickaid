@@ -118,6 +118,7 @@ function PostTaskModalContent() {
   }, [showModal]);
 
   const reverseGeocode = async (lat, lng) => {
+    try {
       const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`, {
         headers: { 'User-Agent': 'QuickAid App/1.0' }
       });
