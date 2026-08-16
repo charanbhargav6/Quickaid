@@ -32,7 +32,11 @@ if (serviceAccount.project_id === "your-firebase-project-id" || !serviceAccount.
 }
 
 // Initialize Supabase Client
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://kttkzrbefqnoqvtmzrag.supabase.co';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+if (!supabaseUrl) {
+  console.error("❌ NEXT_PUBLIC_SUPABASE_URL is missing in environment variables.");
+  process.exit(1);
+}
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY; // Must be set in .env or environment variables
 
 const supabase = createClient(supabaseUrl, supabaseKey);
