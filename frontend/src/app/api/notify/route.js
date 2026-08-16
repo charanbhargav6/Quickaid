@@ -25,6 +25,14 @@ function initFirebaseAdmin() {
 
 export async function POST(req) {
   try {
+    const { createClient } = await import('@/utils/supabase/server');
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     initFirebaseAdmin();
     
     if (!admin.apps.length) {

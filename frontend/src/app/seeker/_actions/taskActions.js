@@ -41,6 +41,13 @@ export async function postTask(formData) {
       return { success: false, error: 'Unauthorized' }
     }
 
+    const BLOCKED_WORDS = ['scam', 'fraud', 'illegal', 'hack', 'fake'];
+    const content = `${parsed.data.title} ${parsed.data.description}`.toLowerCase();
+    const containsBlockedWord = BLOCKED_WORDS.some(word => content.includes(word));
+    if (containsBlockedWord) {
+      return { success: false, error: 'Task contains inappropriate content and cannot be posted.' };
+    }
+
     // 1. Fetch wallet balance and role
     const { data: profile } = await supabase.from('profiles').select('wallet_balance, role').eq('id', user.id).maybeSingle();
     
@@ -80,7 +87,8 @@ export async function postTask(formData) {
     }).select().single()
 
     if (taskError) {
-      return { success: false, error: 'Failed to post task to database. ' + taskError.message }
+      console.error('[postTask] DB error:', taskError.message);
+      return { success: false, error: 'Failed to post task. Please try again later.' }
     }
 
     // 4. Create Escrow Transaction
@@ -98,7 +106,7 @@ export async function postTask(formData) {
     return { success: true, task: task }
   } catch (err) {
     console.error('Error in postTask:', err);
-    return { success: false, error: 'Internal server error: ' + err.message };
+    return { success: false, error: 'An unexpected error occurred. Please try again.' };
   }
 }
 

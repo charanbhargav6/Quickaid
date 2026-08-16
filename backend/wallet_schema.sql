@@ -71,6 +71,10 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE FUNCTION public.add_demo_funds(p_amount NUMERIC)
 RETURNS void AS $$
 BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin') THEN
+    RAISE EXCEPTION 'Unauthorized: Only admins can add demo funds.';
+  END IF;
+
   UPDATE public.profiles
   SET wallet_balance = wallet_balance + p_amount
   WHERE id = auth.uid();

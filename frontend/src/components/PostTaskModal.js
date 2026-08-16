@@ -118,8 +118,9 @@ function PostTaskModalContent() {
   }, [showModal]);
 
   const reverseGeocode = async (lat, lng) => {
-    try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+      const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`, {
+        headers: { 'User-Agent': 'QuickAid App/1.0' }
+      });
       const data = await res.json();
       return data.address?.suburb || data.address?.neighbourhood || data.address?.city || data.display_name?.split(',')[0] || 'Selected Location';
     } catch (e) {
@@ -181,7 +182,9 @@ function PostTaskModalContent() {
     if (!query) return;
     setIsLocating(true);
     try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`, {
+        headers: { 'User-Agent': 'QuickAid App/1.0' }
+      });
       const data = await res.json();
       if (data && data.length > 0) {
         const coords = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };

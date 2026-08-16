@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS public.transactions (
   user_id UUID REFERENCES public.profiles(id) NOT NULL,
   task_id UUID REFERENCES public.tasks(id),
   amount NUMERIC NOT NULL,
-  type TEXT CHECK (type IN ('credit', 'debit')),
+  type TEXT CHECK (type IN ('credit', 'debit', 'escrow', 'refund', 'payout')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 

@@ -57,6 +57,14 @@ BEGIN
   FROM public.tasks
   WHERE id = p_task_id;
 
+  IF v_helper_id IS NULL THEN
+    RAISE EXCEPTION 'Task not found or has no helper';
+  END IF;
+
+  IF auth.uid() != v_helper_id AND auth.uid() != v_seeker_id THEN
+    RAISE EXCEPTION 'Unauthorized: You are not a party to this task';
+  END IF;
+
   IF v_status != 'accepted' THEN
     RAISE EXCEPTION 'Task is not in accepted status';
   END IF;
@@ -141,13 +149,16 @@ DECLARE
 BEGIN
   v_reporter_id := auth.uid();
 
+  IF EXISTS (SELECT 1 FROM public.user_reports WHERE reporter_id = v_reporter_id AND reported_user_id = p_reported_id AND status = 'pending') THEN
+    RAISE EXCEPTION 'You already have a pending report against this user.';
+  END IF;
+
   INSERT INTO public.user_reports (reporter_id, reported_user_id, task_id, reason, details)
   VALUES (v_reporter_id, p_reported_id, p_task_id, p_reason, p_details);
 
-  -- Deduct trust score for the reported user (-10)
+  -- Only increment reports_count. Trust score will be deducted if admin approves report.
   UPDATE public.profiles 
-  SET reports_count = reports_count + 1,
-      trust_score = GREATEST(trust_score - 10, 0)
+  SET reports_count = reports_count + 1
   WHERE id = p_reported_id;
 
   -- Notify Admins (For now we just add an admin notification if we have an admin system, or just log it)

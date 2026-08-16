@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import { changeUserRole } from '../_actions/adminActions';
 
 export default function UsersPage() {
   const router = useRouter();
@@ -51,8 +52,11 @@ export default function UsersPage() {
   }
 
   async function handleChangeRole(userId, newRole) {
-    const supabase = createClient();
-    await supabase.from('profiles').update({ role: newRole }).eq('id', userId);
+    const result = await changeUserRole(userId, newRole);
+    if (!result.success) {
+      alert(result.error);
+      return;
+    }
     fetchUsers();
     router.refresh();
   }
@@ -61,7 +65,7 @@ export default function UsersPage() {
     const supabase = createClient();
     const newStatus = decision === 'approve' ? 'verified' : 'rejected';
     const update = { verification_status: newStatus };
-    if (decision === 'approve') update.trust_score = 110; // Verification bonus — capped later at 100 by review system
+    if (decision === 'approve') update.trust_score = 100; // Verification bonus
     await supabase.from('profiles').update(update).eq('id', userId);
     // Notify the helper
     await supabase.from('notifications').insert({
