@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import AddFundsModal from '@/components/AddFundsModal';
 import styles from './Wallet.module.css';
 import { createClient } from '@/lib/supabase';
+import { requestWithdrawal } from '../_actions/withdrawActions';
 
 const TX_ICONS = {
   deposit:      { icon: '⬇️', label: 'Deposited',        color: '#16a34a' },
@@ -44,33 +45,17 @@ export default function WalletClient({ initialBalance, initialTransactions }) {
       return;
     }
     setWithdrawing(true);
-    const supabase = createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    // 1. Deduct from wallet
-    const { error: balErr } = await supabase
-      .from('profiles')
-      .update({ wallet_balance: balance - amt })
-      .eq('id', user.id);
-    
-    if (balErr) { setWithdrawError('Failed to process withdrawal.'); setWithdrawing(false); return; }
-    
-    // 2. Record withdrawal transaction
-    const { data: tx, error: txErr } = await supabase.from('transactions').insert({
-      user_id: user.id,
-      amount: amt,
-      type: 'payout'
-    }).select().single();
-
+    const res = await requestWithdrawal(amt);
     setWithdrawing(false);
-    if (!txErr && tx) {
+    
+    if (res.success) {
       setBalance(prev => prev - amt);
-      setTransactions(prev => [tx, ...prev]);
       setIsWithdrawOpen(false);
       setUpiId('');
       setWithdrawAmount('');
+      router.refresh();
     } else {
-      setWithdrawError('Withdrawal recorded but balance sync failed. Please refresh.');
+      setWithdrawError(res.error || 'Withdrawal failed. Please try again.');
     }
   };
 

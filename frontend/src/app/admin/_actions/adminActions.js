@@ -40,3 +40,45 @@ export async function changeUserRole(targetUserId, newRole) {
     return { success: false, error: 'An unexpected error occurred.' };
   }
 }
+
+export async function getUserDetails(targetUserId) {
+  try {
+    const supabase = await createClient();
+    
+    // 1. Verify caller is authenticated and admin
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: 'Unauthorized' };
+    const { data: adminProfile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+    if (adminProfile?.role !== 'admin') return { success: false, error: 'Unauthorized' };
+
+    // 2. Fetch User Profile
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('*')
+      .eq('id', targetUserId)
+      .single();
+
+    if (profileError || !profile) return { success: false, error: 'User not found' };
+
+    // 3. Fetch Task History
+    // Get tasks where user is seeker or helper
+    const { data: tasks, error: tasksError } = await supabaseAdmin
+      .from('tasks')
+      .select('id, title, status, pay, seeker_id, helper_id, created_at')
+      .or(`seeker_id.eq.${targetUserId},helper_id.eq.${targetUserId}`)
+      .order('created_at', { ascending: false });
+
+    if (tasksError) {
+      console.error('[getUserDetails] tasks error:', tasksError);
+    }
+
+    return { 
+      success: true, 
+      profile, 
+      tasks: tasks || [] 
+    };
+  } catch (err) {
+    console.error('Error fetching user details:', err);
+    return { success: false, error: 'An unexpected error occurred.' };
+  }
+}

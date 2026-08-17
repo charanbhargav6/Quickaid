@@ -2,7 +2,59 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { changeUserRole } from '../_actions/adminActions';
+import { changeUserRole, getUserDetails } from '../_actions/adminActions';
+
+// Details Modal Component
+function UserDetailsModal({ details, onClose }) {
+  if (!details) return null;
+  const { profile, tasks } = details;
+
+  return (
+    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+      <div className="card fade-in" style={{ width: '100%', maxWidth: '600px', padding: '2rem', borderRadius: '12px', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <h2 style={{ margin: 0, fontSize: '20px' }}>User Details: {profile.full_name}</h2>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer' }}>✕</button>
+        </div>
+        
+        <div style={{ display: 'flex', gap: '20px', marginBottom: '1.5rem' }}>
+          <div style={{ flex: 1, padding: '15px', background: '#f8fafc', borderRadius: '8px' }}>
+            <div style={{ color: 'var(--text-muted)', fontSize: '12px' }}>Trust Score</div>
+            <div style={{ fontSize: '24px', fontWeight: 'bold', color: profile.trust_score < 35 ? '#ef4444' : '#22c55e' }}>{profile.trust_score ?? 50}</div>
+          </div>
+          <div style={{ flex: 1, padding: '15px', background: '#f8fafc', borderRadius: '8px' }}>
+            <div style={{ color: 'var(--text-muted)', fontSize: '12px' }}>Role</div>
+            <div style={{ fontSize: '18px', fontWeight: 'bold', textTransform: 'capitalize' }}>{profile.role}</div>
+          </div>
+          <div style={{ flex: 1, padding: '15px', background: '#f8fafc', borderRadius: '8px' }}>
+            <div style={{ color: 'var(--text-muted)', fontSize: '12px' }}>Total Reviews</div>
+            <div style={{ fontSize: '18px', fontWeight: 'bold' }}>{profile.total_reviews ?? 0}</div>
+          </div>
+        </div>
+
+        <h3 style={{ fontSize: '16px', marginBottom: '10px' }}>Task History</h3>
+        {tasks.length === 0 ? (
+          <p style={{ color: 'var(--text-muted)' }}>No tasks found for this user.</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {tasks.map(t => (
+              <div key={t.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', background: '#f1f5f9', borderRadius: '8px' }}>
+                <div>
+                  <div style={{ fontWeight: '600' }}>{t.title}</div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{new Date(t.created_at).toLocaleDateString()} · {t.seeker_id === profile.id ? 'Posted' : 'Helper'}</div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontWeight: 'bold' }}>₹{t.pay}</div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'capitalize' }}>{t.status}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default function UsersPage() {
   const router = useRouter();
@@ -11,6 +63,8 @@ export default function UsersPage() {
   const [search, setSearch] = useState('');
   const [filterRole, setFilterRole] = useState('all');
   const [currentAdminEmail, setCurrentAdminEmail] = useState(null);
+  
+  const [detailsModal, setDetailsModal] = useState({ isOpen: false, data: null });
 
   useEffect(() => {
     fetchUsers();
@@ -79,6 +133,15 @@ export default function UsersPage() {
     fetchUsers();
   }
 
+  async function handleRowClick(userId) {
+    const result = await getUserDetails(userId);
+    if (result.success) {
+      setDetailsModal({ isOpen: true, data: result });
+    } else {
+      alert(result.error);
+    }
+  }
+
   const filteredUsers = users.filter(u => {
     const matchesSearch = (u.full_name?.toLowerCase() || '').includes(search.toLowerCase()) || 
                           (u.email?.toLowerCase() || '').includes(search.toLowerCase());
@@ -135,7 +198,12 @@ export default function UsersPage() {
                 <tr><td colSpan={5} style={{ textAlign: 'center', padding: '40px' }}>No users found</td></tr>
               ) : (
                 filteredUsers.map(user => (
-                  <tr key={user.id}>
+                  <tr key={user.id} style={{ cursor: 'pointer' }} onClick={(e) => {
+                    // Prevent row click if clicking on a button or select inside Actions
+                    if(e.target.tagName !== 'BUTTON' && e.target.tagName !== 'SELECT' && e.target.tagName !== 'OPTION') {
+                      handleRowClick(user.id);
+                    }
+                  }}>
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--green-100)', color: 'var(--green-700)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
@@ -230,6 +298,13 @@ export default function UsersPage() {
           </table>
         </div>
       </div>
+      
+      {detailsModal.isOpen && (
+        <UserDetailsModal 
+          details={detailsModal.data} 
+          onClose={() => setDetailsModal({ isOpen: false, data: null })} 
+        />
+      )}
     </div>
   );
 }

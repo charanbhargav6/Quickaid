@@ -27,8 +27,10 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "chromedriver": "^152.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.6",
+    "selenium-webdriver": "^4.47.0",
     "tailwindcss": "^4"
   }
 }

@@ -48,11 +48,15 @@ export async function postTask(formData) {
       return { success: false, error: 'Task contains inappropriate content and cannot be posted.' };
     }
 
-    // 1. Fetch wallet balance and role
-    const { data: profile } = await supabase.from('profiles').select('wallet_balance, role').eq('id', user.id).maybeSingle();
+    // 1. Fetch wallet balance, role, and trust_score
+    const { data: profile } = await supabase.from('profiles').select('wallet_balance, role, trust_score').eq('id', user.id).maybeSingle();
     
     if (profile?.role === 'admin') {
       return { success: false, error: 'Admins are not allowed to post tasks.' };
+    }
+
+    if (profile?.trust_score < 35) {
+      return { success: false, error: 'Your trust score is too low to post tasks. Please complete more tasks successfully to improve it.' };
     }
 
     const balance = Number(profile?.wallet_balance || 0);

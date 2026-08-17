@@ -4,14 +4,11 @@ import { useNotifications } from '@/components/NotificationProvider';
 import { createClient } from '@/lib/supabase';
 
 export default function NotificationsClient() {
-  const { notifications, markAsRead } = useNotifications();
+  const { notifications, markAsRead, deleteNotification } = useNotifications();
 
   const handleDismiss = async (e, notifId) => {
     e.stopPropagation();
-    const supabase = createClient();
-    // Mark as read (acts as "dismiss")
-    await supabase.from('notifications').update({ is_read: true }).eq('id', notifId);
-    markAsRead(notifId);
+    await deleteNotification(notifId);
   };
 
   const handleClick = (notif) => {

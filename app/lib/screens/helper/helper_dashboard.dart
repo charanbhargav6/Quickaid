@@ -398,16 +398,11 @@ class _HelperDashboardState extends State<HelperDashboard> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text('Available Tasks Near You', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              IconButton(
-                icon: Icon(_showMap ? Icons.list : Icons.map, color: const Color(0xFF22C55E)),
-                onPressed: () => setState(() => _showMap = !_showMap),
-                tooltip: _showMap ? 'List View' : 'Map View',
-              ),
             ],
           ),
         ),
         Expanded(
-          child: _showMap ? _buildMapView() : ListView(
+          child: ListView(
             padding: const EdgeInsets.all(16),
             children: _openTasks.isEmpty
                 ? [
@@ -923,13 +918,14 @@ class _HelperDashboardState extends State<HelperDashboard> {
                 ],
               ),
               const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                  icon: const Icon(Icons.map, size: 18),
-                  label: const Text('Track Task / Start Route', style: TextStyle(fontWeight: FontWeight.bold)),
-                  onPressed: () {
+              if (task['task_type'] != 'digital')
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                    icon: const Icon(Icons.map, size: 18),
+                    label: const Text('Track Task / Start Route', style: TextStyle(fontWeight: FontWeight.bold)),
+                    onPressed: () {
                     Navigator.push(
                       context,
                       MaterialPageRoute(

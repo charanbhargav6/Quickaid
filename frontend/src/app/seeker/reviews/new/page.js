@@ -75,23 +75,9 @@ function ReviewForm() {
         throw reviewError;
       }
 
-      // 2. Update trust_score using true average across all reviews
-      const { data: allReviews } = await supabase
-        .from('reviews')
-        .select('rating')
-        .eq('reviewee_id', task.helper_id);
-
-      if (allReviews && allReviews.length > 0) {
-        const avgRating = allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length;
-        // Convert 1-5 scale to 0-100 trust score
-        const newTrustScore = Math.round((avgRating / 5) * 100);
-
-        await supabase.from('profiles').update({
-          trust_score: newTrustScore,
-          total_reviews: allReviews.length,
-          tasks_completed: (profile?.tasks_completed || 0) + 1,
-        }).eq('id', task.helper_id);
-      }
+      // 2. The database trigger 'trigger_update_trust_score' on the 'reviews' table
+      // will now automatically calculate the average rating and update the 'trust_score' 
+      // and 'total_reviews' securely on the server! No client-side profile update needed.
 
       toast.success("Review submitted successfully!");
       router.push('/seeker/tasks');

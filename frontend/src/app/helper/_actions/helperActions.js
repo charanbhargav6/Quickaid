@@ -27,9 +27,13 @@ export async function acceptTask(rawInput) {
       return { success: false, error: 'You cannot accept your own task.' };
     }
 
-    const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+    const { data: profile } = await supabase.from('profiles').select('role, trust_score').eq('id', user.id).single();
     if (profile?.role === 'admin') {
       return { success: false, error: 'Admins are not allowed to accept tasks.' };
+    }
+    
+    if (profile?.trust_score < 35) {
+      return { success: false, error: 'Your trust score is too low to accept tasks. Please improve it first.' };
     }
 
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -231,6 +235,12 @@ export async function submitOffer(rawInput) {
 
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) return { success: false, error: 'Unauthorized' }
+
+  // Check trust score
+  const { data: profile } = await supabase.from('profiles').select('trust_score').eq('id', user.id).single();
+  if (profile?.trust_score < 35) {
+    return { success: false, error: 'Your trust score is too low to bid on tasks.' };
+  }
 
   // Check if task is still open
   const { data: task, error: taskError } = await supabase.from('tasks').select('status, seeker_id, title').eq('id', taskId).single()

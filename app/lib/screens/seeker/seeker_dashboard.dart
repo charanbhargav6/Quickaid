@@ -648,8 +648,9 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
                     else if (status == 'accepted')
                       Column(
                         children: [
-                          ElevatedButton.icon(
-                            style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), padding: const EdgeInsets.symmetric(horizontal: 12)),
+                          if (task['task_type'] != 'digital')
+                            ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)), padding: const EdgeInsets.symmetric(horizontal: 12)),
                             icon: const Icon(Icons.map, size: 16),
                             label: const Text('Track Helper', style: TextStyle(fontSize: 12)),
                             onPressed: () {

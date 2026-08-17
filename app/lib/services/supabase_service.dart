@@ -233,20 +233,7 @@ class SupabaseService {
     final user = currentUser;
     if (user == null) throw Exception('Not authenticated');
 
-    final profile = await client.from('profiles').select('wallet_balance').eq('id', user.id).single();
-    final balance = (profile['wallet_balance'] as num).toDouble();
-    
-    if (balance < amount) {
-      throw Exception('Insufficient funds');
-    }
-    
-    await client.from('profiles').update({'wallet_balance': balance - amount}).eq('id', user.id);
-    
-    await client.from('transactions').insert({
-      'user_id': user.id,
-      'amount': amount,
-      'type': 'payout'
-    });
+    await client.rpc('request_withdrawal', params: {'p_amount': amount});
   }
 
   static Future<void> deleteTask(String taskId) async {
@@ -280,10 +267,10 @@ class SupabaseService {
   }
 
   static Future<void> changeRole(String userId, String role) async {
-    await client
-        .from('profiles')
-        .update({'role': role})
-        .eq('id', userId);
+    await client.rpc('change_user_role', params: {
+      'p_target_user_id': userId,
+      'p_new_role': role,
+    });
   }
 
   // ── REVIEWS & RATINGS ──────────────────────────────────────

@@ -33,11 +33,15 @@ export default function AddFundsModal({ isOpen, onClose }) {
   };
 
   return (
-    <div className="modal-overlay">
-      <div className="modal-content fade-in" style={{ maxWidth: '400px' }}>
-        <div className="modal-header">
-          <h2>Top-Up Wallet</h2>
-          <button className="modal-close" onClick={onClose}>&times;</button>
+    <div style={{
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
+    }}>
+      <div className="card fade-in" style={{ width: '100%', maxWidth: '420px', padding: '2rem', borderRadius: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <h2 style={{ margin: 0, fontWeight: 800 }}>Top-Up Wallet</h2>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', color: 'var(--text-muted)' }}>✕</button>
         </div>
 
         {success ? (
@@ -90,12 +94,12 @@ export default function AddFundsModal({ isOpen, onClose }) {
               </div>
             </div>
 
-            <div className="modal-footer" style={{ marginTop: '1rem' }}>
-              <button type="button" className="btn btn-outline" onClick={onClose} disabled={loading}>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '1rem' }}>
+              <button type="button" className="btn btn-outline" style={{ flex: 1 }} onClick={onClose} disabled={loading}>
                 Cancel
               </button>
-              <button type="submit" className="btn btn-primary" disabled={loading} style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                {loading ? <span className="spinner"></span> : `Pay ₹${amount}`}
+              <button type="submit" className="btn btn-primary" style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }} disabled={loading}>
+                {loading ? <span className="spinner" style={{ width: '20px', height: '20px', border: '2px solid white', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></span> : `Pay ₹${amount}`}
               </button>
             </div>
           </form>

@@ -73,7 +73,17 @@ export default function LiveTaskMapPage() {
       </header>
       
       <div style={{ flex: 1, minHeight: 0 }}>
-        <TaskTrackerMap task={task} />
+        {task.task_type === 'digital' ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', background: 'var(--bg-secondary)', borderRadius: '16px', border: '1px solid var(--border)' }}>
+            <span style={{ fontSize: '48px', marginBottom: '1rem' }}>💻</span>
+            <h2 style={{ margin: '0 0 0.5rem', color: 'var(--text-primary)' }}>Digital Task</h2>
+            <p style={{ color: 'var(--text-secondary)', textAlign: 'center', maxWidth: '400px' }}>
+              This is a remote/digital task. Location tracking and maps are disabled for digital tasks as they can be completed from anywhere.
+            </p>
+          </div>
+        ) : (
+          <TaskTrackerMap task={task} />
+        )}
       </div>
     </div>
   );

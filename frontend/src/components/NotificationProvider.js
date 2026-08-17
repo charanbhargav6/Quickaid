@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import styles from './NotificationToast.module.css';
 
-const NotificationContext = createContext({ notifications: [], unreadCount: 0, markAsRead: () => {} });
+const NotificationContext = createContext({ notifications: [], unreadCount: 0, markAsRead: () => {}, deleteNotification: () => {} });
 
 export function useNotifications() {
   return useContext(NotificationContext);
@@ -89,8 +89,19 @@ export default function NotificationProvider({ children }) {
     }
   };
 
+  const deleteNotification = async (id) => {
+    const { error } = await supabase.from('notifications').delete().eq('id', id);
+    if (!error) {
+      setNotifications(prev => {
+        const notif = prev.find(n => n.id === id);
+        if (notif && !notif.is_read) setUnreadCount(c => Math.max(0, c - 1));
+        return prev.filter(n => n.id !== id);
+      });
+    }
+  };
+
   return (
-    <NotificationContext.Provider value={{ notifications, unreadCount, markAsRead }}>
+    <NotificationContext.Provider value={{ notifications, unreadCount, markAsRead, deleteNotification }}>
       {children}
       
       {/* Toast Container */}

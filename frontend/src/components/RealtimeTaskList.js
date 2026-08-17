@@ -93,12 +93,12 @@ export default function RealtimeTaskList({ initialTasks, userId }) {
     <>
       <table className="data-table">
         <thead>
-          <tr>
-            <th>Task</th>
-            <th>Status</th>
-            <th>Price</th>
-            <th>Date</th>
-            <th>Actions</th>
+          <tr style={{ background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)' }}>
+            <th style={{ padding: '12px 16px', textAlign: 'left' }}>Task</th>
+            <th style={{ padding: '12px 16px', textAlign: 'left' }}>Status</th>
+            <th style={{ padding: '12px 16px', textAlign: 'right' }}>Price</th>
+            <th style={{ padding: '12px 16px', textAlign: 'left' }}>Date</th>
+            <th style={{ padding: '12px 16px', textAlign: 'left' }}>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -109,18 +109,22 @@ export default function RealtimeTaskList({ initialTasks, userId }) {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.3, delay: idx * 0.05 }}
             >
-              <td>
-                <div style={{ fontWeight: 500 }}>{task.title}</div>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)', maxWidth: '200px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{task.description}</div>
+              <td style={{ padding: '12px 16px' }}>
+                <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{task.title}</div>
+                <div style={{ fontSize: '13px', color: 'var(--text-muted)', maxWidth: '250px', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', marginTop: '4px' }}>{task.description}</div>
               </td>
-              <td>
-                <span className={`badge ${statusColor(task.status)}`}>
+              <td style={{ padding: '12px 16px' }}>
+                <span className={`badge ${statusColor(task.status)}`} style={{ padding: '6px 10px', fontSize: '11px', fontWeight: 700, letterSpacing: '0.05em' }}>
                   {task.status.replace(/_/g, ' ').toUpperCase()}
                 </span>
               </td>
-              <td>Rs.{task.pay ? Number(task.pay).toFixed(2) : (task.price ? Number(task.price).toFixed(2) : '0.00')}</td>
-              <td>{new Date(task.created_at).toLocaleDateString()}</td>
-              <td>
+              <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: 'var(--text-primary)' }}>
+                ₹{task.pay ? Number(task.pay).toFixed(2) : (task.price ? Number(task.price).toFixed(2) : '0.00')}
+              </td>
+              <td style={{ padding: '12px 16px', color: 'var(--text-secondary)', fontSize: '14px' }}>
+                {new Date(task.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+              </td>
+              <td style={{ padding: '12px 16px' }}>
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                   {task.status === 'completed' && (
                     <button
