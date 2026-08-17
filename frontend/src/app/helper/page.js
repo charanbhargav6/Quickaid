@@ -47,14 +47,12 @@ export default async function HelperDashboard() {
         
         {/* Open Tasks Section */}
         <section>
-          <div className="section-header">
+          <div className="section-header" style={{ marginBottom: '1.5rem' }}>
             <h2 className="section-title">Open Tasks Available</h2>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
-            <Suspense fallback={<div className="skeleton skeleton-box"></div>}>
-              <RealtimeHelperTasks initialTasks={openTasks || []} />
-            </Suspense>
-          </div>
+          <Suspense fallback={<div className="skeleton skeleton-box"></div>}>
+            <RealtimeHelperTasks initialTasks={openTasks || []} />
+          </Suspense>
         </section>
       </div>
     </>
