@@ -113,6 +113,18 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
           // Show in-app snackbar for key status changes
           final status = updated['status'] as String?;
           if (status == 'accepted' && mounted) {
+            if (updated['helper_id'] != null) {
+              SupabaseService.getProfile(updated['helper_id']).then((helperProfile) {
+                if (mounted) {
+                  setState(() {
+                    final idx = _myTasks.indexWhere((t) => t['id'] == updated['id']);
+                    if (idx != -1) {
+                      _myTasks[idx]['helper'] = helperProfile;
+                    }
+                  });
+                }
+              });
+            }
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('A helper accepted your task: "${updated['title']}"'),
@@ -626,7 +638,18 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
                         ],
                       ),
                     ),
-                    if (status == 'completed')
+                    if (status == 'accepted' && task['completion_otp'] != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(color: Colors.orange.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.orange)),
+                        child: Column(
+                          children: [
+                            const Text('OTP', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.orange)),
+                            Text(task['completion_otp'], style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.orange, letterSpacing: 2)),
+                          ],
+                        ),
+                      )
+                    else if (status == 'completed')
                       _reviewedTaskIds.contains(task['id'])
                           ? Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -865,12 +888,16 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
                           }
                           Navigator.pop(ctx);
                           await SupabaseService.addDemoFunds(amount);
-                          _loadData();
-                          if (mounted) AlertModal.show(context, title: 'Success', message: '₹$amount added to wallet!', type: AlertType.success);
+                          if (mounted) {
+                            setState(() {
+                              _currentUser['wallet_balance'] = 
+                                  ((_currentUser['wallet_balance'] as num?) ?? 0) + amount;
+                            });
+                            AlertModal.show(context, title: 'Success', message: '₹$amount added to wallet!', type: AlertType.success);
+                          }
                         },
                         child: const Text('Top Up', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                       ),
-                    ),
                   ],
                 ),
               ],
@@ -882,6 +909,17 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
   }
 
   void _showCreateTaskDialog() {
+    final trustScore = _currentUser['trust_score'] ?? 50;
+    if (trustScore < 35) {
+      AlertModal.show(
+        context,
+        title: 'Action Blocked',
+        message: 'Your trust score is $trustScore, which is below the minimum requirement (35). You cannot post tasks until your score improves.',
+        type: AlertType.danger,
+      );
+      return;
+    }
+
     showDialog(
       context: context,
       barrierDismissible: false,

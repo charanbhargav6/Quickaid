@@ -46,10 +46,13 @@ export async function acceptTask(rawInput) {
       process.env.SUPABASE_SERVICE_ROLE_KEY
     );
 
+    // Generate a 4-digit OTP
+    const otp = Math.floor(1000 + Math.random() * 9000).toString();
+
     // Atomic Update to prevent race conditions
     const { data, error } = await supabaseAdmin
       .from('tasks')
-      .update({ status: 'accepted', helper_id: user.id })
+      .update({ status: 'accepted', helper_id: user.id, completion_otp: otp })
       .match({ id: taskId, status: 'open' })
       .select()
       .single()
@@ -157,7 +160,7 @@ export async function cancelTask(rawInput) {
   return { success: true, penaltyApplied };
 }
 
-export async function completeTask(taskId) {
+export async function completeTask(taskId, otp) {
   const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) return { success: false, error: 'Unauthorized' };
@@ -165,13 +168,17 @@ export async function completeTask(taskId) {
   // Fetch task
   const { data: task, error: fetchError } = await supabase
     .from('tasks')
-    .select('pay, helper_id, status, seeker_id, title')
+    .select('pay, helper_id, status, seeker_id, title, completion_otp')
     .eq('id', taskId)
     .single();
 
   if (fetchError || !task) return { success: false, error: 'Task not found' };
   if (task.helper_id !== user.id) return { success: false, error: 'Not your task' };
   if (task.status !== 'accepted') return { success: false, error: 'Task is not accepted' };
+  
+  if (task.completion_otp && task.completion_otp !== otp) {
+    return { success: false, error: 'Invalid OTP. Please check with the seeker.' };
+  }
 
   // 1. Mark task as completed, transfer funds, update trust score, notify users
   const { error: updateError } = await supabase.rpc('complete_task_with_trust', {

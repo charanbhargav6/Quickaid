@@ -117,6 +117,12 @@ export default function RealtimeTaskList({ initialTasks, userId }) {
                 <span className={`badge ${statusColor(task.status)}`} style={{ padding: '6px 10px', fontSize: '11px', fontWeight: 700, letterSpacing: '0.05em' }}>
                   {task.status.replace(/_/g, ' ').toUpperCase()}
                 </span>
+                {task.status === 'accepted' && task.completion_otp && (
+                  <div style={{ marginTop: '8px', padding: '6px 10px', backgroundColor: 'rgba(245, 158, 11, 0.1)', border: '1px solid #f59e0b', borderRadius: '8px', textAlign: 'center' }}>
+                    <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#f59e0b', textTransform: 'uppercase' }}>OTP</div>
+                    <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#f59e0b', letterSpacing: '2px' }}>{task.completion_otp}</div>
+                  </div>
+                )}
               </td>
               <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 700, color: 'var(--text-primary)' }}>
                 ₹{task.pay ? Number(task.pay).toFixed(2) : (task.price ? Number(task.price).toFixed(2) : '0.00')}

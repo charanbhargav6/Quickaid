@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
@@ -210,10 +211,23 @@ class SupabaseService {
       throw Exception('You cannot accept your own task.');
     }
 
+    final otp = (1000 + Random().nextInt(9000)).toString();
     await client
         .from('tasks')
-        .update({'status': 'accepted', 'helper_id': helperId})
+        .update({'status': 'accepted', 'helper_id': helperId, 'completion_otp': otp})
         .eq('id', taskId);
+  }
+
+  static Future<void> completeTaskWithOtp(String taskId, String otp) async {
+    final task = await client.from('tasks').select('completion_otp, status').eq('id', taskId).single();
+    if (task['status'] == 'completed') {
+      throw Exception('Task is already completed');
+    }
+    if (task['completion_otp'] != otp) {
+      throw Exception('Invalid OTP. Please check with the seeker.');
+    }
+    // Proceed with completion
+    await completeTask(taskId, 'completed');
   }
 
   static Future<void> completeTask(String taskId, String status) async {
@@ -346,11 +360,14 @@ class SupabaseService {
       await client.from('profiles').update({'wallet_balance': balance + refund}).eq('id', user.id);
     }
 
+    final otp = (1000 + Random().nextInt(9000)).toString();
+
     // 2. Update Task
     await client.from('tasks').update({
       'status': 'accepted',
       'helper_id': helperId,
       'pay': proposedPay,
+      'completion_otp': otp,
       'accepted_at': DateTime.now().toIso8601String()
     }).eq('id', taskId);
 

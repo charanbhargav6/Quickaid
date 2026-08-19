@@ -82,19 +82,33 @@ class _HelperDashboardState extends State<HelperDashboard> {
           final updated = payload.newRecord;
           final myId = _currentUser['id'];
           if (!mounted) return;
+          
+          if (updated['helper_id'] == myId && ['accepted', 'in_progress'].contains(updated['status'])) {
+            SupabaseService.getProfile(updated['seeker_id']).then((seekerProfile) {
+              if (mounted) {
+                setState(() {
+                  final idx = _myTasks.indexWhere((t) => t['id'] == updated['id']);
+                  if (idx != -1) {
+                    _myTasks[idx] = {...updated, 'seeker': seekerProfile};
+                  } else {
+                    _myTasks.insert(0, {...updated, 'seeker': seekerProfile});
+                  }
+                });
+              }
+            });
+          }
+
           setState(() {
             // Remove from feed if no longer open
             if (updated['status'] != 'open') {
               _openTasks.removeWhere((t) => t['id'] == updated['id']);
             }
-            // Update my tasks list if this helper is assigned
+            // Update existing if already in list
             if (updated['helper_id'] == myId) {
               final idx = _myTasks.indexWhere((t) => t['id'] == updated['id']);
               if (idx != -1) {
                 final seeker = _myTasks[idx]['seeker'];
                 _myTasks[idx] = {...updated, 'seeker': seeker};
-              } else if (['accepted', 'in_progress'].contains(updated['status'])) {
-                _myTasks.insert(0, updated);
               }
             }
           });
@@ -180,15 +194,66 @@ class _HelperDashboardState extends State<HelperDashboard> {
   }
 
   Future<void> _acceptTask(String taskId) async {
+    final trustScore = _currentUser['trust_score'] ?? 50;
+    if (trustScore < 35) {
+      if (mounted) AlertModal.show(context, title: 'Action Blocked', message: 'Your trust score ($trustScore) is too low to accept tasks.', type: AlertType.danger);
+      return;
+    }
     await SupabaseService.acceptTask(taskId, _currentUser['id']);
     _loadData();
     if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Task Accepted!')));
   }
 
   Future<void> _completeTask(String taskId) async {
-    await SupabaseService.completeTask(taskId, 'completed');
-    _loadData();
-    if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Task Completed!')));
+    final otpCtrl = TextEditingController();
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Complete Task'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Please ask the seeker for the 4-digit OTP to complete this task.'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: otpCtrl,
+              keyboardType: TextInputType.number,
+              maxLength: 4,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: 8),
+              decoration: const InputDecoration(
+                hintText: '0000',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E)),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Verify', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+    
+    final otp = otpCtrl.text.trim();
+    if (otp.length != 4) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('OTP must be 4 digits')));
+      return;
+    }
+
+    try {
+      await SupabaseService.completeTaskWithOtp(taskId, otp);
+      _loadData();
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Task Completed Successfully!')));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+    }
   }
 
   Future<void> _toggleAvailability(bool value) async {
@@ -552,6 +617,11 @@ class _HelperDashboardState extends State<HelperDashboard> {
   }
 
   void _showCounterOfferDialog(String taskId, String title, double originalPay) {
+    final trustScore = _currentUser['trust_score'] ?? 50;
+    if (trustScore < 35) {
+      if (mounted) AlertModal.show(context, title: 'Action Blocked', message: 'Your trust score ($trustScore) is too low to make offers.', type: AlertType.danger);
+      return;
+    }
     final payCtrl = TextEditingController();
     showDialog(
       context: context,

@@ -38,8 +38,15 @@ export default function HelperTasksPage() {
   };
 
   const handleMarkComplete = async (taskId) => {
+    const otp = window.prompt("Please enter the 4-digit OTP provided by the seeker to complete this task:");
+    if (!otp) return; // User cancelled
+    if (otp.length !== 4) {
+      alert("OTP must be exactly 4 digits.");
+      return;
+    }
+
     setProcessing(true);
-    const result = await completeTask(taskId);
+    const result = await completeTask(taskId, otp);
     setProcessing(false);
     
     if (result.success) {
