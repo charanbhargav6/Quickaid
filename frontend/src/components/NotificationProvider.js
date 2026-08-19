@@ -4,6 +4,7 @@ import { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import styles from './NotificationToast.module.css';
+import { deleteNotificationServer } from '@/app/_actions/notificationActions';
 
 const NotificationContext = createContext({ notifications: [], unreadCount: 0, markAsRead: () => {}, deleteNotification: () => {} });
 
@@ -90,13 +91,18 @@ export default function NotificationProvider({ children }) {
   };
 
   const deleteNotification = async (id) => {
-    const { error } = await supabase.from('notifications').delete().eq('id', id);
-    if (!error) {
-      setNotifications(prev => {
-        const notif = prev.find(n => n.id === id);
-        if (notif && !notif.is_read) setUnreadCount(c => Math.max(0, c - 1));
-        return prev.filter(n => n.id !== id);
-      });
+    // Optimistic UI update
+    setNotifications(prev => {
+      const notif = prev.find(n => n.id === id);
+      if (notif && !notif.is_read) setUnreadCount(c => Math.max(0, c - 1));
+      return prev.filter(n => n.id !== id);
+    });
+
+    // Delete from database using server action (bypasses RLS)
+    const { error } = await deleteNotificationServer(id);
+    if (error) {
+      console.error('Failed to delete notification:', error);
+      // Optional: Could revert optimistic update here if needed
     }
   };
 

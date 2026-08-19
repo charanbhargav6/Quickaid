@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase';
+import { deleteNotificationServer } from '@/app/_actions/notificationActions';
 
 const supabase = createClient();
 
@@ -95,15 +96,16 @@ export default function NotificationsPage() {
   };
 
   const deleteNotification = async (e, id) => {
-    e.stopPropagation(); // prevent triggering markAsRead on tap
+    e.stopPropagation();
+    
+    // Optimistic update
+    setNotifications(prev => prev.filter(n => n.id !== id));
+    
     try {
-      const { error } = await supabase
-        .from('notifications')
-        .delete()
-        .eq('id', id);
-
-      if (!error) {
-        setNotifications(prev => prev.filter(n => n.id !== id));
+      const { error: err } = await deleteNotificationServer(id);
+      
+      if (err) {
+        console.error('Error deleting notification:', err);
       }
     } catch (err) {
       console.error('Error deleting notification:', err);
