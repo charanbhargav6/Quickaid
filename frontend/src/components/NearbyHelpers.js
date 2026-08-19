@@ -20,11 +20,24 @@ export default function NearbyHelpers() {
       .limit(12);
     
     if (data) {
-      // Simulate proximity for MVP
-      const withDistance = data.map(h => ({
-        ...h,
-        distance_km: Math.max(0.1, Math.random() * radius)
-      })).sort((a, b) => a.distance_km - b.distance_km);
+      // Use deterministic distance generation based on helper ID for MVP stability
+      const getDeterministicDistance = (id) => {
+        let hash = 0;
+        for (let i = 0; i < id.length; i++) {
+          hash = id.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        // Scale to a distance between 0.1 and 60 km
+        return Math.max(0.1, (Math.abs(hash) / 2147483647) * 60);
+      };
+
+      const withDistance = data
+        .map(h => ({
+          ...h,
+          distance_km: getDeterministicDistance(h.id)
+        }))
+        .filter(h => h.distance_km <= radius)
+        .sort((a, b) => a.distance_km - b.distance_km);
+        
       setHelpers(withDistance);
     } else if (error) {
       console.error(error);
