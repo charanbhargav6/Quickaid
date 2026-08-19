@@ -62,9 +62,7 @@ export default function SeekerSettings() {
     if (!user?.email) return;
     setResettingPwd(true);
     setMsg({ type: '', text: '' });
-    const { error } = await supabase.auth.resetPasswordForEmail(user.email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
+    const { error } = await supabase.auth.resetPasswordForEmail(user.email);
     if (error) {
       setMsg({ type: 'error', text: error.message });
       setResettingPwd(false);
