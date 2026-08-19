@@ -67,10 +67,13 @@ export default function SeekerSettings() {
     });
     if (error) {
       setMsg({ type: 'error', text: error.message });
+      setResettingPwd(false);
     } else {
-      setMsg({ type: 'success', text: 'Password reset email sent! Please check your inbox.' });
+      setMsg({ type: 'success', text: 'OTP sent! Redirecting...' });
+      setTimeout(() => {
+        router.push(`/reset-password?email=${encodeURIComponent(user.email)}`);
+      }, 1000);
     }
-    setResettingPwd(false);
   };
 
   const handleUpdateProfile = async (e) => {
