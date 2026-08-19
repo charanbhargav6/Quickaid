@@ -147,7 +147,7 @@ export default function Login() {
         primaryActionText: 'Ok',
         onPrimaryAction: () => {
           setAlertModal({ isOpen: false });
-          router.push(`/reset-password?email=${encodeURIComponent(email)}`);
+          window.location.href = `/reset-password?email=${encodeURIComponent(email)}`;
         }
       });
     }

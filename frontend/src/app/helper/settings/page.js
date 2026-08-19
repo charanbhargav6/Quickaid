@@ -73,7 +73,7 @@ export default function HelperSettings() {
     } else {
       setMsg({ type: 'success', text: 'OTP sent! Redirecting...' });
       setTimeout(() => {
-        router.push(`/reset-password?email=${encodeURIComponent(user.email)}`);
+        window.location.href = `/reset-password?email=${encodeURIComponent(user.email)}`;
       }, 1000);
     }
   };
