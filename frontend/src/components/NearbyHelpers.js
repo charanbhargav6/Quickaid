@@ -18,16 +18,20 @@ export default function NearbyHelpers() {
       .select('id, full_name, role, trust_score')
       .in('role', ['helper', 'both', 'admin'])
       .limit(12);
-    
     if (data) {
       // Use deterministic distance generation based on helper ID for MVP stability
       const getDeterministicDistance = (id) => {
+        if (!id) return 5.0;
+        // Use a simple hash of the UUID string
         let hash = 0;
         for (let i = 0; i < id.length; i++) {
           hash = id.charCodeAt(i) + ((hash << 5) - hash);
         }
-        // Scale to a distance between 0.1 and 60 km
-        return Math.max(0.1, (Math.abs(hash) / 2147483647) * 60);
+        // Map the hash to a stable number between 0.1 and 40 km
+        // This ensures some helpers will always show up at 50km!
+        const maxDist = 40;
+        const normalized = (Math.abs(hash) % 1000) / 1000; // 0.0 to 0.999
+        return Math.max(0.1, normalized * maxDist);
       };
 
       const withDistance = data
