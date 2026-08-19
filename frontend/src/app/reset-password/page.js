@@ -14,6 +14,8 @@ function ResetPasswordForm() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const router = useRouter();
 
   const handleVerifyOtp = async (e) => {
@@ -103,24 +105,43 @@ function ResetPasswordForm() {
               Enter your new password below.
             </p>
             <form onSubmit={handleUpdatePassword}>
-              <input 
-                type="password" 
-                value={password} 
-                onChange={e => setPassword(e.target.value)} 
-                placeholder="New Password" 
-                required 
-                className="input" 
-                style={{ width: '100%', marginBottom: '1rem' }} 
-              />
-              <input 
-                type="password" 
-                value={confirmPassword} 
-                onChange={e => setConfirmPassword(e.target.value)} 
-                placeholder="Confirm New Password" 
-                required 
-                className="input" 
-                style={{ width: '100%', marginBottom: '1.5rem' }} 
-              />
+              <div style={{ position: 'relative', marginBottom: '1rem' }}>
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  value={password} 
+                  onChange={e => setPassword(e.target.value)} 
+                  placeholder="New Password" 
+                  required 
+                  className="input" 
+                  style={{ width: '100%', paddingRight: '40px' }} 
+                />
+                <button 
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '18px' }}
+                >
+                  {showPassword ? '👁️' : '👁️‍🗨️'}
+                </button>
+              </div>
+              
+              <div style={{ position: 'relative', marginBottom: '1.5rem' }}>
+                <input 
+                  type={showConfirmPassword ? "text" : "password"} 
+                  value={confirmPassword} 
+                  onChange={e => setConfirmPassword(e.target.value)} 
+                  placeholder="Confirm New Password" 
+                  required 
+                  className="input" 
+                  style={{ width: '100%', paddingRight: '40px' }} 
+                />
+                <button 
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', fontSize: '18px' }}
+                >
+                  {showConfirmPassword ? '👁️' : '👁️‍🗨️'}
+                </button>
+              </div>
               <button type="submit" className="btn btn-primary" style={{ width: '100%' }} disabled={loading}>
                 {loading ? 'Updating...' : 'Update Password'}
               </button>
