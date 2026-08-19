@@ -143,11 +143,14 @@ export default function Login() {
     } else {
       setAlertModal({
         isOpen: true,
-        title: 'Email Sent',
-        message: 'Check your email for the password reset link.',
+        title: 'OTP Sent',
+        message: 'Check your email for the 6-digit OTP.',
         type: 'success',
         primaryActionText: 'Ok',
-        onPrimaryAction: () => setAlertModal({ isOpen: false })
+        onPrimaryAction: () => {
+          setAlertModal({ isOpen: false });
+          router.push(`/reset-password?email=${encodeURIComponent(email)}`);
+        }
       });
     }
     setLoading(false);
