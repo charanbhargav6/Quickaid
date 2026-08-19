@@ -36,7 +36,7 @@ export async function middleware(request) {
   const url = request.nextUrl
   
   // Public routes that don't need auth checking
-  if (url.pathname === '/' || url.pathname.startsWith('/login') || url.pathname.startsWith('/signup') || url.pathname.startsWith('/register') || url.pathname.startsWith('/download')) {
+  if (url.pathname === '/' || url.pathname.startsWith('/login') || url.pathname.startsWith('/signup') || url.pathname.startsWith('/register') || url.pathname.startsWith('/reset-password') || url.pathname.startsWith('/download')) {
     return supabaseResponse
   }
 
