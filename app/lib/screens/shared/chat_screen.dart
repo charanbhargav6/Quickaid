@@ -117,6 +117,26 @@ class _ChatScreenState extends State<ChatScreen> {
         ),
         backgroundColor: const Color(0xFF22C55E),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.sos, color: Colors.white),
+            tooltip: 'Emergency SOS',
+            style: IconButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              await SupabaseService.triggerSOS(widget.taskId, 'User Location');
+              if (mounted) {
+                showDialog(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('SOS Triggered', style: TextStyle(color: Colors.red)),
+                    content: const Text('An emergency alert has been sent to the QuickAid admin team. They will contact you shortly.'),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
+                    ],
+                  ),
+                );
+              }
+            },
+          ),
           PopupMenuButton<String>(
             onSelected: (value) async {
               if (value == 'report') {
@@ -166,25 +186,7 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.red,
-        onPressed: () async {
-          await SupabaseService.triggerSOS(widget.taskId, 'User Location');
-          if (mounted) {
-            showDialog(
-              context: context,
-              builder: (ctx) => AlertDialog(
-                title: const Text('SOS Triggered', style: TextStyle(color: Colors.red)),
-                content: const Text('An emergency alert has been sent to the QuickAid admin team. They will contact you shortly.'),
-                actions: [
-                  TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('OK')),
-                ],
-              ),
-            );
-          }
-        },
-        child: const Icon(Icons.sos, color: Colors.white, size: 32),
-      ),
+
       body: Column(
         children: [
           Expanded(

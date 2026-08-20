@@ -8,6 +8,7 @@ import toast from 'react-hot-toast';
 export default function IncomingOffers({ userId }) {
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isAccepting, setIsAccepting] = useState(false);
 
   const fetchOffers = async () => {
     // Fetch pending offers for tasks owned by the current seeker
@@ -36,7 +37,9 @@ export default function IncomingOffers({ userId }) {
   }, [userId]);
 
   const handleAccept = async (offerId) => {
+    if (isAccepting) return;
     if (!confirm("Are you sure you want to accept this offer?")) return;
+    setIsAccepting(true);
     const res = await acceptOffer({ offerId });
     if (res.success) {
       toast.success("Offer accepted successfully!");
@@ -44,6 +47,7 @@ export default function IncomingOffers({ userId }) {
     } else {
       toast.error(res.error || "Failed to accept offer.");
     }
+    setIsAccepting(false);
   };
 
   if (loading) return <div className="skeleton" style={{ height: '100px', borderRadius: '12px' }}></div>;
@@ -71,8 +75,13 @@ export default function IncomingOffers({ userId }) {
               <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--success)' }}>₹{offer.proposed_pay}</div>
             </div>
 
-            <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => handleAccept(offer.id)}>
-              Accept Offer
+            <button 
+              className="btn btn-primary" 
+              style={{ width: '100%', opacity: isAccepting ? 0.7 : 1 }} 
+              disabled={isAccepting}
+              onClick={() => handleAccept(offer.id)}
+            >
+              {isAccepting ? 'Accepting...' : 'Accept Offer'}
             </button>
           </div>
         ))}

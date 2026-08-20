@@ -321,7 +321,7 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
                       children: [
                         TileLayer(
                           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                          userAgentPackageName: 'com.example.app',
+                          userAgentPackageName: 'com.quickaid.app',
                         ),
                         MarkerLayer(
                           markers: [
@@ -898,6 +898,7 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
                         },
                         child: const Text('Top Up', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
                       ),
+                    ),
                   ],
                 ),
               ],
@@ -915,7 +916,7 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
         context,
         title: 'Action Blocked',
         message: 'Your trust score is $trustScore, which is below the minimum requirement (35). You cannot post tasks until your score improves.',
-        type: AlertType.danger,
+        type: AlertType.error,
       );
       return;
     }

@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase';
 import { AnimatePresence } from 'framer-motion';
 import AcceptTaskButton from '@/components/AcceptTaskButton';
 import TaskReviewModal from '@/components/TaskReviewModal';
+import toast from 'react-hot-toast';
 
 export default function RealtimeHelperTasks({ initialTasks }) {
   const [tasks, setTasks] = useState(initialTasks);
@@ -13,6 +14,9 @@ export default function RealtimeHelperTasks({ initialTasks }) {
   const [selectedTask, setSelectedTask] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [counterOfferTask, setCounterOfferTask] = useState(null);
+  const [proposedPay, setProposedPay] = useState('');
+  const [isSubmittingOffer, setIsSubmittingOffer] = useState(false);
   const currentUserId = React.useRef(null);
 
   useEffect(() => {
@@ -95,6 +99,31 @@ export default function RealtimeHelperTasks({ initialTasks }) {
     const supabase = createClient();
     await supabase.from('tasks').update({ status: 'completed' }).eq('id', task.id);
     setReviewTask({ ...task, status: 'completed' });
+  };
+
+  const handleCounterOffer = (task) => {
+    setCounterOfferTask(task);
+    setProposedPay(task.pay?.toString() || task.price?.toString() || '');
+  };
+
+  const submitCounterOffer = async (e) => {
+    e.preventDefault();
+    const pay = parseFloat(proposedPay);
+    if (isNaN(pay) || pay <= 0) {
+      toast.error("Please enter a valid amount.");
+      return;
+    }
+    setIsSubmittingOffer(true);
+    const { submitOffer } = await import('@/app/helper/_actions/helperActions');
+    const result = await submitOffer({ taskId: counterOfferTask.id, proposedPay: pay });
+    if (result.success) {
+      toast.success("Counter offer submitted successfully!");
+      setCounterOfferTask(null);
+      setSelectedTask(null);
+    } else {
+      toast.error(result.error || "Failed to submit offer.");
+    }
+    setIsSubmittingOffer(false);
   };
 
   const getTripDistance = (task) => {
@@ -279,6 +308,48 @@ export default function RealtimeHelperTasks({ initialTasks }) {
           />
         )}
         
+        {counterOfferTask && (
+          <div style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 110,
+            padding: '1rem'
+          }}>
+            <div className="card fade-in" style={{ width: '100%', maxWidth: '400px', padding: '2rem', background: 'var(--card-bg)', borderRadius: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 700 }}>Propose Counter Offer</h2>
+                <button onClick={() => setCounterOfferTask(null)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-muted)', lineHeight: 1 }}>✕</button>
+              </div>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '1.5rem' }}>
+                Enter your proposed pay for <strong>{counterOfferTask.title}</strong>. The current pay is ₹{counterOfferTask.pay || counterOfferTask.price}.
+              </p>
+              <form onSubmit={submitCounterOffer}>
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>Proposed Amount (₹)</label>
+                  <input
+                    type="number"
+                    className="input"
+                    value={proposedPay}
+                    onChange={(e) => setProposedPay(e.target.value)}
+                    placeholder="Enter amount"
+                    min="1"
+                    step="0.01"
+                    required
+                    autoFocus
+                    style={{ fontSize: '18px', padding: '12px 16px' }}
+                  />
+                </div>
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                  <button type="button" className="btn btn-outline" style={{ flex: 1 }} onClick={() => setCounterOfferTask(null)} disabled={isSubmittingOffer}>Cancel</button>
+                  <button type="submit" className="btn btn-primary" style={{ flex: 1 }} disabled={isSubmittingOffer}>
+                    {isSubmittingOffer ? 'Submitting...' : 'Submit Offer'}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+        
         {selectedTask && (
           <div style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
@@ -334,6 +405,9 @@ export default function RealtimeHelperTasks({ initialTasks }) {
 
               <div style={{ display: 'flex', gap: '1rem', marginTop: '1.5rem' }}>
                 <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => setSelectedTask(null)}>Close</button>
+                <div style={{ flex: 1 }}>
+                  <button className="btn btn-outline" style={{ width: '100%', height: '100%' }} onClick={() => handleCounterOffer(selectedTask)}>Counter Offer</button>
+                </div>
                 <div style={{ flex: 1 }}>
                   <AcceptTaskButton taskId={selectedTask.id} onSuccess={() => setSelectedTask(null)} />
                 </div>

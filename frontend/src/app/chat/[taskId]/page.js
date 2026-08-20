@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { redirect } from 'next/navigation';
 import ChatRoom from '@/components/ChatRoom';
+import SosButton from '@/components/SosButton';
 
 export default async function ChatPage({ params }) {
   const { taskId } = await params;
@@ -64,6 +65,9 @@ export default async function ChatPage({ params }) {
         <div>
           <h1 style={{ fontSize: '1.2rem', margin: 0 }}>{otherUserName}</h1>
           <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', margin: 0 }}>Task: {task.title}</p>
+        </div>
+        <div style={{ marginLeft: 'auto' }}>
+          <SosButton taskId={taskId} />
         </div>
       </header>
       

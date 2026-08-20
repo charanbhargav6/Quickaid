@@ -7,6 +7,7 @@ import '../shared/task_tracking_screen.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../../widgets/skeleton_loader.dart';
+import '../../widgets/alert_modal.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:ui';
@@ -196,7 +197,7 @@ class _HelperDashboardState extends State<HelperDashboard> {
   Future<void> _acceptTask(String taskId) async {
     final trustScore = _currentUser['trust_score'] ?? 50;
     if (trustScore < 35) {
-      if (mounted) AlertModal.show(context, title: 'Action Blocked', message: 'Your trust score ($trustScore) is too low to accept tasks.', type: AlertType.danger);
+      if (mounted) AlertModal.show(context, title: 'Action Blocked', message: 'Your trust score ($trustScore) is too low to accept tasks.', type: AlertType.error);
       return;
     }
     await SupabaseService.acceptTask(taskId, _currentUser['id']);
@@ -525,7 +526,7 @@ class _HelperDashboardState extends State<HelperDashboard> {
       children: [
         TileLayer(
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-          userAgentPackageName: 'com.example.app',
+          userAgentPackageName: 'com.quickaid.app',
         ),
         MarkerLayer(markers: markers),
       ],
@@ -619,7 +620,7 @@ class _HelperDashboardState extends State<HelperDashboard> {
   void _showCounterOfferDialog(String taskId, String title, double originalPay) {
     final trustScore = _currentUser['trust_score'] ?? 50;
     if (trustScore < 35) {
-      if (mounted) AlertModal.show(context, title: 'Action Blocked', message: 'Your trust score ($trustScore) is too low to make offers.', type: AlertType.danger);
+      if (mounted) AlertModal.show(context, title: 'Action Blocked', message: 'Your trust score ($trustScore) is too low to make offers.', type: AlertType.error);
       return;
     }
     final payCtrl = TextEditingController();
@@ -852,18 +853,18 @@ class _HelperDashboardState extends State<HelperDashboard> {
             Row(
               children: [
                 Expanded(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                    onPressed: () => _acceptTask(task['id']),
-                    child: const Text('Accept Job', style: TextStyle(fontWeight: FontWeight.bold)),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
                     onPressed: () => _showCounterOfferDialog(task['id'], task['title'], double.tryParse(task['pay'].toString()) ?? 0.0),
                     child: const Text('Counter Offer', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF10B981), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                    onPressed: () => _acceptTask(task['id']),
+                    child: const Text('Accept Job', style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ),
               ],
