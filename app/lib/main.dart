@@ -33,6 +33,10 @@ class ThemeController extends ChangeNotifier {
 
 final themeController = ThemeController();
 
+class AppState {
+  static String currentMode = 'seeker'; // 'seeker', 'helper', 'admin'
+}
+
 // ── THEME DEFINITIONS ─────────────────────────────────────
 class AppTheme {
   static const primaryBlue = Color(0xFF009FFC);

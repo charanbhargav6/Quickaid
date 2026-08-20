@@ -53,8 +53,14 @@ class AppDrawer extends StatelessWidget {
                 child: Builder(
                   builder: (context) {
                     final currentRoute = ModalRoute.of(context)?.settings.name ?? '/seeker';
-                    final isHelperMode = currentRoute.startsWith('/helper') || currentRoute == '/my_tasks' || currentRoute == '/earnings';
-                    final isSeekerMode = !isHelperMode && currentRoute != '/admin';
+                    
+                    // Update global state if we are explicitly on a dashboard
+                    if (currentRoute == '/helper') AppState.currentMode = 'helper';
+                    if (currentRoute == '/seeker') AppState.currentMode = 'seeker';
+                    if (currentRoute == '/admin') AppState.currentMode = 'admin';
+
+                    final isHelperMode = AppState.currentMode == 'helper';
+                    final isSeekerMode = AppState.currentMode == 'seeker';
 
                     return ListView(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -65,9 +71,11 @@ class AppDrawer extends StatelessWidget {
                             onTap: () {
                               Navigator.pop(context);
                               if (isSeekerMode) {
-                                Navigator.pushReplacementNamed(context, '/helper');
+                                AppState.currentMode = 'helper';
+                                Navigator.pushNamedAndRemoveUntil(context, '/helper', (route) => false);
                               } else {
-                                Navigator.pushReplacementNamed(context, '/seeker');
+                                AppState.currentMode = 'seeker';
+                                Navigator.pushNamedAndRemoveUntil(context, '/seeker', (route) => false);
                               }
                             },
                             child: Container(
@@ -100,11 +108,11 @@ class AppDrawer extends StatelessWidget {
                         _DrawerItem(icon: Icons.dashboard_outlined, label: 'Dashboard', active: true, onTap: () {
                           Navigator.pop(context);
                           if (role == 'admin') {
-                            Navigator.pushReplacementNamed(context, '/admin');
+                            Navigator.pushNamedAndRemoveUntil(context, '/admin', (route) => false);
                           } else if (isHelperMode) {
-                            Navigator.pushReplacementNamed(context, '/helper');
+                            Navigator.pushNamedAndRemoveUntil(context, '/helper', (route) => false);
                           } else {
-                            Navigator.pushReplacementNamed(context, '/seeker');
+                            Navigator.pushNamedAndRemoveUntil(context, '/seeker', (route) => false);
                           }
                         }),
                         
