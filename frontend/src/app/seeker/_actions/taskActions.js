@@ -190,6 +190,25 @@ export async function acceptOffer(rawInput) {
   return { success: true }
 }
 
+export async function rejectOffer(rawInput) {
+  const parsed = acceptOfferSchema.safeParse(rawInput)
+  if (!parsed.success) return { success: false, error: 'Invalid input data' }
+  const { offerId } = parsed.data
+
+  const supabase = await createClient()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) return { success: false, error: 'Unauthorized' }
+
+  const { data: offer, error: offerError } = await supabase.from('task_offers').select('*, tasks(seeker_id)').eq('id', offerId).single()
+  if (offerError || !offer || offer.status !== 'pending') return { success: false, error: 'Offer is no longer available' }
+  
+  if (offer.tasks.seeker_id !== user.id) return { success: false, error: 'You do not own this task' }
+
+  await supabase.from('task_offers').update({ status: 'rejected' }).eq('id', offerId)
+  revalidatePath('/seeker')
+  return { success: true }
+}
+
 export async function cancelTask(taskId) {
   const supabase = await createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()

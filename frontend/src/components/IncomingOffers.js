@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { acceptOffer } from '@/app/seeker/_actions/taskActions';
+import { acceptOffer, rejectOffer } from '@/app/seeker/_actions/taskActions';
 import toast from 'react-hot-toast';
 
 export default function IncomingOffers({ userId }) {
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isAccepting, setIsAccepting] = useState(false);
+  const [processingId, setProcessingId] = useState(null);
 
   const fetchOffers = async () => {
     // Fetch pending offers for tasks owned by the current seeker
@@ -37,9 +37,9 @@ export default function IncomingOffers({ userId }) {
   }, [userId]);
 
   const handleAccept = async (offerId) => {
-    if (isAccepting) return;
+    if (processingId) return;
     if (!confirm("Are you sure you want to accept this offer?")) return;
-    setIsAccepting(true);
+    setProcessingId(offerId);
     const res = await acceptOffer({ offerId });
     if (res.success) {
       toast.success("Offer accepted successfully!");
@@ -47,7 +47,21 @@ export default function IncomingOffers({ userId }) {
     } else {
       toast.error(res.error || "Failed to accept offer.");
     }
-    setIsAccepting(false);
+    setProcessingId(null);
+  };
+
+  const handleReject = async (offerId) => {
+    if (processingId) return;
+    if (!confirm("Are you sure you want to reject this offer?")) return;
+    setProcessingId(offerId);
+    const res = await rejectOffer({ offerId });
+    if (res.success) {
+      toast.success("Offer rejected.");
+      setOffers(offers.filter(o => o.id !== offerId));
+    } else {
+      toast.error(res.error || "Failed to reject offer.");
+    }
+    setProcessingId(null);
   };
 
   if (loading) return <div className="skeleton" style={{ height: '100px', borderRadius: '12px' }}></div>;
@@ -75,14 +89,24 @@ export default function IncomingOffers({ userId }) {
               <div style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--success)' }}>₹{offer.proposed_pay}</div>
             </div>
 
-            <button 
-              className="btn btn-primary" 
-              style={{ width: '100%', opacity: isAccepting ? 0.7 : 1 }} 
-              disabled={isAccepting}
-              onClick={() => handleAccept(offer.id)}
-            >
-              {isAccepting ? 'Accepting...' : 'Accept Offer'}
-            </button>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <button 
+                className="btn btn-outline" 
+                style={{ flex: 1, opacity: processingId === offer.id ? 0.7 : 1, borderColor: 'var(--red-500)', color: 'var(--red-500)' }} 
+                disabled={processingId !== null}
+                onClick={() => handleReject(offer.id)}
+              >
+                Reject
+              </button>
+              <button 
+                className="btn btn-primary" 
+                style={{ flex: 1, opacity: processingId === offer.id ? 0.7 : 1 }} 
+                disabled={processingId !== null}
+                onClick={() => handleAccept(offer.id)}
+              >
+                {processingId === offer.id ? 'Processing...' : 'Accept Offer'}
+              </button>
+            </div>
           </div>
         ))}
       </div>

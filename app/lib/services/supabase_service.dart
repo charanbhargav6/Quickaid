@@ -386,6 +386,13 @@ class SupabaseService {
     // TODO: Send FCM Push Notification via Edge Function or Node backend.
   }
 
+  static Future<void> rejectOffer(String offerId) async {
+    final user = currentUser;
+    if (user == null) throw Exception('Not authenticated');
+
+    await client.from('task_offers').update({'status': 'rejected'}).eq('id', offerId);
+  }
+
   static Future<List<Map<String, dynamic>>> getReviews(String userId) async {
     final res = await client
         .from('reviews')

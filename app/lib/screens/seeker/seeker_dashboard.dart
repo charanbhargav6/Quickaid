@@ -472,25 +472,51 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
               ],
             ),
             const SizedBox(height: 16),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E), minimumSize: const Size.fromHeight(40)),
-              onPressed: () async {
-                try {
-                  await SupabaseService.acceptOffer(
-                    offer['id'], 
-                    offer['task_id'], 
-                    offer['helper_id'], 
-                    double.tryParse(proposedPay.toString()) ?? 0.0, 
-                    double.tryParse(originalPay.toString()) ?? 0.0,
-                    offer['profiles']?['fcm_token'] ?? ''
-                  );
-                  _loadData();
-                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Offer Accepted!')));
-                } catch (e) {
-                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
-                }
-              },
-              child: const Text('Accept Offer', style: TextStyle(color: Colors.white)),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      side: const BorderSide(color: Colors.red),
+                      minimumSize: const Size.fromHeight(40)
+                    ),
+                    onPressed: () async {
+                      try {
+                        await SupabaseService.rejectOffer(offer['id']);
+                        _loadData();
+                        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Offer Rejected')));
+                      } catch (e) {
+                        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                      }
+                    },
+                    child: const Text('Reject'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF22C55E), minimumSize: const Size.fromHeight(40)),
+                    onPressed: () async {
+                      try {
+                        await SupabaseService.acceptOffer(
+                          offer['id'], 
+                          offer['task_id'], 
+                          offer['helper_id'], 
+                          double.tryParse(proposedPay.toString()) ?? 0.0, 
+                          double.tryParse(originalPay.toString()) ?? 0.0,
+                          offer['profiles']?['fcm_token'] ?? ''
+                        );
+                        _loadData();
+                        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Offer Accepted!')));
+                      } catch (e) {
+                        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                      }
+                    },
+                    child: const Text('Accept', style: TextStyle(color: Colors.white)),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
