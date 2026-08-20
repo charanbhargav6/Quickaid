@@ -101,8 +101,12 @@ jobs:
         run: npm install
         working-directory: selenium-tests
 
+      - name: Build Next.js frontend
+        run: npm run build
+        working-directory: frontend
+
       - name: Start Next.js frontend (background)
-        run: npm run dev &
+        run: npm start &
         working-directory: frontend
 
       - name: Wait for server to be ready (wait-on)
@@ -152,8 +156,12 @@ jobs:
         run: npm install exceljs
         working-directory: backend
 
+      - name: Build Next.js frontend
+        run: npm run build
+        working-directory: frontend
+
       - name: Start Next.js frontend (background)
-        run: npm run dev &
+        run: npm start &
         working-directory: frontend
 
       - name: Wait for server to be ready (wait-on)
