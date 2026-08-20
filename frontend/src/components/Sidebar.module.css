@@ -103,7 +103,6 @@
 .logoutBtn {
   margin-top: auto;
 }
-.logoutBtn .navLabel {
 .logoutBtn .navLabel, .logoutBtn .navIcon {
   color: var(--sidebar-text);
 }
