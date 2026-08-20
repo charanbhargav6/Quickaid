@@ -162,26 +162,32 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   const SizedBox(height: 40),
 
-                  AuthTextField(
-                    controller: _emailCtrl,
-                    label: 'Email',
-                    hint: 'you@example.com',
-                    icon: Icons.email_outlined,
-                    keyboardType: TextInputType.emailAddress,
-                    validator: (v) => v!.contains('@') ? null : 'Enter a valid email',
+                  Semantics(
+                    label: 'email_input',
+                    child: AuthTextField(
+                      controller: _emailCtrl,
+                      label: 'Email',
+                      hint: 'you@example.com',
+                      icon: Icons.email_outlined,
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (v) => v!.contains('@') ? null : 'Enter a valid email',
+                    ),
                   ),
                   const SizedBox(height: 16),
-                  AuthTextField(
-                    controller: _passCtrl,
-                    label: 'Password',
-                    hint: '••••••••',
-                    icon: Icons.lock_outline_rounded,
-                    obscureText: _obscurePass,
-                    suffixIcon: IconButton(
-                      icon: Icon(_obscurePass ? Icons.visibility_off_outlined : Icons.visibility_outlined),
-                      onPressed: () => setState(() => _obscurePass = !_obscurePass),
+                  Semantics(
+                    label: 'password_input',
+                    child: AuthTextField(
+                      controller: _passCtrl,
+                      label: 'Password',
+                      hint: '••••••••',
+                      icon: Icons.lock_outline_rounded,
+                      obscureText: _obscurePass,
+                      suffixIcon: IconButton(
+                        icon: Icon(_obscurePass ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+                        onPressed: () => setState(() => _obscurePass = !_obscurePass),
+                      ),
+                      validator: (v) => v!.length >= 6 ? null : 'Password must be at least 6 characters',
                     ),
-                    validator: (v) => v!.length >= 6 ? null : 'Password must be at least 6 characters',
                   ),
 
                   const SizedBox(height: 10),
@@ -193,10 +199,13 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  GradientButton(
-                    label: 'Sign In',
-                    loading: _loading,
-                    onPressed: _login,
+                  Semantics(
+                    label: 'login_button',
+                    child: GradientButton(
+                      label: 'Sign In',
+                      loading: _loading,
+                      onPressed: _login,
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Row(

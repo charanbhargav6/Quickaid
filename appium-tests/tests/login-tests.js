@@ -6,7 +6,7 @@ async function runLoginTests() {
     'appium:automationName': 'UiAutomator2',
     'appium:deviceName': 'Android Emulator', // Or physical device name
     'appium:app': '../app/build/app/outputs/flutter-apk/app-debug.apk', // Path to your built APK
-    'appium:noReset': true,
+    'appium:noReset': false,
   };
 
   const wdOpts = {
@@ -27,7 +27,7 @@ async function runLoginTests() {
     // Note: In a real Flutter Appium test, you would use flutter-specific locators.
     // Example using accessibility id (Semantics in Flutter):
     const emailField = await driver.$('~email_input'); // Assumes Semantics(identifier: 'email_input')
-    await emailField.waitForDisplayed({ timeout: 10000 });
+    await emailField.waitForDisplayed({ timeout: 45000 });
     await emailField.setValue('test@example.com');
     
     const passwordField = await driver.$('~password_input');
