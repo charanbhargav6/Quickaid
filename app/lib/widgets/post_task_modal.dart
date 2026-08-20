@@ -42,6 +42,7 @@ class _PostTaskModalState extends State<PostTaskModal> {
   final MapController _mapController = MapController();
 
   String _taskType = 'physical'; // 'physical', 'delivery', 'digital'
+  String _category = 'General Help'; // New Category Field
   String _vehicleType = 'bike'; // bike, auto, mini_car, suv, mini_truck
   bool _placingDestination = false;
   bool _isSearchingLoc = false;
@@ -199,7 +200,7 @@ class _PostTaskModalState extends State<PostTaskModal> {
         'title': _titleCtrl.text,
         'description': finalDesc,
         'pay': payAmount,
-        'category': _taskType,
+        'category': _category,
         'task_type': _taskType,
         'seeker_id': widget.currentUser['id'],
         'status': 'open',
@@ -368,6 +369,31 @@ class _PostTaskModalState extends State<PostTaskModal> {
                             },
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Category Dropdown
+                      const Text('Category', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        value: _category,
+                        decoration: InputDecoration(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: 'General Help', child: Text('General Help')),
+                          DropdownMenuItem(value: 'Moving & Lifting', child: Text('Moving & Lifting')),
+                          DropdownMenuItem(value: 'Handyman / Repairs', child: Text('Handyman / Repairs')),
+                          DropdownMenuItem(value: 'Delivery / Errands', child: Text('Delivery / Errands')),
+                          DropdownMenuItem(value: 'Cleaning', child: Text('Cleaning')),
+                          DropdownMenuItem(value: 'IT & Technical', child: Text('IT & Technical')),
+                          DropdownMenuItem(value: 'Assembly', child: Text('Assembly')),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) setState(() => _category = val);
+                        },
                       ),
                       const SizedBox(height: 20),
 

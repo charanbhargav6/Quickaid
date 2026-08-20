@@ -109,22 +109,22 @@ class AppDrawer extends StatelessWidget {
                         }),
                         
                         if (isHelperMode || role == 'admin')
-                          _DrawerItem(icon: Icons.task_alt, label: 'My Tasks', onTap: () { Navigator.pop(context); Navigator.pushReplacementNamed(context, '/my_tasks'); }),
+                          _DrawerItem(icon: Icons.task_alt, label: 'My Tasks', onTap: () { Navigator.pop(context); Navigator.pushNamed(context, '/my_tasks'); }),
                         
                         if (isSeekerMode || role == 'admin')
-                          _DrawerItem(icon: Icons.add_box_outlined, label: 'Post Task', onTap: () { Navigator.pop(context); Navigator.pushReplacementNamed(context, '/post_task'); }),
+                          _DrawerItem(icon: Icons.add_box_outlined, label: 'Post Task', onTap: () { Navigator.pop(context); Navigator.pushNamed(context, '/post_task'); }),
                         
                         if (isHelperMode || role == 'admin')
-                          _DrawerItem(icon: Icons.account_balance_wallet_outlined, label: 'Earnings', onTap: () { Navigator.pop(context); Navigator.pushReplacementNamed(context, '/earnings'); }),
+                          _DrawerItem(icon: Icons.account_balance_wallet_outlined, label: 'Earnings', onTap: () { Navigator.pop(context); Navigator.pushNamed(context, '/earnings'); }),
                         
-                        _DrawerItem(icon: Icons.message_outlined, label: 'Messages', onTap: () { Navigator.pop(context); Navigator.pushReplacementNamed(context, '/messages'); }),
-                        _DrawerItem(icon: Icons.notifications_none, label: 'Notifications', onTap: () { Navigator.pop(context); Navigator.pushReplacementNamed(context, '/notifications'); }),
+                        _DrawerItem(icon: Icons.message_outlined, label: 'Messages', onTap: () { Navigator.pop(context); Navigator.pushNamed(context, '/messages'); }),
+                        _DrawerItem(icon: Icons.notifications_none, label: 'Notifications', onTap: () { Navigator.pop(context); Navigator.pushNamed(context, '/notifications'); }),
                         
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 8),
                           child: Divider(color: Colors.white24, height: 1),
                         ),
-                        _DrawerItem(icon: Icons.settings_outlined, label: 'Settings', onTap: () { Navigator.pop(context); Navigator.pushReplacementNamed(context, '/settings'); }),
+                        _DrawerItem(icon: Icons.settings_outlined, label: 'Settings', onTap: () { Navigator.pop(context); Navigator.pushNamed(context, '/settings'); }),
                         _DrawerItem(icon: Icons.help_outline, label: 'Support & FAQ', onTap: () {
                           Navigator.pop(context);
                           Navigator.pushNamed(context, '/support');

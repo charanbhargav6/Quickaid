@@ -532,6 +532,7 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
     switch (status) {
       case 'completed': statusColor = Colors.green; statusText = 'Completed'; break;
       case 'accepted': statusColor = Colors.blue; statusText = 'In Progress'; break;
+      case 'cancelled': statusColor = Colors.red; statusText = 'Cancelled'; break;
       default: statusColor = Colors.orange; statusText = 'Open'; break;
     }
 
@@ -652,7 +653,9 @@ class _SeekerDashboardState extends State<SeekerDashboard> {
                             },
                             child: Row(
                               children: [
-                                Text(task['helper']['full_name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.blue)),
+                                Flexible(
+                                  child: Text(task['helper']['full_name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Colors.blue), overflow: TextOverflow.ellipsis),
+                                ),
                                 if (task['helper']['trust_score'] != null && task['helper']['trust_score'] >= 30 && task['helper']['trust_score'] <= 50)
                                   const Padding(
                                     padding: EdgeInsets.only(left: 4.0),
