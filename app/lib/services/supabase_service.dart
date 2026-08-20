@@ -71,7 +71,6 @@ class SupabaseService {
         await client.from('user_devices').insert({
           'user_id': res.user!.id,
           'device_id': deviceId,
-          'device_name': 'Test Device',
         });
         
         await NotificationService.syncTokenToSupabase();
