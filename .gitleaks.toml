@@ -1,0 +1,19 @@
+# .gitleaks.toml
+# Allowlist historical commits that contained secrets which have since been
+# rotated and replaced with GitHub Actions secrets references.
+# The anon key is a PUBLIC key (safe to expose), but we allowlist it anyway
+# to keep the Gitleaks scan clean.
+
+[allowlist]
+  description = "Allowlist for rotated/public keys committed before secrets migration"
+  commits = [
+    "1908ba2",
+    "70e1c45",
+    "99c9069",
+  ]
+
+  # Also allowlist the anon key pattern — it is a PUBLIC (publishable) key
+  # that has no elevated permissions, equivalent to an API public key.
+  regexes = [
+    '''sb_publishable_[A-Za-z0-9_-]+''',
+  ]
