@@ -7,8 +7,9 @@ const ExcelJS = require('exceljs');
 const path = require('path');
 const fs = require('fs');
 
-const SUPABASE_URL = 'https://kttkzrbefqnoqvtmzrag.supabase.co';
-const SUPABASE_ANON_KEY = 'sb_publishable_jrKcZlFCHQaDal9CQqtnhA_kua_e5mN';
+// Supabase credentials — loaded from env or .env in CI
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://kttkzrbefqnoqvtmzrag.supabase.co';
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const REPORT_PATH = path.join(__dirname, '..', 'reports', 'appium-report.xlsx');
 
 let passed = 0;
