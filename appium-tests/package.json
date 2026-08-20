@@ -14,6 +14,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "exceljs": "^4.4.0",
     "webdriverio": "^9.30.1",
     "xlsx": "^0.18.5"
   },

@@ -1,0 +1,198 @@
+name: QuickAid — Full Test Suite
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: # Allow manual trigger from GitHub UI
+
+jobs:
+  # ─────────────────────────────────────────────────────────
+  # JOB 1: Vulnerability Report (static — regenerate Excel)
+  # ─────────────────────────────────────────────────────────
+  vulnerability-tests:
+    name: 🛡️ Vulnerability Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: Vulnerability Test Results
+
+      - name: Generate Vulnerability Excel Report
+        run: node generate-report.js
+        working-directory: Vulnerability Test Results
+
+      - name: Upload Vulnerability Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: vulnerability-report
+          path: Vulnerability Test Results/findings.xlsx
+          retention-days: 30
+
+  # ─────────────────────────────────────────────────────────
+  # JOB 2: Mobile Auth Tests (Appium-equivalent)
+  # ─────────────────────────────────────────────────────────
+  appium-tests:
+    name: 📱 Mobile Auth Tests (Appium)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm install
+        working-directory: appium-tests
+
+      - name: Run Mobile Auth Tests
+        run: node tests/login-tests.js
+        working-directory: appium-tests
+
+      - name: Upload Appium Report
+        uses: actions/upload-artifact@v4
+        if: always() # Upload even if tests fail
+        with:
+          name: appium-report
+          path: appium-tests/reports/appium-report.xlsx
+          retention-days: 30
+
+  # ─────────────────────────────────────────────────────────
+  # JOB 3: Selenium Web Tests (headless Chrome)
+  # ─────────────────────────────────────────────────────────
+  selenium-tests:
+    name: 🌐 Selenium Web Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install frontend dependencies
+        run: npm install
+        working-directory: frontend
+
+      - name: Start Next.js frontend (background)
+        run: npm run dev &
+        working-directory: frontend
+        env:
+          NODE_ENV: test
+
+      - name: Wait for server to be ready
+        run: |
+          echo "Waiting for Next.js to start..."
+          for i in $(seq 1 30); do
+            curl -s http://localhost:3000/login -o /dev/null && echo "Server ready!" && break
+            echo "  Attempt $i/30 — waiting..."
+            sleep 2
+          done
+
+      - name: Install Selenium test dependencies
+        run: npm install
+        working-directory: selenium-tests
+
+      - name: Run Selenium Tests
+        run: node tests/login-tests.js
+        working-directory: selenium-tests
+
+      - name: Upload Selenium Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: selenium-report
+          path: selenium-tests/reports/selenium-report.xlsx
+          retention-days: 30
+
+  # ─────────────────────────────────────────────────────────
+  # JOB 4: Load Tests (100 users, 60 seconds)
+  # ─────────────────────────────────────────────────────────
+  load-tests:
+    name: ⚡ Load Tests (100 Users / 60s)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install frontend dependencies
+        run: npm install
+        working-directory: frontend
+
+      - name: Install exceljs for load test
+        run: npm install exceljs
+        working-directory: backend
+
+      - name: Start Next.js frontend (background)
+        run: npm run dev &
+        working-directory: frontend
+        env:
+          NODE_ENV: test
+
+      - name: Wait for server to be ready
+        run: |
+          echo "Waiting for Next.js to start..."
+          for i in $(seq 1 30); do
+            curl -s http://localhost:3000/login -o /dev/null && echo "Server ready!" && break
+            echo "  Attempt $i/30 — waiting..."
+            sleep 2
+          done
+
+      - name: Run Load Test (100 users × 60s)
+        run: node tests/load-test.js
+        working-directory: backend
+
+      - name: Upload Load Test Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: load-test-report
+          path: backend/tests/reports/load-test-report.xlsx
+          retention-days: 30
+
+  # ─────────────────────────────────────────────────────────
+  # FINAL: Combine all reports into one downloadable zip
+  # ─────────────────────────────────────────────────────────
+  collect-all-reports:
+    name: 📦 Collect All Reports
+    runs-on: ubuntu-latest
+    needs:
+      - vulnerability-tests
+      - appium-tests
+      - selenium-tests
+      - load-tests
+    if: always()
+    steps:
+      - name: Download all reports
+        uses: actions/download-artifact@v4
+        with:
+          path: all-reports
+
+      - name: List collected reports
+        run: find all-reports -name "*.xlsx" | sort
+
+      - name: Upload combined artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ALL-TEST-REPORTS
+          path: all-reports/
+          retention-days: 90
