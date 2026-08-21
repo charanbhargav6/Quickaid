@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import AddFundsModal from '@/components/AddFundsModal';
 import styles from './Wallet.module.css';
@@ -27,6 +27,15 @@ export default function WalletClient({ initialBalance, initialTransactions }) {
   const [transactions, setTransactions] = useState(initialTransactions);
   const [balance, setBalance] = useState(Number(initialBalance));
   const router = useRouter();
+
+  // Sync props to state when Next.js router.refresh() fetches new data
+  useEffect(() => {
+    setBalance(Number(initialBalance));
+  }, [initialBalance]);
+
+  useEffect(() => {
+    setTransactions(initialTransactions);
+  }, [initialTransactions]);
 
   const handleWithdraw = async (e) => {
     e.preventDefault();
