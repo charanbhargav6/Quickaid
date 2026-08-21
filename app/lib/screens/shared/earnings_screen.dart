@@ -31,7 +31,7 @@ class _EarningsScreenState extends State<EarningsScreen> {
       final transactions = List<Map<String, dynamic>>.from(await SupabaseService.client
           .from('transactions')
           .select()
-          .or('sender_id.eq.$userId,receiver_id.eq.$userId')
+          .eq('user_id', userId)
           .order('created_at', ascending: false));
 
       if (mounted) {
@@ -159,19 +159,21 @@ class _EarningsScreenState extends State<EarningsScreen> {
                             IconData iconData = Icons.swap_horiz;
                             Color iconColor = Colors.grey;
                             
-                            if (type == 'WITHDRAWAL') {
+                            if (type == 'PAYOUT' || type == 'WITHDRAWAL') {
                               iconData = Icons.account_balance;
                               iconColor = Colors.blue;
                             } else if (type == 'ESCROW') {
                               iconData = Icons.lock;
                               iconColor = Colors.orange;
-                            } else if (isReceived) {
+                            } else if (type == 'CREDIT' || type == 'DEPOSIT' || type == 'REFUND') {
                               iconData = Icons.arrow_downward;
                               iconColor = Colors.green;
                             } else {
                               iconData = Icons.arrow_upward;
                               iconColor = Colors.red;
                             }
+
+                            final isDebit = type == 'PAYOUT' || type == 'WITHDRAWAL' || type == 'DEBIT' || type == 'ESCROW';
 
                             return Card(
                               margin: const EdgeInsets.only(bottom: 12),
@@ -183,10 +185,10 @@ class _EarningsScreenState extends State<EarningsScreen> {
                                 title: Text(type),
                                 subtitle: Text(tx['created_at'].toString().split('T').first),
                                 trailing: Text(
-                                  '${type == 'WITHDRAWAL' ? '-' : isReceived ? '+' : '-'}₹${tx['amount']}',
+                                  '${isDebit ? '-' : '+'}₹${tx['amount']}',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
-                                    color: type == 'WITHDRAWAL' ? Colors.blue : (isReceived ? Colors.green : Colors.red),
+                                    color: isDebit ? Colors.red : Colors.green,
                                     fontSize: 16,
                                   ),
                                 ),

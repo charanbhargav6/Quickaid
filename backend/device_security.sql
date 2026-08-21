@@ -22,10 +22,10 @@ CREATE POLICY "Users can manage their own devices."
 
 -- 3. Security Function: Log Device
 -- A secure RPC function that records a device login, or creates it if it doesn't exist
-CREATE OR REPLACE FUNCTION log_device_login(p_device_id TEXT)
+CREATE OR REPLACE FUNCTION public.log_device_login(p_device_id TEXT)
 RETURNS void
 LANGUAGE plpgsql
-SECURITY DEFINER
+SECURITY DEFINER SET search_path = ''
 AS $$
 BEGIN
   INSERT INTO public.user_devices (user_id, device_id, last_login)
@@ -34,3 +34,5 @@ BEGIN
   DO UPDATE SET last_login = now();
 END;
 $$;
+
+REVOKE EXECUTE ON FUNCTION public.log_device_login(TEXT) FROM PUBLIC;

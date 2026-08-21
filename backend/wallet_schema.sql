@@ -65,7 +65,9 @@ BEGIN
   WHERE id = p_task_id;
 
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+REVOKE EXECUTE ON FUNCTION public.transfer_funds FROM PUBLIC;
 
 -- Simple function for the demo to add fake money to a wallet
 CREATE OR REPLACE FUNCTION public.add_demo_funds(p_amount NUMERIC)
@@ -79,4 +81,6 @@ BEGIN
   SET wallet_balance = wallet_balance + p_amount
   WHERE id = auth.uid();
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+REVOKE EXECUTE ON FUNCTION public.add_demo_funds FROM PUBLIC;

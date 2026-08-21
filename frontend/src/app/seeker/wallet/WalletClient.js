@@ -9,7 +9,7 @@ import { requestWithdrawal } from '../_actions/withdrawActions';
 
 const TX_ICONS = {
   deposit:      { icon: '⬇️', label: 'Deposited',        color: '#16a34a' },
-  credit:       { icon: '💰', label: 'Credited (Payout)', color: '#16a34a' },
+  credit:       { icon: '💰', label: 'Deposited / Credited', color: '#16a34a' },
   escrow:       { icon: '🔒', label: 'Escrowed (Task)',   color: '#dc2626' },
   refund:       { icon: '↩️', label: 'Refunded',          color: '#16a34a' },
   payout:       { icon: '⬆️', label: 'Withdrawn',         color: '#dc2626' },

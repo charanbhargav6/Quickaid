@@ -10,10 +10,10 @@ ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS current_lng DOUBLE PRECISION;
 
 -- 2. Create RPC to easily toggle availability
-CREATE OR REPLACE FUNCTION toggle_availability(p_duration_hours NUMERIC, p_lat DOUBLE PRECISION DEFAULT NULL, p_lng DOUBLE PRECISION DEFAULT NULL)
+CREATE OR REPLACE FUNCTION public.toggle_availability(p_duration_hours NUMERIC, p_lat DOUBLE PRECISION DEFAULT NULL, p_lng DOUBLE PRECISION DEFAULT NULL)
 RETURNS void
 LANGUAGE plpgsql
-SECURITY DEFINER
+SECURITY DEFINER SET search_path = ''
 AS $$
 BEGIN
   IF p_duration_hours > 0 THEN
@@ -33,3 +33,6 @@ BEGIN
   END IF;
 END;
 $$;
+
+REVOKE EXECUTE ON FUNCTION public.toggle_availability(NUMERIC, DOUBLE PRECISION, DOUBLE PRECISION) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.toggle_availability(NUMERIC, DOUBLE PRECISION, DOUBLE PRECISION) TO authenticated;

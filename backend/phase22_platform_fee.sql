@@ -77,6 +77,8 @@ BEGIN
   WHERE id = p_task_id;
 
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+REVOKE EXECUTE ON FUNCTION public.transfer_funds FROM PUBLIC;
 
 COMMIT;

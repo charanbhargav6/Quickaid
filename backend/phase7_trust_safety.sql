@@ -39,13 +39,15 @@ BEGIN
   -- We'll adjust trust score in public.profiles based on various triggers
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+REVOKE EXECUTE ON FUNCTION public.update_trust_score FROM PUBLIC;
 
 -- Provide a secure RPC for task completion to adjust trust score
 CREATE OR REPLACE FUNCTION complete_task_with_trust(p_task_id UUID)
 RETURNS void
 LANGUAGE plpgsql
-SECURITY DEFINER
+SECURITY DEFINER SET search_path = '';
 AS $$
 DECLARE
   v_helper_id UUID;
@@ -105,7 +107,7 @@ $$;
 CREATE OR REPLACE FUNCTION cancel_task_with_penalty(p_task_id UUID)
 RETURNS void
 LANGUAGE plpgsql
-SECURITY DEFINER
+SECURITY DEFINER SET search_path = '';
 AS $$
 DECLARE
   v_helper_id UUID;
@@ -142,7 +144,7 @@ $$;
 CREATE OR REPLACE FUNCTION submit_user_report(p_reported_id UUID, p_task_id UUID, p_reason TEXT, p_details TEXT)
 RETURNS void
 LANGUAGE plpgsql
-SECURITY DEFINER
+SECURITY DEFINER SET search_path = '';
 AS $$
 DECLARE
   v_reporter_id UUID;

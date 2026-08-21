@@ -94,4 +94,7 @@ BEGIN
     )
   ORDER BY distance_km ASC;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+REVOKE EXECUTE ON FUNCTION public.get_nearby_tasks FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_nearby_tasks TO authenticated;

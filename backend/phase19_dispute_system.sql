@@ -28,7 +28,9 @@ BEGIN
   SET status = 'disputed', dispute_reason = p_reason
   WHERE id = p_task_id;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+REVOKE EXECUTE ON FUNCTION public.dispute_task FROM PUBLIC;
 
 -- 4. Create RPC for Admin to resolve a dispute
 CREATE OR REPLACE FUNCTION public.admin_resolve_dispute(
@@ -64,4 +66,6 @@ BEGIN
     RAISE EXCEPTION 'Invalid resolution type';
   END IF;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+REVOKE EXECUTE ON FUNCTION public.admin_resolve_dispute FROM PUBLIC;

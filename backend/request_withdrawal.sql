@@ -39,4 +39,7 @@ BEGIN
   VALUES (v_user_id, p_amount, 'payout');
 
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+REVOKE EXECUTE ON FUNCTION public.request_withdrawal FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.request_withdrawal TO authenticated;

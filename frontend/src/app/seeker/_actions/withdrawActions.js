@@ -49,13 +49,21 @@ export async function requestWithdrawal(amount) {
     const { error: txError } = await supabaseAdmin.from('transactions').insert({
       user_id: user.id,
       amount: amount,
-      type: 'withdrawal'
+      type: 'payout' // 'payout' is valid in DB constraint, unlike 'withdrawal'
     });
 
     if (txError) {
       console.error('[requestWithdrawal] Failed to record transaction:', txError);
       // NOTE: We do not rollback because the money was logically withdrawn, 
       // but in a production app we'd need a robust transaction queue here.
+    } else {
+      // Send notification for successful withdrawal
+      await supabaseAdmin.from('notifications').insert({
+        user_id: user.id,
+        title: 'Withdrawal Successful 🏦',
+        body: `Your withdrawal of ₹${amount} has been processed successfully.`,
+        data: { type: 'withdrawal_success' }
+      });
     }
 
     revalidatePath('/seeker/wallet');

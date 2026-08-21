@@ -114,7 +114,9 @@ BEGIN
   
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+REVOKE EXECUTE ON FUNCTION public.update_trust_score FROM PUBLIC;
 
 -- 5. Trigger to auto-suspend account if trust score drops below 25
 CREATE OR REPLACE FUNCTION public.check_trust_score_suspension()
@@ -126,7 +128,9 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+REVOKE EXECUTE ON FUNCTION public.check_trust_score_suspension FROM PUBLIC;
 
 DROP TRIGGER IF EXISTS on_trust_score_change ON public.profiles;
 CREATE TRIGGER on_trust_score_change

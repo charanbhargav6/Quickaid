@@ -27,4 +27,6 @@ BEGIN
   WHERE id = p_target_user_id;
 
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+REVOKE EXECUTE ON FUNCTION public.change_user_role FROM PUBLIC;

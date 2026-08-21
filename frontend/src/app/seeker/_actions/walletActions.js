@@ -50,8 +50,15 @@ export async function addFunds(rawInput) {
   await supabase.from('transactions').insert({
     user_id: user.id,
     amount: amount,
-    type: 'deposit',
-    status: 'completed'
+    type: 'credit' // 'credit' is allowed by DB constraint ('deposit' is not)
+  });
+
+  // 4. Send notification for successful deposit
+  await supabase.from('notifications').insert({
+    user_id: user.id,
+    title: 'Deposit Successful 💰',
+    body: `₹${amount} has been successfully added to your wallet.`,
+    data: { type: 'deposit_success' }
   });
 
   revalidatePath('/seeker/wallet');

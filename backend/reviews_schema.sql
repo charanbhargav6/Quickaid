@@ -45,7 +45,9 @@ BEGIN
   
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+REVOKE EXECUTE ON FUNCTION public.update_trust_score FROM PUBLIC;
 
 -- Trigger to recalculate trust score whenever a review is inserted
 DROP TRIGGER IF EXISTS on_review_created ON public.reviews;

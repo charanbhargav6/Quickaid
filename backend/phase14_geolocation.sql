@@ -58,7 +58,10 @@ BEGIN
     AND public.calculate_distance_km(p_lat, p_lng, t.lat::DOUBLE PRECISION, t.lng::DOUBLE PRECISION) <= p_radius_km
   ORDER BY distance_km ASC;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+REVOKE EXECUTE ON FUNCTION public.get_nearby_tasks FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_nearby_tasks TO authenticated;
 
 
 -- 3. Create RPC to fetch nearby active helpers for a seeker
@@ -87,4 +90,6 @@ BEGIN
     AND public.calculate_distance_km(p_lat, p_lng, p.current_lat, p.current_lng) <= p_radius_km
   ORDER BY distance_km ASC;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = '';
+
+REVOKE EXECUTE ON FUNCTION public.get_nearby_helpers FROM PUBLIC;
