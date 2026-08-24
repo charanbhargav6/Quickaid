@@ -5,10 +5,7 @@ import crypto from 'crypto';
 import { createClient } from '@/utils/supabase/server';
 import { revalidatePath } from 'next/cache';
 
-const razorpay = new Razorpay({
-  key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
+// Remove top-level initialization to prevent crashing on import if keys are missing
 
 /**
  * Step 1: Create a Razorpay order on the server.
@@ -30,6 +27,15 @@ export async function createRazorpayOrder(amount) {
 
     const shortUserId = user.id.replace(/-/g, '').slice(0, 12); // 12 hex chars
     const receipt = `qaid_${shortUserId}_${Date.now().toString(36)}`; // max ~30 chars
+
+    if (!process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+      return { success: false, error: 'Razorpay keys are not configured on the server.' };
+    }
+
+    const razorpay = new Razorpay({
+      key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET,
+    });
 
     // Razorpay amount is in paise (1 INR = 100 paise)
     const order = await razorpay.orders.create({
