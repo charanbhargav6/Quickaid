@@ -175,7 +175,7 @@ export default function WalletClient({ initialBalance, initialTransactions }) {
                     <div>
                       <div style={{ fontWeight: 600, fontSize: '14px' }}>{meta.label}</div>
                       <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                        {new Date(tx.created_at).toLocaleString()} {tx.description ? `· ${tx.description}` : ''}
+                        {new Date(tx.created_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} {tx.description ? `· ${tx.description}` : ''}
                       </div>
                     </div>
                   </div>

@@ -6,6 +6,11 @@ export default async function WalletPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  if (!user) {
+    // If the user isn't logged in, middleware usually catches it, but this prevents 500 crashes during SSR prefetching
+    return null;
+  }
+
   // Fetch profile wallet balance
   const { data: profile } = await supabase
     .from('profiles')

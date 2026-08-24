@@ -24,11 +24,18 @@ export async function createRazorpayOrder(amount) {
   }
 
   try {
+    console.log('[createRazorpayOrder] Key ID present:', !!process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID);
+    console.log('[createRazorpayOrder] Key Secret present:', !!process.env.RAZORPAY_KEY_SECRET);
+    console.log('[createRazorpayOrder] Creating order for amount (paise):', Math.round(amount * 100));
+
+    const shortUserId = user.id.replace(/-/g, '').slice(0, 12); // 12 hex chars
+    const receipt = `qaid_${shortUserId}_${Date.now().toString(36)}`; // max ~30 chars
+
     // Razorpay amount is in paise (1 INR = 100 paise)
     const order = await razorpay.orders.create({
       amount: Math.round(amount * 100),
       currency: 'INR',
-      receipt: `wallet_topup_${user.id}_${Date.now()}`,
+      receipt,
       notes: {
         user_id: user.id,
         purpose: 'wallet_topup',
@@ -42,8 +49,10 @@ export async function createRazorpayOrder(amount) {
       currency: order.currency,
     };
   } catch (err) {
-    console.error('[createRazorpayOrder] Error:', err);
-    return { success: false, error: 'Failed to initiate payment. Please try again.' };
+    console.error('[createRazorpayOrder] Full error:', JSON.stringify(err, null, 2));
+    console.error('[createRazorpayOrder] Error message:', err?.message);
+    console.error('[createRazorpayOrder] Error description:', err?.error?.description);
+    return { success: false, error: `Failed to initiate payment: ${err?.error?.description || err?.message || 'Unknown error'}` };
   }
 }
 

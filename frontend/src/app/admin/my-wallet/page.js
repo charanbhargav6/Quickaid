@@ -5,6 +5,10 @@ export default async function AdminWalletPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
+  if (!user) {
+    return null;
+  }
+
   // Fetch profile wallet balance
   const { data: profile } = await supabase
     .from('profiles')
