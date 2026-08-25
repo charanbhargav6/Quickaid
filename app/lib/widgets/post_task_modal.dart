@@ -1,3 +1,4 @@
+import 'package:geolocator/geolocator.dart';
 import 'dart:ui';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -26,7 +27,7 @@ class PostTaskModal extends StatefulWidget {
 }
 
 class _PostTaskModalState extends State<PostTaskModal> {
-  final _titleCtrl = TextEditingController();
+  final _customTitleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   final _payCtrl = TextEditingController();
   final _locCtrl = TextEditingController();
@@ -41,8 +42,28 @@ class _PostTaskModalState extends State<PostTaskModal> {
   LatLng _selectedDestination = const LatLng(12.9719, 79.1588);
   final MapController _mapController = MapController();
 
-  String _taskType = 'physical'; // 'physical', 'delivery', 'digital'
-  String _category = 'General Help'; // New Category Field
+  static const Map<String, List<Map<String, String>>> jobCategories = {
+    'physical': [
+      {'value': 'moving', 'label': '🚚 Moving & Heavy Lifting'},
+      {'value': 'cleaning', 'label': '🧹 Cleaning & Organising'},
+      {'value': 'plumbing_repair', 'label': '🔧 Plumbing & Home Repair'},
+      {'value': 'assembly', 'label': '🪑 Furniture Assembly'},
+      {'value': 'other_physical', 'label': '✏️ Other Physical Task'},
+    ],
+    'delivery': [
+      {'value': 'delivery', 'label': '📦 Delivery & Errands'},
+      {'value': 'other_delivery', 'label': '✏️ Other Delivery Task'},
+    ],
+    'digital': [
+      {'value': 'technical', 'label': '💻 Technical & IT Help'},
+      {'value': 'design', 'label': '🎨 Design & Editing'},
+      {'value': 'other_digital', 'label': '✏️ Other Digital Task'},
+    ]
+  };
+
+  bool get _requiresTwoLocations => _taskType == 'delivery' || _category == 'moving';
+  String _taskType = 'physical';
+  String? _category;
   String _vehicleType = 'bike'; // bike, auto, mini_car, suv, mini_truck
   bool _placingDestination = false;
   bool _isSearchingLoc = false;
@@ -50,7 +71,7 @@ class _PostTaskModalState extends State<PostTaskModal> {
 
   @override
   void dispose() {
-    _titleCtrl.dispose();
+    _customTitleCtrl.dispose();
     _descCtrl.dispose();
     _payCtrl.dispose();
     _locCtrl.dispose();
@@ -114,9 +135,9 @@ class _PostTaskModalState extends State<PostTaskModal> {
         
         setState(() {
           if (isDestination) {
-            if (_destLocCtrl.text.isEmpty) _destLocCtrl.text = shortAddress;
+            _destLocCtrl.text = shortAddress;
           } else {
-            if (_locCtrl.text.isEmpty) _locCtrl.text = shortAddress;
+            _locCtrl.text = shortAddress;
           }
         });
       }
@@ -126,7 +147,7 @@ class _PostTaskModalState extends State<PostTaskModal> {
   }
 
   void _calculateDeliveryFare() {
-    if (_taskType == 'delivery') {
+    if (_requiresTwoLocations) {
       final distMeters = const Distance().distance(_selectedLocation, _selectedDestination);
       final distKm = distMeters / 1000.0;
 
@@ -158,9 +179,24 @@ class _PostTaskModalState extends State<PostTaskModal> {
   }
 
   Future<void> _submitTask() async {
-    if (_titleCtrl.text.trim().isEmpty) {
-      setState(() => _errorText = 'Task Title is required');
+    if (_category == null) {
+      setState(() => _errorText = 'Please select a Category');
       return;
+    }
+    
+    bool isOther = _category!.startsWith('other');
+    if (isOther && _customTitleCtrl.text.trim().isEmpty) {
+      setState(() => _errorText = 'Please describe the task');
+      return;
+    }
+
+    String finalTitle = '';
+    if (isOther) {
+      finalTitle = _customTitleCtrl.text.trim();
+    } else {
+      final categoryMap = jobCategories[_taskType]!.firstWhere((c) => c['value'] == _category);
+      final rawLabel = categoryMap['label']!;
+      finalTitle = rawLabel.substring(rawLabel.indexOf(' ') + 1).trim();
     }
     final payAmount = double.tryParse(_payCtrl.text) ?? 0.0;
     if (payAmount < 50) {
@@ -197,15 +233,14 @@ class _PostTaskModalState extends State<PostTaskModal> {
       }
 
       Map<String, dynamic> taskData = {
-        'title': _titleCtrl.text,
+        'title': finalTitle,
         'description': finalDesc,
         'pay': payAmount,
         'category': _category,
         'task_type': _taskType,
         'seeker_id': widget.currentUser['id'],
         'status': 'open',
-        'location': _taskType != 'digital' ? _locCtrl.text.isEmpty ? 'Specified on Map' : _locCtrl.text : 'Remote / Online',
-        if (_taskType == 'delivery') 'vehicle_required': _vehicleType,
+        if (_requiresTwoLocations) 'vehicle_required': _vehicleType,
       };
 
       if (_taskType != 'digital') {
@@ -214,7 +249,7 @@ class _PostTaskModalState extends State<PostTaskModal> {
         taskData['location_name'] = _locCtrl.text.isEmpty ? 'Specified on Map' : _locCtrl.text;
       }
 
-      if (_taskType == 'delivery') {
+      if (_requiresTwoLocations) {
         taskData['destination_name'] = _destLocCtrl.text.isEmpty ? 'Specified on Map' : _destLocCtrl.text;
         taskData['destination_lat'] = _selectedDestination.latitude;
         taskData['destination_lng'] = _selectedDestination.longitude;
@@ -227,7 +262,8 @@ class _PostTaskModalState extends State<PostTaskModal> {
         widget.onTaskPosted();
       }
     } catch (e) {
-      setState(() { _errorText = 'Failed to post task. Please try again.'; _isUploading = false; });
+      debugPrint('POST TASK ERROR: $e');
+      setState(() { _errorText = 'Failed: ${e.toString()}'; _isUploading = false; });
     }
   }
 
@@ -330,8 +366,31 @@ class _PostTaskModalState extends State<PostTaskModal> {
                       ),
                       const SizedBox(height: 20),
 
-                      _buildTextField(controller: _titleCtrl, label: 'Task Title', icon: Icons.title, hint: 'e.g. Help me move a sofa'),
+                      // Dynamic Category Dropdown
+                      const Text('Category *', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
+                      const SizedBox(height: 8),
+                      DropdownButtonFormField<String>(
+                        isExpanded: true,
+                        value: _category,
+                        decoration: InputDecoration(
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
+                        ),
+                        hint: const Text('Select a job type...'),
+                        items: jobCategories[_taskType]!.map((c) {
+                          return DropdownMenuItem(value: c['value']!, child: Text(c['label']!));
+                        }).toList(),
+                        onChanged: (val) {
+                          setState(() => _category = val);
+                        },
+                      ),
                       const SizedBox(height: 12),
+                      
+                      if (_category != null && _category!.startsWith('other')) ...[
+                        _buildTextField(controller: _customTitleCtrl, label: 'Describe the Job *', icon: Icons.title, hint: 'e.g. Help me move a sofa'),
+                        const SizedBox(height: 12),
+                      ],
                       _buildTextField(controller: _descCtrl, label: 'Description (Optional)', icon: Icons.description, hint: 'More details...'),
                       const SizedBox(height: 12),
                       
@@ -340,11 +399,11 @@ class _PostTaskModalState extends State<PostTaskModal> {
                         children: [
                           _buildTextField(
                             controller: _payCtrl,
-                            label: _taskType == 'delivery' ? 'Auto-Calculated Pay (₹)' : 'Pay (₹) - Min ₹50',
+                            label: _requiresTwoLocations ? 'Auto-Calculated Pay (₹)' : 'Pay (₹) - Min ₹50',
                             icon: Icons.currency_rupee,
                             keyboardType: TextInputType.number,
-                            readOnly: _taskType == 'delivery',
-                            hint: _taskType == 'delivery' ? 'Set pins on map to calculate' : 'e.g. 150',
+                            readOnly: _requiresTwoLocations,
+                            hint: _requiresTwoLocations ? 'Set pins on map to calculate' : 'e.g. 150',
                           ),
                           ValueListenableBuilder<TextEditingValue>(
                             valueListenable: _payCtrl,
@@ -357,9 +416,12 @@ class _PostTaskModalState extends State<PostTaskModal> {
                                     children: [
                                       const Icon(Icons.check_circle, size: 12, color: Colors.green),
                                       const SizedBox(width: 4),
-                                      Text(
-                                        'Helper receives ₹${(pay * 0.95).round()} (5% Platform Fee)',
-                                        style: const TextStyle(fontSize: 11, color: Colors.green, fontWeight: FontWeight.w500),
+                                      Expanded(
+                                        child: Text(
+                                          'Helper receives ₹${(pay * 0.95).round()} (5% Platform Fee)',
+                                          style: const TextStyle(fontSize: 11, color: Colors.green, fontWeight: FontWeight.w500),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -372,30 +434,7 @@ class _PostTaskModalState extends State<PostTaskModal> {
                       ),
                       const SizedBox(height: 20),
 
-                      // Category Dropdown
-                      const Text('Category', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.blueGrey)),
-                      const SizedBox(height: 8),
-                      DropdownButtonFormField<String>(
-                        value: _category,
-                        decoration: InputDecoration(
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE2E8F0))),
-                        ),
-                        items: const [
-                          DropdownMenuItem(value: 'General Help', child: Text('General Help')),
-                          DropdownMenuItem(value: 'Moving & Lifting', child: Text('Moving & Lifting')),
-                          DropdownMenuItem(value: 'Handyman / Repairs', child: Text('Handyman / Repairs')),
-                          DropdownMenuItem(value: 'Delivery / Errands', child: Text('Delivery / Errands')),
-                          DropdownMenuItem(value: 'Cleaning', child: Text('Cleaning')),
-                          DropdownMenuItem(value: 'IT & Technical', child: Text('IT & Technical')),
-                          DropdownMenuItem(value: 'Assembly', child: Text('Assembly')),
-                        ],
-                        onChanged: (val) {
-                          if (val != null) setState(() => _category = val);
-                        },
-                      ),
-                      const SizedBox(height: 20),
+
 
                       // Location Section
                       if (_taskType != 'digital') ...[
@@ -403,7 +442,7 @@ class _PostTaskModalState extends State<PostTaskModal> {
                         const SizedBox(height: 12),
                         _buildTextField(
                           controller: _locCtrl,
-                          label: _taskType == 'delivery' ? 'Pickup Location' : 'Task Location',
+                          label: _requiresTwoLocations ? 'Pickup Location' : 'Task Location',
                           icon: Icons.location_on,
                           suffixIcon: IconButton(
                             icon: _isSearchingLoc ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.search, color: Colors.blue),
@@ -411,7 +450,7 @@ class _PostTaskModalState extends State<PostTaskModal> {
                           ),
                         ),
                         
-                        if (_taskType == 'delivery') ...[
+                        if (_requiresTwoLocations) ...[
                           const SizedBox(height: 12),
                           _buildTextField(
                             controller: _destLocCtrl,
@@ -430,6 +469,7 @@ class _PostTaskModalState extends State<PostTaskModal> {
                               const Text('Vehicle Required', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                               const SizedBox(height: 8),
                               DropdownButtonFormField<String>(
+                                isExpanded: true,
                                 initialValue: _vehicleType,
                                 decoration: InputDecoration(
                                   contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
@@ -520,7 +560,7 @@ class _PostTaskModalState extends State<PostTaskModal> {
                                 initialZoom: 15.0,
                                 onTap: (tapPosition, point) {
                                   setState(() {
-                                    if (_taskType == 'delivery' && _placingDestination) {
+                                    if (_requiresTwoLocations && _placingDestination) {
                                       _selectedDestination = point;
                                       _reverseGeocode(point, true);
                                     } else {
@@ -544,7 +584,7 @@ class _PostTaskModalState extends State<PostTaskModal> {
                                       height: 40,
                                       child: const Icon(Icons.location_on, color: Colors.blue, size: 40),
                                     ),
-                                    if (_taskType == 'delivery')
+                                    if (_requiresTwoLocations)
                                       Marker(
                                         point: _selectedDestination,
                                         width: 40,
@@ -701,6 +741,8 @@ class _PostTaskModalState extends State<PostTaskModal> {
         onTap: () {
           setState(() {
             _taskType = value;
+            _category = null;
+            _customTitleCtrl.clear();
             _calculateDeliveryFare();
           });
         },

@@ -8,13 +8,10 @@ import { createClient } from '@/lib/supabase';
 import { requestWithdrawal } from '../_actions/withdrawActions';
 
 const TX_ICONS = {
-  deposit:      { icon: '⬇️', label: 'Deposited',        color: '#16a34a' },
-  credit:       { icon: '💰', label: 'Deposited / Credited', color: '#16a34a' },
-  escrow:       { icon: '🔒', label: 'Escrowed (Task)',   color: '#dc2626' },
-  refund:       { icon: '↩️', label: 'Refunded',          color: '#16a34a' },
-  payout:       { icon: '⬆️', label: 'Withdrawn',         color: '#dc2626' },
-  withdrawal:   { icon: '🏦', label: 'UPI Withdrawal',    color: '#dc2626' },
-  platform_fee: { icon: '📊', label: 'Platform Revenue',  color: '#16a34a' },
+  earning:      { icon: '⬇️', label: 'Added to Wallet', color: '#16a34a' },
+  payment:      { icon: '🔒', label: 'Payment / Escrow', color: '#dc2626' },
+  refund:       { icon: '↩️', label: 'Refunded', color: '#16a34a' },
+  withdrawal:   { icon: '🏦', label: 'Withdrawn', color: '#dc2626' },
 };
 
 export default function WalletClient({ initialBalance, initialTransactions }) {
@@ -164,7 +161,10 @@ export default function WalletClient({ initialBalance, initialTransactions }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
             {transactions.map(tx => {
               const meta = TX_ICONS[tx.type] || { icon: '💳', label: tx.type, color: '#64748b' };
-              const isCredit = ['deposit', 'credit', 'refund', 'platform_fee'].includes(tx.type);
+              const isCredit = ['earning', 'refund'].includes(tx.type);
+              const txTitle = tx.description ? tx.description.split(' | ')[0] : meta.label;
+              const txSubtitle = tx.description?.includes(' | ') ? tx.description.split(' | ')[1] : '';
+              
               return (
                 <div key={tx.id} style={{
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -173,9 +173,9 @@ export default function WalletClient({ initialBalance, initialTransactions }) {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <span style={{ fontSize: '22px' }}>{meta.icon}</span>
                     <div>
-                      <div style={{ fontWeight: 600, fontSize: '14px' }}>{meta.label}</div>
+                      <div style={{ fontWeight: 600, fontSize: '14px' }}>{txTitle}</div>
                       <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                        {new Date(tx.created_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} {tx.description ? `· ${tx.description}` : ''}
+                        {new Date(tx.created_at).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })} {txSubtitle ? `· ${txSubtitle}` : ''}
                       </div>
                     </div>
                   </div>

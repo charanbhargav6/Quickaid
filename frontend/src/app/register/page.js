@@ -345,7 +345,7 @@ export default function Register() {
             </div>
           </div>
 
-          <button type="submit" className={`btn btn-primary ${styles.loginBtn}`} disabled={loading || !isPasswordValid || password !== confirmPassword} style={{ marginTop: '0.5rem' }}>
+          <button type="submit" className={`btn btn-primary ${styles.loginBtn}`} disabled={loading} style={{ marginTop: '0.5rem' }}>
             {loading ? 'Creating Account...' : 'Sign Up'}
           </button>
         </form>

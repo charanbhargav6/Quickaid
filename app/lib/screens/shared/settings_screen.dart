@@ -67,8 +67,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+
+  Future<void> _resetPassword() async {
+    final email = SupabaseService.client.auth.currentUser?.email;
+    if (email == null || email.isEmpty) return;
+    
+    try {
+      await SupabaseService.client.auth.resetPasswordForEmail(email);
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Password reset email sent!')));
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final email = SupabaseService.client.auth.currentUser?.email ?? '';
+
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       drawer: _profile != null ? AppDrawer(user: _profile!) : null,
@@ -79,52 +95,135 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Edit Profile', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  const Text('Settings', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  Text('Manage your profile and preferences.', style: TextStyle(color: isDark ? Colors.white70 : Colors.black54)),
                   const SizedBox(height: 24),
                   
-                  const Text('Full Name'),
-                  const SizedBox(height: 8),
-                  TextField(controller: _nameCtrl, decoration: const InputDecoration(filled: true)),
-                  
-                  const SizedBox(height: 16),
-                  const Text('Phone Number'),
-                  const SizedBox(height: 8),
-                  TextField(controller: _phoneCtrl, decoration: const InputDecoration(filled: true)),
-                  
-                  const SizedBox(height: 16),
-                  const Text('Role'),
-                  const SizedBox(height: 8),
+                  // Profile Information Section
                   Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade300),
-                      borderRadius: BorderRadius.circular(8),
+                      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: isDark ? Colors.white12 : Colors.grey[200]!),
+                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
                     ),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: _selectedRole,
-                        isExpanded: true,
-                        items: const [
-                          DropdownMenuItem(value: 'seeker', child: Text('Seeker')),
-                          DropdownMenuItem(value: 'helper', child: Text('Helper')),
-                          DropdownMenuItem(value: 'both', child: Text('Both')),
-                          DropdownMenuItem(value: 'admin', child: Text('Admin (Restricted)')),
-                        ],
-                        onChanged: (val) {
-                          if (val != null && val != 'admin') {
-                            setState(() => _selectedRole = val);
-                          } else if (val == 'admin') {
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cannot self-promote to Admin.')));
-                          }
-                        },
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Profile Information', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        const Divider(height: 32),
+                        
+                        const Text('Full Name', style: TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _nameCtrl, 
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: isDark ? Colors.black26 : Colors.grey[100],
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                          )
+                        ),
+                        
+                        const SizedBox(height: 16),
+                        const Text('Phone Number', style: TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _phoneCtrl, 
+                          keyboardType: TextInputType.phone,
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: isDark ? Colors.black26 : Colors.grey[100],
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                          )
+                        ),
+                        
+                        const SizedBox(height: 16),
+                        const Text('Email Address', style: TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: TextEditingController(text: email), 
+                          readOnly: true,
+                          style: const TextStyle(color: Colors.grey),
+                          decoration: InputDecoration(
+                            filled: true,
+                            fillColor: isDark ? Colors.black26 : Colors.grey[100],
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                          )
+                        ),
+                        
+                        const SizedBox(height: 16),
+                        const Text('Role', style: TextStyle(fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 8),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.black26 : Colors.grey[100],
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              value: _selectedRole,
+                              isExpanded: true,
+                              items: const [
+                                DropdownMenuItem(value: 'seeker', child: Text('Seeker')),
+                                DropdownMenuItem(value: 'helper', child: Text('Helper')),
+                                DropdownMenuItem(value: 'both', child: Text('Both')),
+                                DropdownMenuItem(value: 'admin', child: Text('Admin (Restricted)')),
+                              ],
+                              onChanged: (val) {
+                                if (val != null && val != 'admin') {
+                                  setState(() => _selectedRole = val);
+                                } else if (val == 'admin') {
+                                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Cannot self-promote to Admin.')));
+                                }
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   
+                  const SizedBox(height: 24),
+                  
+                  // Security Section
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: isDark ? Colors.white12 : Colors.grey[200]!),
+                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Security', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                        const Divider(height: 32),
+                        Text(
+                          "To change your password, we'll send a secure reset link to your email.",
+                          style: TextStyle(color: isDark ? Colors.white70 : Colors.black54),
+                        ),
+                        const SizedBox(height: 16),
+                        OutlinedButton(
+                          onPressed: _resetPassword,
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            side: const BorderSide(color: Colors.blue),
+                          ),
+                          child: const Text('Send Password Reset Email', style: TextStyle(color: Colors.blue, fontWeight: FontWeight.bold)),
+                        ),
+                      ],
+                    ),
+                  ),
+
                   const SizedBox(height: 32),
                   GradientButton(
-                    label: 'Save Changes',
+                    label: 'Save Profile Changes',
                     onPressed: _saving ? () {} : _saveProfile,
                     loading: _saving,
                   ),

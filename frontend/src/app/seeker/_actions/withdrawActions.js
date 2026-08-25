@@ -49,7 +49,8 @@ export async function requestWithdrawal(amount) {
     const { error: txError } = await supabaseAdmin.from('transactions').insert({
       user_id: user.id,
       amount: amount,
-      type: 'payout' // 'payout' is valid in DB constraint, unlike 'withdrawal'
+      type: 'withdrawal',
+      description: 'UPI Withdrawal'
     });
 
     if (txError) {

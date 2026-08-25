@@ -96,13 +96,14 @@ export async function postTask(formData) {
     }
 
     // 4. Create Escrow Transaction
-    await supabase.from('transactions').insert({
+    const { error: escrowError } = await supabase.from('transactions').insert({
       task_id: task.id,
       user_id: user.id,
       amount: parsed.data.price,
-      type: 'escrow',
-      status: 'completed'
+      type: 'payment',
+      description: `Task Payment | ${parsed.data.title}`
     });
+    if (escrowError) console.error('[postTask] Escrow insert error:', escrowError);
 
     // Revalidate the seeker dashboard cache
     revalidatePath('/seeker')
@@ -144,13 +145,14 @@ export async function acceptOffer(rawInput) {
       return { success: false, error: `You need ₹${priceDifference} more in your wallet to accept this offer.` }
     }
     await supabase.from('profiles').update({ wallet_balance: balance - priceDifference }).eq('id', user.id)
-    await supabase.from('transactions').insert({
+    const { error: escrowError } = await supabase.from('transactions').insert({
       task_id: offer.task_id,
       user_id: user.id,
       amount: priceDifference,
-      type: 'escrow',
-      status: 'completed'
+      type: 'payment',
+      description: `Task Escrow Update | ${offer.tasks.title}`
     })
+    if (escrowError) console.error('[acceptOffer] Escrow update error:', escrowError);
   } else if (priceDifference < 0) {
     const refund = Math.abs(priceDifference)
     const { data: profile } = await supabase.from('profiles').select('wallet_balance').eq('id', user.id).single()
@@ -232,13 +234,14 @@ export async function cancelTask(taskId) {
     const newBalance = Number(profile?.wallet_balance || 0) + payAmount
     await supabase.from('profiles').update({ wallet_balance: newBalance }).eq('id', user.id)
     // Record refund transaction
-    await supabase.from('transactions').insert({
+    const { error: refundError } = await supabase.from('transactions').insert({
       task_id: taskId,
       user_id: user.id,
       amount: payAmount,
       type: 'refund',
-      status: 'completed'
+      description: 'Task Cancelled Refund'
     })
+    if (refundError) console.error('[cancelTask] Refund insert error:', refundError);
   }
 
   // Mark task cancelled

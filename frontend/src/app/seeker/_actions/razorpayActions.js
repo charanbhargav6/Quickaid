@@ -99,12 +99,17 @@ export async function verifyAndCreditWallet({ razorpay_order_id, razorpay_paymen
   }
 
   // Record transaction history
-  await supabase.from('transactions').insert({
+  const { error: txError } = await supabase.from('transactions').insert({
     user_id: user.id,
     amount: amountInRupees,
-    type: 'credit',
-    description: `Razorpay | ${razorpay_payment_id}`,
+    type: 'earning',
+    description: `Razorpay Deposit | ${razorpay_payment_id}`,
   });
+
+  if (txError) {
+    console.error('[verifyAndCreditWallet] Failed to record transaction history:', txError);
+    // Continue despite error so user isn't stuck without their money, but log it!
+  }
 
   // Send notification
   await supabase.from('notifications').insert({

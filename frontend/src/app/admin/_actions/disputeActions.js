@@ -103,8 +103,8 @@ export async function resolveDispute(taskId, resolution, adminId, adminNotes = '
         await supabaseAdmin.from('transactions').insert({
           user_id: task.helper_id,
           amount: helperPayout,
-          type: 'credit',
-          description: 'Payment for disputed task (Admin resolved)'
+          type: 'earning',
+          description: 'Dispute Payment | Admin resolved'
         });
       }
 
